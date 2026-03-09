@@ -1,5 +1,5 @@
 {
-  "name": "RNTest",
+  "name": "SuperApp",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -7,7 +7,17 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "sample:start": "react-native start --config miniapps/sample/metro.config.js --port 8082",
+    "sample:bundle:ios": "react-native bundle --config miniapps/sample/metro.config.js --platform ios --dev false --entry-file miniapps/sample/index.js --bundle-output miniapps/sample/build/main.jsbundle --assets-dest miniapps/sample/build"
+  },
+  "codegenConfig": {
+    "name": "AppSpecs",
+    "type": "modules",
+    "jsSrcsDir": "specs",
+    "android": {
+      "javaPackageName": "com.superapp.specs"
+    }
   },
   "dependencies": {
     "react": "19.2.0",

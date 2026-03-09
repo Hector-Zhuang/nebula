@@ -7,23 +7,55 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0C80B921A6F3F58F76C31292 /* libPods-RNTest.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-RNTest.a */; };
+		0C80B921A6F3F58F76C31292 /* libPods-SuperApp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-SuperApp.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		2B88C4E66B7A4B8B8E7F1131 /* RNInstanceNavigator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B88C4E56B7A4B8B8E7F1131 /* RNInstanceNavigator.swift */; };
+		2B88C4E86B7A4B8B8E7F1131 /* RNInstanceNavigatorBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B88C4E76B7A4B8B8E7F1131 /* RNInstanceNavigatorBridge.m */; };
+		2B88C4EA6B7A4B8B8E7F1131 /* RNInstanceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B88C4E96B7A4B8B8E7F1131 /* RNInstanceViewController.swift */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		7C2A91A7F45EEB304E10764A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		CB968C072F5E829900C3FD9C /* NebulaRouterBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = CB968C032F5E829900C3FD9C /* NebulaRouterBridge.m */; };
+		CB968C082F5E829900C3FD9C /* NebulaJSIGateway.mm in Sources */ = {isa = PBXBuildFile; fileRef = CB968BFE2F5E829900C3FD9C /* NebulaJSIGateway.mm */; };
+		CB968C092F5E829900C3FD9C /* NebulaPerformanceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB968C012F5E829900C3FD9C /* NebulaPerformanceMonitor.swift */; };
+		CB968C0A2F5E829900C3FD9C /* NebulaNativeModuleBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = CB968C002F5E829900C3FD9C /* NebulaNativeModuleBridge.m */; };
+		CB968C0B2F5E829900C3FD9C /* NebulaContainerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB968BFB2F5E829900C3FD9C /* NebulaContainerController.swift */; };
+		CB968C0C2F5E829900C3FD9C /* NebulaRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB968C022F5E829900C3FD9C /* NebulaRouter.swift */; };
+		CB968C0D2F5E829900C3FD9C /* NebulaNativeModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB968BFF2F5E829900C3FD9C /* NebulaNativeModule.swift */; };
+		CB968C0E2F5E829900C3FD9C /* NebulaConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB968BFA2F5E829900C3FD9C /* NebulaConfig.swift */; };
+		CB968C0F2F5E829900C3FD9C /* NebulaHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB968BFC2F5E829900C3FD9C /* NebulaHost.swift */; };
+		CB968C102F5E829900C3FD9C /* NebulaAppManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB968BF92F5E829900C3FD9C /* NebulaAppManager.swift */; };
+		CB968C112F5E829900C3FD9C /* NebulaUsageExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB968C042F5E829900C3FD9C /* NebulaUsageExample.swift */; };
+		CB968C132F5E829900C3FD9C /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = CB968C052F5E829900C3FD9C /* README.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		13B07F961A680F5B00A75B9A /* RNTest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RNTest.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = RNTest/Images.xcassets; sourceTree = "<group>"; };
-		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = RNTest/Info.plist; sourceTree = "<group>"; };
-		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = RNTest/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		3B4392A12AC88292D35C810B /* Pods-RNTest.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RNTest.debug.xcconfig"; path = "Target Support Files/Pods-RNTest/Pods-RNTest.debug.xcconfig"; sourceTree = "<group>"; };
-		5709B34CF0A7D63546082F79 /* Pods-RNTest.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RNTest.release.xcconfig"; path = "Target Support Files/Pods-RNTest/Pods-RNTest.release.xcconfig"; sourceTree = "<group>"; };
-		5DCACB8F33CDC322A6C60F78 /* libPods-RNTest.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-RNTest.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = RNTest/AppDelegate.swift; sourceTree = "<group>"; };
-		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = RNTest/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		13B07F961A680F5B00A75B9A /* SuperApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SuperApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = SuperApp/Images.xcassets; sourceTree = "<group>"; };
+		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = SuperApp/Info.plist; sourceTree = "<group>"; };
+		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = SuperApp/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		2B88C4E56B7A4B8B8E7F1131 /* RNInstanceNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RNInstanceNavigator.swift; path = SuperApp/RNInstanceNavigator.swift; sourceTree = "<group>"; };
+		2B88C4E76B7A4B8B8E7F1131 /* RNInstanceNavigatorBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = RNInstanceNavigatorBridge.m; path = SuperApp/RNInstanceNavigatorBridge.m; sourceTree = "<group>"; };
+		2B88C4E96B7A4B8B8E7F1131 /* RNInstanceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RNInstanceViewController.swift; path = SuperApp/RNInstanceViewController.swift; sourceTree = "<group>"; };
+		3B4392A12AC88292D35C810B /* Pods-SuperApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SuperApp.debug.xcconfig"; path = "Target Support Files/Pods-SuperApp/Pods-SuperApp.debug.xcconfig"; sourceTree = "<group>"; };
+		5709B34CF0A7D63546082F79 /* Pods-SuperApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SuperApp.release.xcconfig"; path = "Target Support Files/Pods-SuperApp/Pods-SuperApp.release.xcconfig"; sourceTree = "<group>"; };
+		5DCACB8F33CDC322A6C60F78 /* libPods-SuperApp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SuperApp.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = SuperApp/AppDelegate.swift; sourceTree = "<group>"; };
+		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = SuperApp/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		CB968BF92F5E829900C3FD9C /* NebulaAppManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaAppManager.swift; sourceTree = "<group>"; };
+		CB968BFA2F5E829900C3FD9C /* NebulaConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaConfig.swift; sourceTree = "<group>"; };
+		CB968BFB2F5E829900C3FD9C /* NebulaContainerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaContainerController.swift; sourceTree = "<group>"; };
+		CB968BFC2F5E829900C3FD9C /* NebulaHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaHost.swift; sourceTree = "<group>"; };
+		CB968BFD2F5E829900C3FD9C /* NebulaJSIGateway.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NebulaJSIGateway.h; sourceTree = "<group>"; };
+		CB968BFE2F5E829900C3FD9C /* NebulaJSIGateway.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NebulaJSIGateway.mm; sourceTree = "<group>"; };
+		CB968BFF2F5E829900C3FD9C /* NebulaNativeModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaNativeModule.swift; sourceTree = "<group>"; };
+		CB968C002F5E829900C3FD9C /* NebulaNativeModuleBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NebulaNativeModuleBridge.m; sourceTree = "<group>"; };
+		CB968C012F5E829900C3FD9C /* NebulaPerformanceMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaPerformanceMonitor.swift; sourceTree = "<group>"; };
+		CB968C022F5E829900C3FD9C /* NebulaRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaRouter.swift; sourceTree = "<group>"; };
+		CB968C032F5E829900C3FD9C /* NebulaRouterBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NebulaRouterBridge.m; sourceTree = "<group>"; };
+		CB968C042F5E829900C3FD9C /* NebulaUsageExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaUsageExample.swift; sourceTree = "<group>"; };
+		CB968C052F5E829900C3FD9C /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		CBB4FC382F5EEABF004C9D32 /* SuperApp-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SuperApp-Bridging-Header.h"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -32,30 +64,35 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C80B921A6F3F58F76C31292 /* libPods-RNTest.a in Frameworks */,
+				0C80B921A6F3F58F76C31292 /* libPods-SuperApp.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		13B07FAE1A68108700A75B9A /* RNTest */ = {
+		13B07FAE1A68108700A75B9A /* SuperApp */ = {
 			isa = PBXGroup;
 			children = (
+				CBB4FC382F5EEABF004C9D32 /* SuperApp-Bridging-Header.h */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
+				2B88C4E56B7A4B8B8E7F1131 /* RNInstanceNavigator.swift */,
+				2B88C4E76B7A4B8B8E7F1131 /* RNInstanceNavigatorBridge.m */,
+				2B88C4E96B7A4B8B8E7F1131 /* RNInstanceViewController.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
+				CB968C062F5E829900C3FD9C /* Nebula */,
 			);
-			name = RNTest;
+			name = SuperApp;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				5DCACB8F33CDC322A6C60F78 /* libPods-RNTest.a */,
+				5DCACB8F33CDC322A6C60F78 /* libPods-SuperApp.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -70,7 +107,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				13B07FAE1A68108700A75B9A /* RNTest */,
+				13B07FAE1A68108700A75B9A /* SuperApp */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
@@ -84,7 +121,7 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* RNTest.app */,
+				13B07F961A680F5B00A75B9A /* SuperApp.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -92,18 +129,39 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				3B4392A12AC88292D35C810B /* Pods-RNTest.debug.xcconfig */,
-				5709B34CF0A7D63546082F79 /* Pods-RNTest.release.xcconfig */,
+				3B4392A12AC88292D35C810B /* Pods-SuperApp.debug.xcconfig */,
+				5709B34CF0A7D63546082F79 /* Pods-SuperApp.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
 		};
+		CB968C062F5E829900C3FD9C /* Nebula */ = {
+			isa = PBXGroup;
+			children = (
+				CB968BF92F5E829900C3FD9C /* NebulaAppManager.swift */,
+				CB968BFA2F5E829900C3FD9C /* NebulaConfig.swift */,
+				CB968BFB2F5E829900C3FD9C /* NebulaContainerController.swift */,
+				CB968BFC2F5E829900C3FD9C /* NebulaHost.swift */,
+				CB968BFD2F5E829900C3FD9C /* NebulaJSIGateway.h */,
+				CB968BFE2F5E829900C3FD9C /* NebulaJSIGateway.mm */,
+				CB968BFF2F5E829900C3FD9C /* NebulaNativeModule.swift */,
+				CB968C002F5E829900C3FD9C /* NebulaNativeModuleBridge.m */,
+				CB968C012F5E829900C3FD9C /* NebulaPerformanceMonitor.swift */,
+				CB968C022F5E829900C3FD9C /* NebulaRouter.swift */,
+				CB968C032F5E829900C3FD9C /* NebulaRouterBridge.m */,
+				CB968C042F5E829900C3FD9C /* NebulaUsageExample.swift */,
+				CB968C052F5E829900C3FD9C /* README.md */,
+			);
+			name = Nebula;
+			path = SuperApp/Nebula;
+			sourceTree = SOURCE_ROOT;
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		13B07F861A680F5B00A75B9A /* RNTest */ = {
+		13B07F861A680F5B00A75B9A /* SuperApp */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "RNTest" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "SuperApp" */;
 			buildPhases = (
 				C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
@@ -117,9 +175,9 @@
 			);
 			dependencies = (
 			);
-			name = RNTest;
-			productName = RNTest;
-			productReference = 13B07F961A680F5B00A75B9A /* RNTest.app */;
+			name = SuperApp;
+			productName = SuperApp;
+			productReference = 13B07F961A680F5B00A75B9A /* SuperApp.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -135,7 +193,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "RNTest" */;
+			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "SuperApp" */;
 			compatibilityVersion = "Xcode 12.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -148,7 +206,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* RNTest */,
+				13B07F861A680F5B00A75B9A /* SuperApp */,
 			);
 		};
 /* End PBXProject section */
@@ -158,6 +216,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CB968C132F5E829900C3FD9C /* README.md in Resources */,
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				7C2A91A7F45EEB304E10764A /* PrivacyInfo.xcprivacy in Resources */,
@@ -189,15 +248,15 @@
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-RNTest/Pods-RNTest-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-SuperApp/Pods-SuperApp-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-RNTest/Pods-RNTest-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-SuperApp/Pods-SuperApp-frameworks-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-RNTest/Pods-RNTest-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SuperApp/Pods-SuperApp-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */ = {
@@ -215,7 +274,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-RNTest-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-SuperApp-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -228,15 +287,15 @@
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-RNTest/Pods-RNTest-resources-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-SuperApp/Pods-SuperApp-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-RNTest/Pods-RNTest-resources-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-SuperApp/Pods-SuperApp-resources-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-RNTest/Pods-RNTest-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SuperApp/Pods-SuperApp-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -246,6 +305,20 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2B88C4E66B7A4B8B8E7F1131 /* RNInstanceNavigator.swift in Sources */,
+				2B88C4E86B7A4B8B8E7F1131 /* RNInstanceNavigatorBridge.m in Sources */,
+				CB968C072F5E829900C3FD9C /* NebulaRouterBridge.m in Sources */,
+				CB968C082F5E829900C3FD9C /* NebulaJSIGateway.mm in Sources */,
+				CB968C092F5E829900C3FD9C /* NebulaPerformanceMonitor.swift in Sources */,
+				CB968C0A2F5E829900C3FD9C /* NebulaNativeModuleBridge.m in Sources */,
+				CB968C0B2F5E829900C3FD9C /* NebulaContainerController.swift in Sources */,
+				CB968C0C2F5E829900C3FD9C /* NebulaRouter.swift in Sources */,
+				CB968C0D2F5E829900C3FD9C /* NebulaNativeModule.swift in Sources */,
+				CB968C0E2F5E829900C3FD9C /* NebulaConfig.swift in Sources */,
+				CB968C0F2F5E829900C3FD9C /* NebulaHost.swift in Sources */,
+				CB968C102F5E829900C3FD9C /* NebulaAppManager.swift in Sources */,
+				CB968C112F5E829900C3FD9C /* NebulaUsageExample.swift in Sources */,
+				2B88C4EA6B7A4B8B8E7F1131 /* RNInstanceViewController.swift in Sources */,
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -255,13 +328,13 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 3B4392A12AC88292D35C810B /* Pods-RNTest.debug.xcconfig */;
+			baseConfigurationReference = 3B4392A12AC88292D35C810B /* Pods-SuperApp.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
-				INFOPLIST_FILE = RNTest/Info.plist;
+				INFOPLIST_FILE = SuperApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -274,7 +347,9 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
-				PRODUCT_NAME = RNTest;
+				PRODUCT_NAME = SuperApp;
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "SuperApp/SuperApp-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -283,12 +358,12 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 5709B34CF0A7D63546082F79 /* Pods-RNTest.release.xcconfig */;
+			baseConfigurationReference = 5709B34CF0A7D63546082F79 /* Pods-SuperApp.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				INFOPLIST_FILE = RNTest/Info.plist;
+				INFOPLIST_FILE = SuperApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -301,7 +376,9 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
-				PRODUCT_NAME = RNTest;
+				PRODUCT_NAME = SuperApp;
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "SuperApp/SuperApp-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
@@ -380,6 +457,7 @@
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				USE_HERMES = true;
 			};
 			name = Debug;
@@ -448,6 +526,7 @@
 				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				USE_HERMES = true;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -456,7 +535,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "RNTest" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "SuperApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
@@ -465,7 +544,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "RNTest" */ = {
+		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "SuperApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,
