@@ -38,6 +38,30 @@ RCT_EXTERN_METHOD(installMiniAppWithMode:(NSString *)appId
 RCT_EXTERN_METHOD(getInstalledMiniApps:(RCTPromiseResolveBlock)resolver
                   rejecter:(RCTPromiseRejectBlock)rejecter)
 
-RCT_EXTERN_METHOD(installJSI:(NSString *)appId)
+RCT_EXTERN_METHOD(navigateTo:(NSString *)appId
+                  url:(NSString *)url
+                  resolver:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
+RCT_EXTERN_METHOD(redirectTo:(NSString *)appId
+                  url:(NSString *)url
+                  resolver:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
+RCT_EXTERN_METHOD(reLaunch:(NSString *)appId
+                  url:(NSString *)url
+                  resolver:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
+RCT_EXTERN_METHOD(navigateBack:(NSString *)appId
+                  delta:(NSInteger)delta
+                  resolver:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
+RCT_EXTERN_METHOD(showToast:(NSString *)title
+                  resolver:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
+RCT_EXTERN__BLOCKING_SYNCHRONOUS_METHOD(getDeviceInfo)
 
 @end

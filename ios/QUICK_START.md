@@ -15,8 +15,7 @@ NebulaHost 框架已经成功集成到 SuperApp 中！以下是已完成的工�
 - `NebulaPerformanceMonitor.swift` - 性能监控
 - `NebulaNativeModule.swift` - 主 App 调用模块
 
-#### Objective-C/C++ 文件
-- `NebulaJSIGateway.h/.mm` - JSI C++ 桥接层
+#### Objective-C 文件
 - `NebulaRouterBridge.m` - 路由模块导出
 - `NebulaNativeModuleBridge.m` - 原生模块导出
 
@@ -36,12 +35,9 @@ NebulaHost 框架已经成功集成到 SuperApp 中！以下是已完成的工�
    NebulaHost.shared.initialize()
    ```
 
-2. **Bridging Header 配置** ✅
-   - 已包含 `NebulaJSIGateway.h`
-
-3. **框架架构** ✅
+2. **框架架构** ✅
    - 多 Bridge 实例隔离
-   - JSI 高性能通信
+   - TurboModule 高性能通信
    - 沙箱文件系统
    - 智能路由导航
 
@@ -70,8 +66,6 @@ SuperApp/
     ├── NebulaContainerController.swift
     ├── NebulaRouter.swift
     ├── NebulaConfig.swift
-    ├── NebulaJSIGateway.h
-    ├── NebulaJSIGateway.mm
     ├── NebulaNativeModule.swift
     ├── NebulaNativeModuleBridge.m
     ├── NebulaRouterBridge.m

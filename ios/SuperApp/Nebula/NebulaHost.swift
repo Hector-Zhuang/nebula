@@ -14,6 +14,11 @@ import UIKit
     
     @objc public static let shared = NebulaHost()
     
+    // MARK: - Properties
+    
+    private var containerPool: [String: NebulaContainerController] = [:]
+    private let poolQueue = DispatchQueue(label: "com.nebula.host.pool", attributes: .concurrent)
+    
     // MARK: - Public API
     
     /// Initialize Nebula framework
@@ -44,16 +49,50 @@ import UIKit
                               animated: Bool = true) {
         NebulaPerformanceMonitor.shared.startMeasure("openApp:\(appId)")
         
-        let container = NebulaContainerController(
-            appId: appId,
-            initialProps: initialProps,
-            title: initialProps?["title"] as? String
-        )
+        // Try to get existing container from pool
+        var container: NebulaContainerController?
+        poolQueue.sync {
+            container = containerPool[appId]
+        }
+        
+        // Check if container exists and is not already in navigation stack
+        if let existingContainer = container {
+            // Update initialProps if needed
+            if let props = initialProps {
+                existingContainer.updateInitialProps(props)
+            }
+            
+            // Check if container is already in a navigation stack
+            if existingContainer.navigationController != nil {
+                print("[Nebula] Container for \(appId) already in navigation stack, creating new instance")
+                container = nil
+            } else {
+                print("[Nebula] Reusing container from pool for \(appId)")
+            }
+        }
+        
+        // Create new container if needed
+        if container == nil {
+            container = NebulaContainerController(
+                appId: appId,
+                initialProps: initialProps,
+                title: initialProps?["title"] as? String
+            )
+            
+            // Add to pool
+            poolQueue.async(flags: .barrier) { [weak self, weak container] in
+                guard let container = container else { return }
+                self?.containerPool[appId] = container
+                print("[Nebula] Added container for \(appId) to pool (total: \(self?.containerPool.count ?? 0))")
+            }
+        }
+        
+        guard let finalContainer = container else { return }
         
         if let navigationController = viewController.navigationController {
-            navigationController.pushViewController(container, animated: animated)
+            navigationController.pushViewController(finalContainer, animated: animated)
         } else {
-            viewController.present(container, animated: animated)
+            viewController.present(finalContainer, animated: animated)
         }
         
         NebulaPerformanceMonitor.shared.endMeasure("openApp:\(appId)")
@@ -67,6 +106,26 @@ import UIKit
     /// Close and invalidate a mini-app
     @objc public func closeApp(_ appId: String) {
         NebulaAppManager.shared.invalidate(appId: appId)
+        
+        // Remove from container pool
+        poolQueue.async(flags: .barrier) { [weak self] in
+            if let removed = self?.containerPool.removeValue(forKey: appId) {
+                print("[Nebula] Removed container for \(appId) from pool")
+                // Force deallocation by ensuring it's not retained
+                DispatchQueue.main.async {
+                    _ = removed
+                }
+            }
+        }
+    }
+    
+    /// Clear all cached containers from pool
+    @objc public func clearContainerPool() {
+        poolQueue.async(flags: .barrier) { [weak self] in
+            let count = self?.containerPool.count ?? 0
+            self?.containerPool.removeAll()
+            print("[Nebula] Cleared container pool (\(count) containers removed)")
+        }
     }
     
     /// Download and install a mini-app
@@ -75,9 +134,15 @@ import UIKit
                                  completion: @escaping (Bool, Error?) -> Void) {
         NebulaConfig.shared.downloadBundle(
             for: appId,
-            from: bundleURL,
-            completion: completion
-        )
+            from: bundleURL
+        ) { [weak self] success, error in
+            if success {
+                // Load manifest (app.json) after successful installation
+                let sandboxPath = NebulaConfig.shared.sandboxPath(for: appId)
+                _ = NebulaManifestManager.shared.loadManifest(forAppId: appId, sandboxPath: sandboxPath)
+            }
+            completion(success, error)
+        }
     }
 
     /// Install a mini-app with explicit runtime mode
@@ -88,15 +153,24 @@ import UIKit
         NebulaConfig.shared.downloadBundle(
             for: appId,
             from: bundleURL,
-            mode: mode,
-            completion: completion
-        )
+            mode: mode
+        ) { [weak self] success, error in
+            if success {
+                // Load manifest (app.json) after successful installation
+                let sandboxPath = NebulaConfig.shared.sandboxPath(for: appId)
+                _ = NebulaManifestManager.shared.loadManifest(forAppId: appId, sandboxPath: sandboxPath)
+            }
+            completion(success, error)
+        }
     }
     
     /// Uninstall a mini-app
     @objc public func uninstallApp(_ appId: String) throws {
         // Close if running
         closeApp(appId)
+        
+        // Remove manifest
+        NebulaManifestManager.shared.removeManifest(forAppId: appId)
         
         // Clear sandbox
         try NebulaConfig.shared.clearSandbox(for: appId)
@@ -124,8 +198,9 @@ import UIKit
     }
     
     @objc private func handleMemoryWarning() {
-        print("[Nebula] Memory warning received - consider invalidating unused preloaded views")
-        // Could implement automatic cleanup here
+        print("[Nebula] Memory warning received - clearing container pool")
+        clearContainerPool()
+        // Could implement additional cleanup here
     }
     
     private override init() {

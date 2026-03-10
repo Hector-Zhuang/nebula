@@ -1,0 +1,12 @@
+{
+  "pages": {
+    "/": "NebulaApp_Home",
+    "/home": "NebulaApp_Home",
+    "/page1": "NebulaApp_Page1",
+    "/page2": "NebulaApp_Page2",
+    "/page3": "NebulaApp_Page3"
+  },
+  "window": {
+    "navigationBarTitleText": "Sample Mini App"
+  }
+}

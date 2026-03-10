@@ -16,7 +16,10 @@ import React
     
     // MARK: - Properties
     
+    // Primary storage: instanceId -> controller
     private var containerRegistry: [String: WeakContainer] = [:]
+    // Secondary index: appId -> [instanceIds]
+    private var appIdToInstances: [String: Set<String>] = [:]
     private let queue = DispatchQueue(label: "com.nebula.router", attributes: .concurrent)
     
     // MARK: - Types
@@ -33,16 +36,78 @@ import React
     
     // MARK: - Container Registry
     
-    func registerContainer(_ controller: NebulaContainerController, for appId: String) {
+    func registerContainer(_ controller: NebulaContainerController, instanceId: String, appId: String) {
         queue.async(flags: .barrier) { [weak self] in
-            self?.containerRegistry[appId] = WeakContainer(controller: controller)
+            guard let self = self else { return }
+            self.containerRegistry[instanceId] = WeakContainer(controller: controller)
+            
+            // Update appId mapping
+            if self.appIdToInstances[appId] == nil {
+                self.appIdToInstances[appId] = Set<String>()
+            }
+            self.appIdToInstances[appId]?.insert(instanceId)
+            
+            print("[Nebula] Registered container: appId=\(appId), instanceId=\(instanceId)")
         }
     }
     
-    func unregisterContainer(for appId: String) {
+    func unregisterContainer(for instanceId: String) {
         queue.async(flags: .barrier) { [weak self] in
-            self?.containerRegistry.removeValue(forKey: appId)
+            guard let self = self else { return }
+            
+            // Find and remove from appId mapping
+            for (appId, instanceIds) in self.appIdToInstances {
+                if instanceIds.contains(instanceId) {
+                    self.appIdToInstances[appId]?.remove(instanceId)
+                    if self.appIdToInstances[appId]?.isEmpty == true {
+                        self.appIdToInstances.removeValue(forKey: appId)
+                    }
+                    break
+                }
+            }
+            
+            self.containerRegistry.removeValue(forKey: instanceId)
+            print("[Nebula] Unregistered container: instanceId=\(instanceId)")
         }
+    }
+    
+    // Find container by instanceId or appId (finds topmost visible instance)
+    private func findContainer(byInstanceId instanceId: String? = nil, orAppId appId: String? = nil) -> NebulaContainerController? {
+        var result: NebulaContainerController?
+        
+        queue.sync {
+            // First try instanceId (most specific)
+            if let instanceId = instanceId {
+                result = containerRegistry[instanceId]?.controller
+                return
+            }
+            
+            // Fallback to appId - find the topmost visible instance
+            if let appId = appId, let instanceIds = appIdToInstances[appId] {
+                var topmost: NebulaContainerController?
+                var topmostLevel = -1
+                
+                for instanceId in instanceIds {
+                    guard let controller = containerRegistry[instanceId]?.controller else { continue }
+                    
+                    // Find the navigation level (how deep in the stack)
+                    if let navController = controller.navigationController,
+                       let index = navController.viewControllers.firstIndex(of: controller) {
+                        if index > topmostLevel {
+                            topmost = controller
+                            topmostLevel = index
+                        }
+                    } else if topmost == nil {
+                        // No nav controller, just use first found
+                        topmost = controller
+                    }
+                }
+                
+                result = topmost
+            }
+        }
+        
+        return result
     }
     
     // MARK: - Navigation
@@ -114,13 +179,8 @@ import React
                 return
             }
             
-            // Find the container
-            var container: NebulaContainerController?
-            self.queue.sync {
-                container = self.containerRegistry[fromAppId]?.controller
-            }
-            
-            guard let container = container else {
+            // Find the container by appId (will find topmost instance)
+            guard let container = self.findContainer(orAppId: fromAppId) else {
                 completion(false, NSError(
                     domain: "com.nebula.router",
                     code: -2,
@@ -162,18 +222,13 @@ import React
                                   fromAppId: String,
                                   action: NavigationAction,
                                   completion: @escaping (Bool, Error?) -> Void) {
-        // Find source container
-        var sourceContainer: NebulaContainerController?
-        queue.sync {
-            sourceContainer = containerRegistry[fromAppId]?.controller
-        }
-        
-        guard let sourceContainer = sourceContainer,
+        // Find source container by appId (will find topmost instance)
+        guard let sourceContainer = findContainer(orAppId: fromAppId),
               let navigationController = sourceContainer.navigationController else {
             completion(false, NSError(
                 domain: "com.nebula.router",
                 code: -2,
-                userInfo: [NSLocalizedDescriptionKey: "Navigation controller not found"]
+                userInfo: [NSLocalizedDescriptionKey: "Navigation controller not found for appId: \(fromAppId)"]
             ))
             return
         }
@@ -182,14 +237,18 @@ import React
         case .miniApp:
             // Navigate to another mini-app
             let targetAppId = url.appId ?? fromAppId
-            let routeProps = buildRouteInitialProps(url: url)
+            let routeProps = buildRouteInitialProps(url: url, appId: targetAppId)
             let targetVC = NebulaContainerController(
                 appId: targetAppId,
                 initialProps: routeProps,
                 title: routeProps?["title"] as? String
             )
-            applyNavigationAction(action, targetVC: targetVC, navigationController: navigationController)
-            completion(true, nil)
+            do {
+                try applyNavigationAction(action, targetVC: targetVC, navigationController: navigationController)
+                completion(true, nil)
+            } catch {
+                completion(false, error)
+            }
             
         case .native:
             // Navigate to native page (custom implementation)
@@ -214,10 +273,21 @@ import React
         }
     }
 
-    private func buildRouteInitialProps(url: NebulaURL) -> [String: Any]? {
+    private func buildRouteInitialProps(url: NebulaURL, appId: String) -> [String: Any]? {
         var props = url.params ?? [:]
         if let path = url.path {
             props["__routePath"] = path
+            
+            // Look up component name from mini-app's manifest
+            let moduleName = NebulaManifestManager.shared.getComponentName(forAppId: appId, path: path)
+                ?? NebulaManifestManager.shared.getDefaultComponent(forAppId: appId)
+            
+            props["moduleName"] = moduleName
+            print("[Nebula] Routing \(appId):\(path) -> \(moduleName)")
+        } else {
+            // No path specified, use default/home component
+            let moduleName = NebulaManifestManager.shared.getDefaultComponent(forAppId: appId)
+            props["moduleName"] = moduleName
         }
         props["__routeUrl"] = url.originalURL
         return props.isEmpty ? nil : props
@@ -225,10 +295,45 @@ import React
 
     private func applyNavigationAction(_ action: NavigationAction,
                                        targetVC: UIViewController,
-                                       navigationController: UINavigationController) {
+                                       navigationController: UINavigationController) throws {
         switch action {
         case .push:
+            let maxDepth = NebulaConfig.shared.maxNavigationStackDepth
+            let stack = navigationController.viewControllers
+            
+            // Get appId from target container (if it's a mini-app page)
+            var targetAppId: String?
+            if let targetContainer = targetVC as? NebulaContainerController {
+                targetAppId = targetContainer.appId
+            }
+            
+            // Count only mini-app pages with the same appId (don't count host app pages)
+            let miniAppPageCount: Int
+            if let appId = targetAppId {
+                miniAppPageCount = stack.filter { vc in
+                    guard let container = vc as? NebulaContainerController else { return false }
+                    return container.appId == appId
+                }.count
+            } else {
+                // For non-mini-app pages, count all pages
+                miniAppPageCount = stack.count
+            }
+            
+            // Enforce max stack depth (WeChat mini-program style)
+            // Reject navigation if this mini-app's stack is already at max depth
+            if miniAppPageCount >= maxDepth {
+                let appIdLabel = targetAppId ?? "unknown"
+                print("[Nebula] Navigation rejected: mini-app \(appIdLabel) stack at max depth (\(miniAppPageCount)/\(maxDepth))")
+                throw NSError(
+                    domain: "com.nebula.router",
+                    code: -7,
+                    userInfo: [NSLocalizedDescriptionKey: "Navigation stack limit reached for this mini-app (max: \(maxDepth)). Cannot push more pages."]
+                )
+            }
+            
+            // Add the new page
             navigationController.pushViewController(targetVC, animated: true)
+            
         case .replaceTop:
             var stack = navigationController.viewControllers
             if !stack.isEmpty {
@@ -265,8 +370,12 @@ import React
             let settingsVC = UIViewController()
             settingsVC.title = "Settings"
             settingsVC.view.backgroundColor = .systemBackground
-            applyNavigationAction(action, targetVC: settingsVC, navigationController: navigationController)
-            completion(true, nil)
+            do {
+                try applyNavigationAction(action, targetVC: settingsVC, navigationController: navigationController)
+                completion(true, nil)
+            } catch {
+                completion(false, error)
+            }
             
         default:
             completion(false, NSError(

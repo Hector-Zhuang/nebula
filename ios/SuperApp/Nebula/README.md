@@ -1,13 +1,13 @@
 # Nebula Mini-App Container Framework
 
-A high-performance iOS SuperApp container framework for running multiple React Native mini-apps with isolated sandboxes and JSI-powered native communication.
+A high-performance iOS SuperApp container framework for running multiple React Native mini-apps with isolated sandboxes and TurboModule native communication.
 
 ## 🚀 Features
 
 ### Core Capabilities
 
 - **Multi-Instance Management**: Run multiple React Native instances with independent sandboxes
-- **JSI Bridge**: Ultra-fast native communication via C++ JSI (`__NebulaNativeInvoke`)
+- **TurboModule Bridge**: Fast native communication via React Native TurboModules
 - **Smart Routing**: WeChat-style navigation (`wx.navigateTo`) with URL scheme support
 - **Sandbox Isolation**: Each mini-app has its own private filesystem
 - **Lifecycle Control**: Warm-up, preloading, and intelligent memory management
@@ -35,14 +35,14 @@ A high-performance iOS SuperApp container framework for running multiple React N
            │
            ▼
 ┌──────────────────────────────────────────────────────────────┐
-│         NebulaJSIGateway (Objective-C++)                     │
-│  Injects: __NebulaNativeInvoke.invokeSync/invokeAsync       │
+│      NebulaNativeModule (TurboModule)                       │
+│  Navigation & Device APIs via React Native Bridge           │
 └──────────────────────────────────────────────────────────────┘
            │
            ▼
 ┌──────────────────────────────────────────────────────────────┐
-│             JavaScript Runtime (JSI)                         │
-│  Global: __NebulaNativeInvoke with C++ bindings             │
+│        JavaScript Runtime (React Native)                     │
+│  wx.navigateTo, MiniAppAPI via TurboModule                  │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -63,15 +63,7 @@ Then manually add the Nebula folder to Xcode:
 4. Ensure **"Create groups"** and **"SuperApp" target** are checked
 5. Click **"Add"**
 
-### 2. Verify Bridging Header
-
-Ensure `SuperApp/SuperApp-Bridging-Header.h` includes:
-
-```objc
-#import "NebulaJSIGateway.h"
-```
-
-### 3. Initialize in AppDelegate
+### 2. Initialize in AppDelegate
 
 The framework is already integrated in `AppDelegate.swift`:
 
@@ -224,25 +216,6 @@ await MiniAppAPI.navigateTo('nebula://another-app/page');
 await MiniAppAPI.showToast('Hello!');
 ```
 
-### Global __NebulaNativeInvoke (Advanced)
-
-For direct JSI access:
-
-```javascript
-// Synchronous call
-const result = __NebulaNativeInvoke.invokeSync('getDeviceInfo', '{}');
-
-// Asynchronous call
-__NebulaNativeInvoke.invokeAsync('request', JSON.stringify(params), {
-  onSuccess: (result) => console.log('Success:', result),
-  onFail: (error) => console.error('Error:', error)
-});
-
-// Metadata
-console.log(__NebulaNativeInvoke.appId);    // Current appId
-console.log(__NebulaNativeInvoke.version); // Framework version
-```
-
 ## 🏗️ File Structure
 
 ```
@@ -252,7 +225,6 @@ SuperApp/Nebula/
 ├── NebulaContainerController.swift     # View controller container
 ├── NebulaRouter.swift                  # Navigation router
 ├── NebulaConfig.swift                  # Configuration & sandbox
-├── NebulaJSIGateway.h/.mm             # C++ JSI bridge
 ├── NebulaRouterBridge.m               # Router module export
 ├── NebulaNativeModule.swift           # Main app module
 ├── NebulaNativeModuleBridge.m         # Main app module export
@@ -330,6 +302,8 @@ await NebulaAPI.installMiniApp(
 4. **Monitor memory usage**:
    - Framework automatically handles memory warnings
    - Max concurrent apps: configurable via `NebulaConfig.shared.maxConcurrentApps`
+   - Max navigation stack depth: configurable via `NebulaConfig.shared.maxNavigationStackDepth` (default: 10)
+   - When stack limit is reached, `navigateTo` will fail with error code -7
 
 ## 🐛 Debugging
 
@@ -342,8 +316,8 @@ NebulaConfig.shared.enableDebugLogging = true
 Check logs:
 ```
 [Nebula] Creating bridge for my-mini-app with bundle: /path/to/bundle
-[Nebula] JSI Gateway installed for appId: my-mini-app
-[Nebula:JSI] syncInvoke: getDeviceInfo with params: {}
+[Nebula] TurboModule ready for appId: my-mini-app
+[Nebula] navigateTo called with url: /pages/index
 [Nebula:Performance] openApp:my-mini-app: 234.567ms
 ```
 
@@ -365,17 +339,16 @@ SuperApp/
 │   ├── NebulaRouter.swift
 │   ├── NebulaRouterBridge.m
 │   ├── NebulaConfig.swift
-│   ├── NebulaJSIGateway.h
-│   └── NebulaJSIGateway.mm
+│   ├── NebulaNativeModule.swift
+│   └── NebulaNativeModuleBridge.m
 └── SuperApp-Bridging-Header.h
 ```
 
 ### 2. Configure Xcode Project
 
 1. **Bridging Header**: Set `SuperApp-Bridging-Header.h` in Build Settings
-2. **Other Linker Flags**: Add `-ObjC -lc++`
-3. **Enable C++ Exceptions**: YES
-4. **Enable RTTI**: YES (for JSI)
+2. **Other Linker Flags**: Add `-ObjC`
+3. **Enable C++ Exceptions**: YES (for React Native)
 
 ### 3. Initialize in AppDelegate
 
@@ -442,102 +415,58 @@ NebulaHost.shared.preloadApp("payment-app")
 
 ## 🔌 JavaScript API
 
-### Global JSI Object: `__NebulaNativeInvoke`
-
-#### Synchronous Invoke
+### MiniAppAPI (TypeScript Wrapper)
 
 ```javascript
-// Get device info synchronously
-const deviceInfo = __NebulaNativeInvoke.invokeSync('getDeviceInfo', '{}');
-console.log(JSON.parse(deviceInfo)); 
+import { MiniAppAPI } from './src/nebula/NebulaAPI';
+
+// Get device info
+const deviceInfo = MiniAppAPI.getDeviceInfo();
+console.log(deviceInfo); 
 // { model: "iPhone 17 Pro", systemVersion: "18.0", platform: "iOS" }
 
 // Get current app ID
-const appId = __NebulaNativeInvoke.invokeSync('getAppId', '{}');
+const appId = MiniAppAPI.getAppId();
 console.log(appId); // "weather-app"
-```
-
-#### Asynchronous Invoke
-
-```javascript
-// Network request
-__NebulaNativeInvoke.invokeAsync(
-  'request',
-  JSON.stringify({ 
-    url: 'https://api.example.com/weather',
-    method: 'GET'
-  }),
-  {
-    onSuccess: (data) => {
-      const result = JSON.parse(data);
-      console.log('Weather data:', result);
-    },
-    onFail: (error) => {
-      console.error('Request failed:', error);
-    }
-  }
-);
 
 // Show toast
-__NebulaNativeInvoke.invokeAsync(
-  'showToast',
-  JSON.stringify({ title: 'Hello Nebula!' }),
-  {
-    onSuccess: () => console.log('Toast displayed'),
-    onFail: (err) => console.error('Toast failed:', err)
-  }
-);
+await MiniAppAPI.showToast('Hello Nebula!');
+
+// Navigation
+await MiniAppAPI.navigateTo('nebula://product-app/detail?id=123');
+await MiniAppAPI.redirectTo('/pages/home');
+await MiniAppAPI.navigateBack();
 ```
 
-### Navigation (WeChat-style)
+### WeChat-Compatible API
 
 ```javascript
+import { wx } from './src/nebula/NebulaAPI';
+
 // Navigate to another mini-app
-__NebulaNativeInvoke.invokeAsync(
-  'navigateTo',
-  JSON.stringify({ url: 'nebula://product-app/detail?id=123' }),
-  {
-    onSuccess: () => console.log('Navigation success'),
-    onFail: (err) => console.error('Navigation failed:', err)
-  }
-);
+await wx.navigateTo({ url: 'nebula://product-app/detail?id=123' });
 
-// Navigate to native page
-__NebulaNativeInvoke.invokeAsync(
-  'navigateTo',
-  JSON.stringify({ url: 'native://settings' }),
-  {
-    onSuccess: () => console.log('Opened settings'),
-    onFail: (err) => console.error('Failed to open settings:', err)
-  }
-);
+// Show toast
+await wx.showToast({ title: 'Hello!' });
 
-// Open external URL
-__NebulaNativeInvoke.invokeAsync(
-  'navigateTo',
-  JSON.stringify({ url: 'https://www.example.com' }),
-  {
-    onSuccess: () => console.log('Opened browser'),
-    onFail: (err) => console.error('Failed to open URL:', err)
-  }
-);
+// Get system info
+const systemInfo = await wx.getSystemInfo();
+console.log(systemInfo);
+
+// Navigate back
+await wx.navigateBack({ delta: 1 });
 ```
 
-### Alternative: React Native Module API
+### Direct TurboModule Access
 
 ```javascript
 import { NativeModules } from 'react-native';
-const { NebulaRouterModule } = NativeModules;
+const { NebulaNativeModule } = NativeModules;
 
-// Navigate with Promise
-NebulaRouterModule.navigateTo('nebula://another-app/page')
-  .then(() => console.log('Success'))
-  .catch(err => console.error('Failed:', err));
-
-// Navigate back
-NebulaRouterModule.navigateBack()
-  .then(() => console.log('Back'))
-  .catch(err => console.error('Failed:', err));
+// Call navigation methods directly
+await NebulaNativeModule.navigateTo('my-app', '/pages/detail');
+await NebulaNativeModule.showToast('Success!');
+const deviceInfo = NebulaNativeModule.getDeviceInfo();
 ```
 
 ## 🗂️ Sandbox Structure
@@ -561,8 +490,7 @@ Documents/MiniApps/
 Access sandbox path in JavaScript:
 
 ```javascript
-const appId = __NebulaNativeInvoke.invokeSync('getAppId', '{}');
-const sandboxPath = __NebulaNativeInvoke.invokeSync('getSandboxPath', '{}');
+const sandboxPath = MiniAppAPI.getSandboxPath();
 console.log(`Sandbox: ${sandboxPath}`);
 ```
 
@@ -593,6 +521,23 @@ override func viewDidLoad() {
 // Automatic cleanup on memory warning
 // Manual cleanup:
 NebulaHost.shared.closeApp("unused-app")
+
+// Clear all cached containers
+NebulaHost.shared.clearContainerPool()
+```
+
+### 4. Container Reuse
+
+```swift
+// Containers are automatically cached and reused
+// First open: creates new container
+NebulaHost.shared.openApp("my-app", from: self)
+
+// Second open: reuses existing container (faster!)
+NebulaHost.shared.openApp("my-app", from: self)
+
+// Note: If container is already in navigation stack, 
+// a new instance will be created to avoid conflicts
 ```
 
 ## 🔧 Advanced Configuration
@@ -602,6 +547,7 @@ NebulaHost.shared.closeApp("unused-app")
 let config = NebulaConfig.shared
 config.enableDebugLogging = true
 config.maxConcurrentApps = 3
+config.maxNavigationStackDepth = 10  // Max pages in navigation stack (WeChat-style)
 config.cachePolicy = .hybrid
 
 NebulaHost.shared.initialize(config: config)
@@ -619,9 +565,9 @@ print("Load time: \(duration * 1000)ms")
 
 ## 🛠️ Extension Points
 
-### Add Custom Native Methods
+### Add Custom Native Methods to NebulaNativeModule
 
-Edit `NebulaJSIGateway.mm`:
+Edit `NebulaNativeModule.swift`:
 
 ```objc
 - (NSString *)handleSyncInvoke:(NSString *)method 
@@ -676,15 +622,16 @@ private func handleNativeNavigation(_ url: NebulaURL,
 NebulaHost.shared.installApp("weather-app", bundleURL: "...")
 ```
 
-### Issue: JSI not working
+### Issue: Navigation stack limit reached (Error code: -7)
 
 ```
-ReferenceError: __NebulaNativeInvoke is not defined
+Navigation stack limit reached (max: 10). Cannot push more pages.
 ```
 
-**Solution**: Check bridging header and ensure JSI gateway is in `extraModules`:
-- Verify `SuperApp-Bridging-Header.h` is set in Build Settings
-- Rebuild project
+**Solution**: The navigation stack has reached the maximum depth. Options:
+- Use `wx.redirectTo()` instead of `wx.navigateTo()` to replace the current page
+- Call `wx.navigateBack()` to go back before navigating forward
+- Increase the limit: `NebulaConfig.shared.maxNavigationStackDepth = 15`
 
 ## 📄 License
 

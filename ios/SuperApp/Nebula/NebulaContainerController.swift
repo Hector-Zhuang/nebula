@@ -15,7 +15,8 @@ import ReactAppDependencyProvider
     // MARK: - Properties
     
     private let appId: String
-    private let initialProps: [AnyHashable: Any]?
+    public let instanceId: String
+    private var initialProps: [AnyHashable: Any]?
     private var miniAppFactory: RCTReactNativeFactory?
     
     private let loadingIndicator: UIActivityIndicatorView = {
@@ -29,12 +30,13 @@ import ReactAppDependencyProvider
     
     @objc public init(appId: String, initialProps: [AnyHashable: Any]? = nil, title: String? = nil) {
         self.appId = appId
+        self.instanceId = UUID().uuidString
         self.initialProps = initialProps
         super.init(nibName: nil, bundle: nil)
         self.title = title ?? appId
         
-        // Store reference to allow JS-side navigation
-        NebulaRouter.shared.registerContainer(self, for: appId)
+        // Store reference to allow JS-side navigation using unique instanceId
+        NebulaRouter.shared.registerContainer(self, instanceId: instanceId, appId: appId)
     }
     
     required init?(coder: NSCoder) {
@@ -42,9 +44,9 @@ import ReactAppDependencyProvider
     }
     
     deinit {
-        NebulaRouter.shared.unregisterContainer(for: appId)
+        NebulaRouter.shared.unregisterContainer(for: instanceId)
         NebulaAppManager.shared.releaseConsumedResources(appId: appId)
-        print("[Nebula] Container deallocated for \(appId)")
+        print("[Nebula] Container deallocated for \(appId) (instance: \(instanceId))")
     }
     
     // MARK: - Lifecycle
@@ -85,6 +87,19 @@ import ReactAppDependencyProvider
             object: nil,
             userInfo: ["appId": appId]
         )
+    }
+    
+    // MARK: - Public Methods
+    
+    /// Update initial props for container reuse
+    @objc public func updateInitialProps(_ props: [AnyHashable: Any]) {
+        self.initialProps = props
+        if let title = props["title"] as? String {
+            self.title = title
+        }
+        print("[Nebula] Updated initialProps for container \(appId) (instance: \(instanceId))")
+        // Note: Existing RootView will not be recreated. 
+        // For full props update, consider implementing JS-side prop refresh mechanism.
     }
     
     // MARK: - Private Methods

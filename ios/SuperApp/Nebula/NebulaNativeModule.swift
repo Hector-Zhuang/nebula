@@ -130,19 +130,97 @@ class NebulaNativeModule: NSObject {
         let apps = NebulaHost.shared.installedApps()
         resolver(["apps": apps])
     }
-
-    /// Install JSI bindings for the current runtime (called from TurboModule side)
-    @objc func installJSI(_ appId: String) {
-        guard !appId.isEmpty else {
-            print("[Nebula] installJSI skipped: empty appId")
-            return
+    
+    // MARK: - Mini-App Navigation APIs
+    
+    @objc func navigateTo(_ appId: String,
+                         url: String,
+                         resolver: @escaping RCTPromiseResolveBlock,
+                         rejecter: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            NebulaRouter.shared.navigateToURL(url, fromAppId: appId) { success, error in
+                if success {
+                    resolver(["errMsg": "navigateTo:ok"])
+                } else {
+                    resolver(["errMsg": "navigateTo:fail \(error?.localizedDescription ?? "unknown")"])
+                }
+            }
         }
-
-        guard let runtimeCarrier = bridge else {
-            print("[Nebula] installJSI skipped: bridge/runtime carrier is nil for appId=\(appId)")
-            return
+    }
+    
+    @objc func redirectTo(_ appId: String,
+                         url: String,
+                         resolver: @escaping RCTPromiseResolveBlock,
+                         rejecter: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            NebulaRouter.shared.redirectToURL(url, fromAppId: appId) { success, error in
+                if success {
+                    resolver(["errMsg": "redirectTo:ok"])
+                } else {
+                    resolver(["errMsg": "redirectTo:fail \(error?.localizedDescription ?? "unknown")"])
+                }
+            }
         }
-
-        NebulaJSIGateway.installBindings(forCarrier: runtimeCarrier, appId: appId)
+    }
+    
+    @objc func reLaunch(_ appId: String,
+                       url: String,
+                       resolver: @escaping RCTPromiseResolveBlock,
+                       rejecter: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            NebulaRouter.shared.reLaunchURL(url, fromAppId: appId) { success, error in
+                if success {
+                    resolver(["errMsg": "reLaunch:ok"])
+                } else {
+                    resolver(["errMsg": "reLaunch:fail \(error?.localizedDescription ?? "unknown")"])
+                }
+            }
+        }
+    }
+    
+    @objc func navigateBack(_ appId: String,
+                           delta: Int,
+                           resolver: @escaping RCTPromiseResolveBlock,
+                           rejecter: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            NebulaRouter.shared.navigateBack(fromAppId: appId, delta: delta) { success, error in
+                if success {
+                    resolver(["errMsg": "navigateBack:ok"])
+                } else {
+                    resolver(["errMsg": "navigateBack:fail \(error?.localizedDescription ?? "unknown")"])
+                }
+            }
+        }
+    }
+    
+    @objc func showToast(_ title: String,
+                        resolver: @escaping RCTPromiseResolveBlock,
+                        rejecter: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }),
+                  let rootVC = window.rootViewController else {
+                resolver(["errMsg": "showToast:fail no_active_window"])
+                return
+            }
+            
+            let alert = UIAlertController(title: nil, message: title, preferredStyle: .alert)
+            rootVC.presentedViewController?.present(alert, animated: true)
+            ?? rootVC.present(alert, animated: true)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                alert.dismiss(animated: true)
+            }
+            
+            resolver(["errMsg": "showToast:ok"])
+        }
+    }
+    
+    @objc func getDeviceInfo() -> NSDictionary {
+        let device = UIDevice.current
+        return [
+            "model": device.model,
+            "systemVersion": device.systemVersion,
+            "platform": "iOS"
+        ]
     }
 }

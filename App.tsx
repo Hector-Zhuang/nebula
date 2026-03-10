@@ -13,7 +13,7 @@ const SAMPLE_MINI_APP_ID = 'sample-miniapp';
 const SAMPLE_MINI_APP_DEV_BUNDLE_URL =
   'http://127.0.0.1:8082/index.bundle?platform=ios&dev=true&minify=false&entryFile=miniapps/sample/index.js';
 const SAMPLE_MINI_APP_PROD_BUNDLE_URL =
-  'file:///Users/hectorchong/Project/superapp/dist/main.jsbundle';
+  'file:///Users/hectorzhuang/Project/superapp/miniapps/sample/build/main.jsbundle';
 
 function App() {
   return (

@@ -22,6 +22,7 @@ import Foundation
     
     @objc public var enableDebugLogging: Bool = true
     @objc public var maxConcurrentApps: Int = 3
+    @objc public var maxNavigationStackDepth: Int = 10
     @objc public var cachePolicy: CachePolicy = .memory
     
     @objc public enum CachePolicy: Int {

@@ -15,7 +15,4 @@
 #import <React/RCTBundleURLProvider.h>
 #import <React/RCTUtils.h>
 
-// Nebula Framework
-#import "NebulaJSIGateway.h"
-
 #endif /* SuperApp_Bridging_Header_h */

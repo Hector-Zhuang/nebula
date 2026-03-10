@@ -9,7 +9,7 @@
     "start": "react-native start",
     "test": "jest",
     "sample:start": "react-native start --config miniapps/sample/metro.config.js --port 8082",
-    "sample:bundle:ios": "react-native bundle --config miniapps/sample/metro.config.js --platform ios --dev false --entry-file miniapps/sample/index.js --bundle-output miniapps/sample/build/main.jsbundle --assets-dest miniapps/sample/build"
+    "sample:bundle:ios": "react-native bundle --config miniapps/sample/metro.config.js --platform ios --dev false --entry-file index.js --bundle-output miniapps/sample/build/main.jsbundle --assets-dest miniapps/sample/build"
   },
   "codegenConfig": {
     "name": "AppSpecs",

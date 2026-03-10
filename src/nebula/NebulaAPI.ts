@@ -19,15 +19,8 @@ type InstalledMiniAppsResult = {
   apps: string[];
 };
 
-type AsyncCallback = {
-  onSuccess: (resultJson: string) => void;
-  onFail: (errorJson: string) => void;
-};
-
-type NebulaNativeInvoke = {
-  appId?: string;
-  invokeSync: (method: string, paramsJson: string) => string;
-  invokeAsync: (method: string, paramsJson: string, callback: AsyncCallback) => void;
+type NavigationResult = {
+  errMsg: string;
 };
 
 type NebulaNativeModuleType = TurboModule & {
@@ -45,12 +38,15 @@ type NebulaNativeModuleType = TurboModule & {
     mode: MiniAppRuntimeMode,
   ) => Promise<MiniAppResult>;
   getInstalledMiniApps: () => Promise<InstalledMiniAppsResult>;
-  installJSI?: (appId: string) => void;
+  
+  // Navigation APIs
+  navigateTo: (appId: string, url: string) => Promise<NavigationResult>;
+  redirectTo: (appId: string, url: string) => Promise<NavigationResult>;
+  reLaunch: (appId: string, url: string) => Promise<NavigationResult>;
+  navigateBack: (appId: string, delta: number) => Promise<NavigationResult>;
+  showToast: (title: string) => Promise<NavigationResult>;
+  getDeviceInfo: () => Record<string, unknown>;
 };
-
-declare global {
-  var __NebulaNativeInvoke: NebulaNativeInvoke | undefined;
-}
 
 const turboNebulaNativeModule =
   (NebulaNativeModuleSpec as unknown as NebulaNativeModuleType | null) ??
@@ -172,107 +168,51 @@ export class MiniAppAPI {
   static bootstrap(appId?: string | null): void {
     if (typeof appId === 'string' && appId.length > 0) {
       currentMiniAppId = appId;
-      this.ensureNativeInvoke();
     }
-  }
-
-  private static ensureNativeInvoke(): void {
-    if (typeof __NebulaNativeInvoke !== 'undefined') {
-      return;
-    }
-    if (!currentMiniAppId) {
-      return;
-    }
-
-    const nativeModule = getNebulaNativeModule();
-    if (!nativeModule.installJSI) {
-      return;
-    }
-
-    try {
-      nativeModule.installJSI(currentMiniAppId);
-    } catch (error) {
-      console.warn('[Nebula] installJSI failed', error);
-    }
-  }
-
-  static invokeSync(method: string, params: Record<string, unknown> = {}): unknown {
-    this.ensureNativeInvoke();
-    if (typeof __NebulaNativeInvoke === 'undefined') {
-      throw new Error('[Nebula] __NebulaNativeInvoke not available. Are you inside a mini-app?');
-    }
-
-    const paramsJson = JSON.stringify(params);
-    const resultJson = __NebulaNativeInvoke.invokeSync(method, paramsJson);
-
-    try {
-      return JSON.parse(resultJson);
-    } catch {
-      return resultJson;
-    }
-  }
-
-  static invokeAsync(method: string, params: Record<string, unknown> = {}): Promise<unknown> {
-    this.ensureNativeInvoke();
-    if (typeof __NebulaNativeInvoke === 'undefined') {
-      throw new Error('[Nebula] __NebulaNativeInvoke not available. Are you inside a mini-app?');
-    }
-    const nativeInvoke = __NebulaNativeInvoke;
-
-    return new Promise((resolve, reject) => {
-      const paramsJson = JSON.stringify(params);
-      nativeInvoke.invokeAsync(method, paramsJson, {
-        onSuccess: (resultJson: string) => {
-          try {
-            resolve(JSON.parse(resultJson));
-          } catch {
-            resolve(resultJson);
-          }
-        },
-        onFail: (errorJson: string) => {
-          try {
-            reject(JSON.parse(errorJson));
-          } catch {
-            reject(new Error(errorJson));
-          }
-        },
-      });
-    });
   }
 
   static async navigateTo(url: string): Promise<{ errMsg: string }> {
-    return this.invokeAsync('navigateTo', { url }) as Promise<{ errMsg: string }>;
+    const nativeModule = getNebulaNativeModule();
+    const appId = currentMiniAppId || '';
+    return nativeModule.navigateTo(appId, url);
   }
 
   static async redirectTo(url: string): Promise<{ errMsg: string }> {
-    return this.invokeAsync('redirectTo', { url }) as Promise<{ errMsg: string }>;
+    const nativeModule = getNebulaNativeModule();
+    const appId = currentMiniAppId || '';
+    return nativeModule.redirectTo(appId, url);
   }
 
   static async reLaunch(url: string): Promise<{ errMsg: string }> {
-    return this.invokeAsync('reLaunch', { url }) as Promise<{ errMsg: string }>;
+    const nativeModule = getNebulaNativeModule();
+    const appId = currentMiniAppId || '';
+    return nativeModule.reLaunch(appId, url);
   }
 
   static async navigateBack(delta = 1): Promise<{ errMsg: string }> {
-    return this.invokeAsync('navigateBack', { delta }) as Promise<{ errMsg: string }>;
+    const nativeModule = getNebulaNativeModule();
+    const appId = currentMiniAppId || '';
+    return nativeModule.navigateBack(appId, delta);
   }
 
   static getDeviceInfo(): unknown {
-    return this.invokeSync('getDeviceInfo', {});
+    const nativeModule = getNebulaNativeModule();
+    return nativeModule.getDeviceInfo();
   }
 
   static getAppId(): string | null {
-    if (typeof __NebulaNativeInvoke === 'undefined') {
-      return null;
-    }
-    return __NebulaNativeInvoke.appId ?? null;
+    return currentMiniAppId;
   }
 
-  static getSandboxPath(): unknown {
-    return this.invokeSync('getSandboxPath', {});
+  static getSandboxPath(): string {
+    // Calculate locally - no native call needed
+    const appId = currentMiniAppId || '';
+    return `/Documents/MiniApps/${appId}`;
   }
 
   static async showToast(title: string): Promise<{ errMsg: string }> {
-    return this.invokeAsync('showToast', { title }) as Promise<{ errMsg: string }>;
+    const nativeModule = getNebulaNativeModule();
+    return nativeModule.showToast(title);
   }
 }
 

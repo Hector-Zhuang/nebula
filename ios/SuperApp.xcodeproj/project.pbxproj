@@ -16,7 +16,6 @@
 		7C2A91A7F45EEB304E10764A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		CB968C072F5E829900C3FD9C /* NebulaRouterBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = CB968C032F5E829900C3FD9C /* NebulaRouterBridge.m */; };
-		CB968C082F5E829900C3FD9C /* NebulaJSIGateway.mm in Sources */ = {isa = PBXBuildFile; fileRef = CB968BFE2F5E829900C3FD9C /* NebulaJSIGateway.mm */; };
 		CB968C092F5E829900C3FD9C /* NebulaPerformanceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB968C012F5E829900C3FD9C /* NebulaPerformanceMonitor.swift */; };
 		CB968C0A2F5E829900C3FD9C /* NebulaNativeModuleBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = CB968C002F5E829900C3FD9C /* NebulaNativeModuleBridge.m */; };
 		CB968C0B2F5E829900C3FD9C /* NebulaContainerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB968BFB2F5E829900C3FD9C /* NebulaContainerController.swift */; };
@@ -46,8 +45,6 @@
 		CB968BFA2F5E829900C3FD9C /* NebulaConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaConfig.swift; sourceTree = "<group>"; };
 		CB968BFB2F5E829900C3FD9C /* NebulaContainerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaContainerController.swift; sourceTree = "<group>"; };
 		CB968BFC2F5E829900C3FD9C /* NebulaHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaHost.swift; sourceTree = "<group>"; };
-		CB968BFD2F5E829900C3FD9C /* NebulaJSIGateway.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NebulaJSIGateway.h; sourceTree = "<group>"; };
-		CB968BFE2F5E829900C3FD9C /* NebulaJSIGateway.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NebulaJSIGateway.mm; sourceTree = "<group>"; };
 		CB968BFF2F5E829900C3FD9C /* NebulaNativeModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaNativeModule.swift; sourceTree = "<group>"; };
 		CB968C002F5E829900C3FD9C /* NebulaNativeModuleBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NebulaNativeModuleBridge.m; sourceTree = "<group>"; };
 		CB968C012F5E829900C3FD9C /* NebulaPerformanceMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaPerformanceMonitor.swift; sourceTree = "<group>"; };
@@ -142,8 +139,6 @@
 				CB968BFA2F5E829900C3FD9C /* NebulaConfig.swift */,
 				CB968BFB2F5E829900C3FD9C /* NebulaContainerController.swift */,
 				CB968BFC2F5E829900C3FD9C /* NebulaHost.swift */,
-				CB968BFD2F5E829900C3FD9C /* NebulaJSIGateway.h */,
-				CB968BFE2F5E829900C3FD9C /* NebulaJSIGateway.mm */,
 				CB968BFF2F5E829900C3FD9C /* NebulaNativeModule.swift */,
 				CB968C002F5E829900C3FD9C /* NebulaNativeModuleBridge.m */,
 				CB968C012F5E829900C3FD9C /* NebulaPerformanceMonitor.swift */,
@@ -250,9 +245,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-SuperApp/Pods-SuperApp-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-SuperApp/Pods-SuperApp-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -289,9 +288,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-SuperApp/Pods-SuperApp-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-SuperApp/Pods-SuperApp-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -308,7 +311,6 @@
 				2B88C4E66B7A4B8B8E7F1131 /* RNInstanceNavigator.swift in Sources */,
 				2B88C4E86B7A4B8B8E7F1131 /* RNInstanceNavigatorBridge.m in Sources */,
 				CB968C072F5E829900C3FD9C /* NebulaRouterBridge.m in Sources */,
-				CB968C082F5E829900C3FD9C /* NebulaJSIGateway.mm in Sources */,
 				CB968C092F5E829900C3FD9C /* NebulaPerformanceMonitor.swift in Sources */,
 				CB968C0A2F5E829900C3FD9C /* NebulaNativeModuleBridge.m in Sources */,
 				CB968C0B2F5E829900C3FD9C /* NebulaContainerController.swift in Sources */,

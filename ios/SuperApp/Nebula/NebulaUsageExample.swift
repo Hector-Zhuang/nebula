@@ -18,6 +18,7 @@ extension AppDelegate {
         // Optional: Configure settings
         NebulaConfig.shared.enableDebugLogging = true
         NebulaConfig.shared.maxConcurrentApps = 3
+        NebulaConfig.shared.maxNavigationStackDepth = 10  // Max pages in navigation stack
     }
 }
 
@@ -166,5 +167,38 @@ class MiniAppManagerViewController: UIViewController {
     
     func closeRunningApp(appId: String) {
         NebulaHost.shared.closeApp(appId)
+    }
+}
+
+// MARK: - Example 7: Container Reuse Performance Optimization
+
+class PerformanceExampleViewController: UIViewController {
+    
+    func demonstrateContainerReuse() {
+        let appId = "shopping-app"
+        
+        // First open - creates a new container
+        NebulaHost.shared.openApp(appId, from: self, initialProps: ["page": "home"])
+        
+        // User navigates, then closes the app
+        // The container is kept in pool for reuse
+        NebulaHost.shared.closeApp(appId)
+        
+        // Second open - reuses the cached container (faster!)
+        // If you check logs, you'll see: "Reusing container from pool for shoppi-app"
+        NebulaHost.shared.openApp(appId, from: self, initialProps: ["page": "cart"])
+    }
+    
+    func clearCachedContainers() {
+        // Manually clear the container pool if needed
+        // (automatically cleared on memory warnings)
+        NebulaHost.shared.clearContainerPool()
+        print("Container pool cleared")
+    }
+    
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Container pool is automatically cleared on memory warnings
+        // No manual intervention needed
     }
 }

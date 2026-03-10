@@ -14,6 +14,10 @@ export type InstalledMiniAppsResult = {
   apps: string[];
 };
 
+export type NavigationResult = {
+  errMsg: string;
+};
+
 export interface Spec extends TurboModule {
   openMiniApp(appId: string, initialProps: UnsafeObject): Promise<MiniAppResult>;
   preloadMiniApp(appId: string): Promise<MiniAppResult>;
@@ -29,7 +33,14 @@ export interface Spec extends TurboModule {
     mode: MiniAppRuntimeMode,
   ): Promise<MiniAppResult>;
   getInstalledMiniApps(): Promise<InstalledMiniAppsResult>;
-  installJSI(appId: string): void;
+  
+  // Mini-app navigation APIs
+  navigateTo(appId: string, url: string): Promise<NavigationResult>;
+  redirectTo(appId: string, url: string): Promise<NavigationResult>;
+  reLaunch(appId: string, url: string): Promise<NavigationResult>;
+  navigateBack(appId: string, delta: number): Promise<NavigationResult>;
+  showToast(title: string): Promise<NavigationResult>;
+  getDeviceInfo(): UnsafeObject;
 }
 
 export default TurboModuleRegistry.get<Spec>('NebulaNativeModule');
