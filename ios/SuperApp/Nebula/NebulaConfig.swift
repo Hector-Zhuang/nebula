@@ -120,6 +120,27 @@ import Foundation
         if mode == .development {
             saveDevURL(urlString, for: appId)
             print("[Nebula] Saved development URL for \(appId): \(urlString)")
+            
+            // Also try to download app.json from the dev server for routing to work
+            let sandboxPath = self.sandboxPath(for: appId)
+            let manifestDest = URL(fileURLWithPath: sandboxPath).appendingPathComponent("app.json")
+            
+            // Derive app.json URL from bundle URL (replace last path component)
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            components?.path = "/app.json"
+            if let manifestURL = components?.url {
+                let manifestTask = URLSession.shared.dataTask(with: manifestURL) { data, response, error in
+                    if let data = data, error == nil,
+                       (response as? HTTPURLResponse)?.statusCode == 200 {
+                        try? data.write(to: manifestDest)
+                        print("[Nebula] Downloaded app.json for \(appId) from \(manifestURL)")
+                    } else {
+                        print("[Nebula] Could not download app.json for \(appId) from dev server (this is OK if manifest is embedded): \(error?.localizedDescription ?? "non-200")")
+                    }
+                }
+                manifestTask.resume()
+            }
+            
             completion(true, nil)
             return
         }

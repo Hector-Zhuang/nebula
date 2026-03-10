@@ -9,7 +9,38 @@ import Foundation
 import React
 
 @objc(NebulaNativeModule)
-class NebulaNativeModule: NSObject {
+class NebulaNativeModule: RCTEventEmitter {
+
+    private enum BridgeMessageDirection: String {
+        case toHost
+        case toMiniApp
+    }
+
+    private static let messageNotificationName = Notification.Name("NebulaBridgeMessage")
+    private static let hostMessageEvent = "NebulaHostMessage"
+    private static let miniAppMessageEvent = "NebulaMiniAppMessage"
+
+    private let emitterId = UUID().uuidString
+    private var hasListeners = false
+    private var currentRuntimeAppId: String?
+    private var messageObserver: NSObjectProtocol?
+
+    override init() {
+        super.init()
+        messageObserver = NotificationCenter.default.addObserver(
+            forName: Self.messageNotificationName,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            self?.handleBridgeMessage(notification)
+        }
+    }
+
+    deinit {
+        if let observer = messageObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
 
     private func parseRuntimeMode(_ mode: String,
                                   rejecter: @escaping RCTPromiseRejectBlock) -> NebulaConfig.RuntimeMode? {
@@ -24,15 +55,25 @@ class NebulaNativeModule: NSObject {
         }
     }
     
-    @objc static func moduleName() -> String {
+    @objc override class func moduleName() -> String {
         return "NebulaNativeModule"
     }
     
-    @objc static func requiresMainQueueSetup() -> Bool {
+    @objc override class func requiresMainQueueSetup() -> Bool {
         return true
     }
-    
-    @objc var bridge: RCTBridge!
+
+    override func supportedEvents() -> [String]! {
+        return [Self.hostMessageEvent, Self.miniAppMessageEvent]
+    }
+
+    override func startObserving() {
+        hasListeners = true
+    }
+
+    override func stopObserving() {
+        hasListeners = false
+    }
     
     /// Open a mini-app from the main React Native app
     @objc func openMiniApp(_ appId: String,
@@ -124,6 +165,40 @@ class NebulaNativeModule: NSObject {
         }
     }
     
+    /// Register route table from mini-app JS at startup
+    /// Called by the mini-app itself so native routing knows which component handles each path
+    @objc func registerRoutes(_ appId: String,
+                              routes: NSDictionary,
+                              resolver: @escaping RCTPromiseResolveBlock,
+                              rejecter: @escaping RCTPromiseRejectBlock) {
+        guard let pages = routes as? [String: String] else {
+            rejecter("INVALID_ROUTES", "routes must be a flat object mapping path -> componentName", nil)
+            return
+        }
+        currentRuntimeAppId = appId
+        NebulaManifestManager.shared.registerManifest(forAppId: appId, pages: pages)
+        resolver(["success": true, "appId": appId, "count": pages.count])
+    }
+
+    /// Mini-app -> Host communication
+    @objc func postMessageToHost(_ appId: String,
+                                 message: NSDictionary,
+                                 resolver: @escaping RCTPromiseResolveBlock,
+                                 rejecter: @escaping RCTPromiseRejectBlock) {
+        currentRuntimeAppId = appId
+        publishBridgeMessage(direction: .toHost, appId: appId, message: message)
+        resolver(["errMsg": "postMessageToHost:ok"])
+    }
+
+    /// Host -> Mini-app communication
+    @objc func postMessageToMiniApp(_ appId: String,
+                                    message: NSDictionary,
+                                    resolver: @escaping RCTPromiseResolveBlock,
+                                    rejecter: @escaping RCTPromiseRejectBlock) {
+        publishBridgeMessage(direction: .toMiniApp, appId: appId, message: message)
+        resolver(["errMsg": "postMessageToMiniApp:ok"])
+    }
+
     /// Get list of installed mini-apps
     @objc func getInstalledMiniApps(_ resolver: @escaping RCTPromiseResolveBlock,
                                     rejecter: @escaping RCTPromiseRejectBlock) {
@@ -222,5 +297,64 @@ class NebulaNativeModule: NSObject {
             "systemVersion": device.systemVersion,
             "platform": "iOS"
         ]
+    }
+
+    private func publishBridgeMessage(direction: BridgeMessageDirection,
+                                      appId: String,
+                                      message: NSDictionary) {
+        let payload = message as? [String: Any] ?? [:]
+        NotificationCenter.default.post(
+            name: Self.messageNotificationName,
+            object: nil,
+            userInfo: [
+                "direction": direction.rawValue,
+                "appId": appId,
+                "message": payload,
+                "sourceEmitterId": emitterId,
+                "timestamp": Date().timeIntervalSince1970
+            ]
+        )
+    }
+
+    private func handleBridgeMessage(_ notification: Notification) {
+        guard hasListeners,
+              let userInfo = notification.userInfo,
+              let directionRaw = userInfo["direction"] as? String,
+              let direction = BridgeMessageDirection(rawValue: directionRaw),
+              let appId = userInfo["appId"] as? String,
+              let message = userInfo["message"] as? [String: Any] else {
+            return
+        }
+
+        let sourceEmitterId = userInfo["sourceEmitterId"] as? String
+        if sourceEmitterId == emitterId {
+            return
+        }
+
+        switch direction {
+        case .toHost:
+            guard !isMiniAppRuntime() else { return }
+            sendEvent(withName: Self.hostMessageEvent, body: [
+                "appId": appId,
+                "message": message,
+                "timestamp": userInfo["timestamp"] ?? Date().timeIntervalSince1970
+            ])
+        case .toMiniApp:
+            guard isMiniAppRuntime(), currentRuntimeAppId == appId else { return }
+            sendEvent(withName: Self.miniAppMessageEvent, body: [
+                "appId": appId,
+                "message": message,
+                "timestamp": userInfo["timestamp"] ?? Date().timeIntervalSince1970
+            ])
+        }
+    }
+
+    private func isMiniAppRuntime() -> Bool {
+        guard let bundleURLString = bridge?.bundleURL?.absoluteString.lowercased() else {
+            return false
+        }
+        return bundleURLString.contains("/miniapps/")
+            || bundleURLString.contains("entryfile=miniapps/")
+            || bundleURLString.contains("entryfile=miniapps%2f")
     }
 }

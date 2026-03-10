@@ -6,8 +6,9 @@
 //
 
 #import <React/RCTBridgeModule.h>
+#import <React/RCTEventEmitter.h>
 
-@interface RCT_EXTERN_MODULE(NebulaNativeModule, NSObject)
+@interface RCT_EXTERN_MODULE(NebulaNativeModule, RCTEventEmitter)
 
 RCT_EXTERN_METHOD(openMiniApp:(NSString *)appId
                   initialProps:(NSDictionary *)initialProps
@@ -32,6 +33,21 @@ RCT_EXTERN_METHOD(installMiniApp:(NSString *)appId
 RCT_EXTERN_METHOD(installMiniAppWithMode:(NSString *)appId
                   bundleURL:(NSString *)bundleURL
                   mode:(NSString *)mode
+                  resolver:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
+RCT_EXTERN_METHOD(registerRoutes:(NSString *)appId
+                  routes:(NSDictionary *)routes
+                  resolver:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
+RCT_EXTERN_METHOD(postMessageToHost:(NSString *)appId
+                  message:(NSDictionary *)message
+                  resolver:(RCTPromiseResolveBlock)resolver
+                  rejecter:(RCTPromiseRejectBlock)rejecter)
+
+RCT_EXTERN_METHOD(postMessageToMiniApp:(NSString *)appId
+                  message:(NSDictionary *)message
                   resolver:(RCTPromiseResolveBlock)resolver
                   rejecter:(RCTPromiseRejectBlock)rejecter)
 

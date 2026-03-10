@@ -5,6 +5,7 @@
  * @format
  */
 
+import React from 'react';
 import { Alert, Button, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
@@ -24,6 +25,18 @@ function App() {
 }
 
 function AppContent() {
+  const [bridgeLog, setBridgeLog] = React.useState('idle');
+
+  React.useEffect(() => {
+    const unsubscribe = NebulaAPI.addMiniAppMessageListener((event: {
+      appId: string;
+      message: Record<string, unknown>;
+    }) => {
+      setBridgeLog(`from ${event.appId}: ${JSON.stringify(event.message)}`);
+    });
+    return unsubscribe;
+  }, []);
+
   const openSampleMiniAppInDevMode = async () => {
     try {
       await NebulaAPI.openMiniAppWithMode(
@@ -107,6 +120,20 @@ function AppContent() {
     }
   };
 
+  const sendHostMessageToMiniApp = async () => {
+    try {
+      const payload = {
+        type: 'host.ping',
+        text: 'Hello from host',
+        ts: Date.now(),
+      };
+      const result = await NebulaAPI.postMessageToMiniApp(SAMPLE_MINI_APP_ID, payload);
+      setBridgeLog(`to ${SAMPLE_MINI_APP_ID}: ${JSON.stringify(result)}`);
+    } catch (error) {
+      setBridgeLog(`send failed: ${String(error)}`);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.content}>
@@ -127,6 +154,11 @@ function AppContent() {
           title="预加载 Sample 小程序(生产模式)"
           onPress={preloadSampleMiniAppInProdMode}
         />
+        <Button
+          title="Host -> MiniApp 发消息"
+          onPress={sendHostMessageToMiniApp}
+        />
+        <Text style={styles.bridgeLog}>Bridge: {bridgeLog}</Text>
       </View>
     </SafeAreaView>
   );
@@ -146,6 +178,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  bridgeLog: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#334155',
   },
 });
 

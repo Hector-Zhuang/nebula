@@ -1,33 +1,39 @@
 import { AppRegistry } from 'react-native';
-import HomePage from './src/HomePage';
-import Page1 from './src/Page1';
-import Page2 from './src/Page2';
-import Page3 from './src/Page3';
+import { NebulaAPI } from '../../src/nebula/NebulaAPI';
+import appConfig from './app.json';
+import components from './src/components';
+
+const APP_ID = 'sample-miniapp';
 
 /**
  * Mini-App Page Registration
- * 
- * Each page must be registered separately as an independent component.
- * The native router will instantiate the correct component based on the route path.
- * 
- * Convention:
- * - Component names follow the pattern: NebulaApp_{PageName}
- * - Route path determines which component to load
- * - Each page receives initialProps with route information (__routePath, __routeUrl, query params)
- * 
- * Example routing:
- * nebula://sample-miniapp/         -> NebulaApp_Home
- * nebula://sample-miniapp/page1    -> NebulaApp_Page1
- * nebula://sample-miniapp/page2    -> NebulaApp_Page2
+ *
+ * Pages are driven entirely by app.json - no hardcoding here.
+ * app.json maps route paths to component names, and this file
+ * maps those component names to actual constructors via the components registry.
  */
 
-// Register each page as a separate component
-// The native side will determine which component to instantiate based on route path
-AppRegistry.registerComponent('NebulaApp_Home', () => HomePage);
-AppRegistry.registerComponent('NebulaApp_Page1', () => Page1);
-AppRegistry.registerComponent('NebulaApp_Page2', () => Page2);
-AppRegistry.registerComponent('NebulaApp_Page3', () => Page3);
+// Collect unique component names from all routes in app.json
+const componentNames = [...new Set(Object.values(appConfig.pages))];
 
-// Default registration for backward compatibility
-AppRegistry.registerComponent('NebulaApp', () => HomePage);
+componentNames.forEach((componentName) => {
+  const component = components[componentName];
+  if (component) {
+    AppRegistry.registerComponent(componentName, () => component);
+  } else {
+    console.warn(`[Nebula] No component found for "${componentName}" - add it to src/components.js`);
+  }
+});
+
+// Register route table with native host so it knows which component handles each path
+NebulaAPI.registerRoutes(APP_ID, appConfig.pages);
+
+// Register the default "NebulaApp" entry name that native uses as fallback before routes are registered.
+// This is the bootstrap entry point for the first open of the mini-app.
+const defaultComponentName = appConfig.pages['/'] || appConfig.pages['/home'];
+const DefaultComponent = defaultComponentName ? components[defaultComponentName] : null;
+if (DefaultComponent) {
+  AppRegistry.registerComponent('NebulaApp', () => DefaultComponent);
+}
+
 

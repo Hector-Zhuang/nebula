@@ -5,6 +5,7 @@ import { MiniAppAPI, wx } from '../../../src/nebula/NebulaAPI';
 export default function HomePage(props) {
   const [now, setNow] = React.useState(new Date());
   const [result, setResult] = React.useState('idle');
+  const [hostMessage, setHostMessage] = React.useState('none');
 
   React.useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -15,6 +16,13 @@ export default function HomePage(props) {
     const appId = typeof props?.appId === 'string' ? props.appId : null;
     MiniAppAPI.bootstrap(appId);
   }, [props?.appId]);
+
+  React.useEffect(() => {
+    const unsubscribe = MiniAppAPI.onHostMessage((event) => {
+      setHostMessage(JSON.stringify(event.message));
+    });
+    return unsubscribe;
+  }, []);
 
   const routePath = String(props?.__routePath ?? '/');
   const routeUrl = String(props?.__routeUrl ?? '');
@@ -90,6 +98,26 @@ export default function HomePage(props) {
             color="#f59e0b"
           />
         </View>
+        <View style={styles.buttonWrap}>
+          <Button
+            title="MiniApp -> Host 发消息"
+            onPress={() =>
+              run('postMessageToHost', () =>
+                MiniAppAPI.postMessageToHost({
+                  type: 'miniapp.ping',
+                  from: routePath,
+                  ts: Date.now(),
+                }),
+              )
+            }
+            color="#0ea5e9"
+          />
+        </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>📨 Host Message</Text>
+        <Text style={styles.meta}>{hostMessage}</Text>
       </View>
 
       <View style={styles.card}>

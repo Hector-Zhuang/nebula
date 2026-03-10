@@ -111,6 +111,15 @@ struct NebulaManifest: Codable {
         return result ?? "NebulaApp"  // Fallback to default
     }
     
+    /// Register manifest directly from a dictionary (called by mini-app JS at startup)
+    @objc public func registerManifest(forAppId appId: String, pages: [String: String]) {
+        let manifest = NebulaManifest(pages: pages, window: nil)
+        queue.async(flags: .barrier) { [weak self] in
+            self?.manifests[appId] = manifest
+        }
+        print("[Nebula] Registered manifest for \(appId): \(pages.count) routes")
+    }
+
     /// Remove manifest when app is uninstalled
     @objc public func removeManifest(forAppId appId: String) {
         queue.async(flags: .barrier) { [weak self] in

@@ -14,7 +14,7 @@ import ReactAppDependencyProvider
     
     // MARK: - Properties
     
-    private let appId: String
+    let appId: String
     public let instanceId: String
     private var initialProps: [AnyHashable: Any]?
     private var miniAppFactory: RCTReactNativeFactory?

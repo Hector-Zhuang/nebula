@@ -2,9 +2,11 @@
  * Nebula Mini-App Framework - TypeScript API
  */
 
-import { NativeModules } from 'react-native';
+import { NativeEventEmitter, NativeModules } from 'react-native';
 import type { TurboModule } from 'react-native';
 import { TurboModuleRegistry } from 'react-native';
+import type { EmitterSubscription } from 'react-native';
+import type { NativeModule } from 'react-native';
 import NebulaNativeModuleSpec from '../../specs/NativeNebulaModule';
 
 export type MiniAppRuntimeMode = 'development' | 'production';
@@ -23,6 +25,12 @@ type NavigationResult = {
   errMsg: string;
 };
 
+type BridgeMessage = {
+  appId: string;
+  message: Record<string, unknown>;
+  timestamp?: number;
+};
+
 type NebulaNativeModuleType = TurboModule & {
   openMiniApp: (appId: string, initialProps: Record<string, unknown>) => Promise<MiniAppResult>;
   preloadMiniApp: (appId: string) => Promise<MiniAppResult>;
@@ -37,6 +45,9 @@ type NebulaNativeModuleType = TurboModule & {
     bundleURL: string,
     mode: MiniAppRuntimeMode,
   ) => Promise<MiniAppResult>;
+  registerRoutes: (appId: string, routes: Record<string, string>) => Promise<{success: boolean; appId: string; count: number}>;
+  postMessageToHost: (appId: string, message: Record<string, unknown>) => Promise<NavigationResult>;
+  postMessageToMiniApp: (appId: string, message: Record<string, unknown>) => Promise<NavigationResult>;
   getInstalledMiniApps: () => Promise<InstalledMiniAppsResult>;
   
   // Navigation APIs
@@ -55,6 +66,12 @@ const { NebulaNativeModule: legacyNebulaNativeModule } = NativeModules as {
   NebulaNativeModule?: NebulaNativeModuleType;
 };
 const NebulaNativeModule = turboNebulaNativeModule ?? legacyNebulaNativeModule;
+const nebulaEventEmitter = legacyNebulaNativeModule
+  ? new NativeEventEmitter(legacyNebulaNativeModule as unknown as NativeModule)
+  : null;
+
+const NEBULA_HOST_MESSAGE_EVENT = 'NebulaHostMessage';
+const NEBULA_MINI_APP_MESSAGE_EVENT = 'NebulaMiniAppMessage';
 
 let currentMiniAppId: string | null = null;
 
@@ -70,6 +87,22 @@ function getNebulaNativeModule(): NebulaNativeModuleType {
 }
 
 export class NebulaAPI {
+  /**
+   * Called by a mini-app at startup to register its route table with the native host.
+   * This tells the native router which component name to instantiate for each URL path.
+   */
+  static async registerRoutes(
+    appId: string,
+    routes: Record<string, string>,
+  ): Promise<void> {
+    const nativeModule = getNebulaNativeModule();
+    try {
+      await nativeModule.registerRoutes(appId, routes);
+    } catch (e) {
+      console.warn(`[Nebula] registerRoutes failed for ${appId}:`, e);
+    }
+  }
+
   static async openMiniApp(
     appId: string,
     initialProps: Record<string, unknown> = {},
@@ -162,6 +195,28 @@ export class NebulaAPI {
       throw error;
     }
   }
+
+  static async postMessageToMiniApp(
+    appId: string,
+    message: Record<string, unknown>,
+  ): Promise<{ errMsg: string }> {
+    const nativeModule = getNebulaNativeModule();
+    return nativeModule.postMessageToMiniApp(appId, message);
+  }
+
+  static addMiniAppMessageListener(
+    listener: (event: BridgeMessage) => void,
+  ): () => void {
+    if (!nebulaEventEmitter) {
+      console.warn('[Nebula] Native event emitter unavailable for mini-app messages');
+      return () => {};
+    }
+    const sub: EmitterSubscription = nebulaEventEmitter.addListener(
+      NEBULA_HOST_MESSAGE_EVENT,
+      listener,
+    );
+    return () => sub.remove();
+  }
 }
 
 export class MiniAppAPI {
@@ -213,6 +268,26 @@ export class MiniAppAPI {
   static async showToast(title: string): Promise<{ errMsg: string }> {
     const nativeModule = getNebulaNativeModule();
     return nativeModule.showToast(title);
+  }
+
+  static async postMessageToHost(
+    message: Record<string, unknown>,
+  ): Promise<{ errMsg: string }> {
+    const nativeModule = getNebulaNativeModule();
+    const appId = currentMiniAppId || '';
+    return nativeModule.postMessageToHost(appId, message);
+  }
+
+  static onHostMessage(listener: (event: BridgeMessage) => void): () => void {
+    if (!nebulaEventEmitter) {
+      console.warn('[Nebula] Native event emitter unavailable for host messages');
+      return () => {};
+    }
+    const sub: EmitterSubscription = nebulaEventEmitter.addListener(
+      NEBULA_MINI_APP_MESSAGE_EVENT,
+      listener,
+    );
+    return () => sub.remove();
   }
 }
 

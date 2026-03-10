@@ -15,6 +15,7 @@
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		7C2A91A7F45EEB304E10764A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		CB37A1B22F608F52001834B0 /* NebulaManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB37A1B12F608F52001834B0 /* NebulaManifest.swift */; };
 		CB968C072F5E829900C3FD9C /* NebulaRouterBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = CB968C032F5E829900C3FD9C /* NebulaRouterBridge.m */; };
 		CB968C092F5E829900C3FD9C /* NebulaPerformanceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB968C012F5E829900C3FD9C /* NebulaPerformanceMonitor.swift */; };
 		CB968C0A2F5E829900C3FD9C /* NebulaNativeModuleBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = CB968C002F5E829900C3FD9C /* NebulaNativeModuleBridge.m */; };
@@ -41,6 +42,7 @@
 		5DCACB8F33CDC322A6C60F78 /* libPods-SuperApp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-SuperApp.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = SuperApp/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = SuperApp/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		CB37A1B12F608F52001834B0 /* NebulaManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaManifest.swift; sourceTree = "<group>"; };
 		CB968BF92F5E829900C3FD9C /* NebulaAppManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaAppManager.swift; sourceTree = "<group>"; };
 		CB968BFA2F5E829900C3FD9C /* NebulaConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaConfig.swift; sourceTree = "<group>"; };
 		CB968BFB2F5E829900C3FD9C /* NebulaContainerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NebulaContainerController.swift; sourceTree = "<group>"; };
@@ -135,6 +137,7 @@
 		CB968C062F5E829900C3FD9C /* Nebula */ = {
 			isa = PBXGroup;
 			children = (
+				CB37A1B12F608F52001834B0 /* NebulaManifest.swift */,
 				CB968BF92F5E829900C3FD9C /* NebulaAppManager.swift */,
 				CB968BFA2F5E829900C3FD9C /* NebulaConfig.swift */,
 				CB968BFB2F5E829900C3FD9C /* NebulaContainerController.swift */,
@@ -311,6 +314,7 @@
 				2B88C4E66B7A4B8B8E7F1131 /* RNInstanceNavigator.swift in Sources */,
 				2B88C4E86B7A4B8B8E7F1131 /* RNInstanceNavigatorBridge.m in Sources */,
 				CB968C072F5E829900C3FD9C /* NebulaRouterBridge.m in Sources */,
+				CB37A1B22F608F52001834B0 /* NebulaManifest.swift in Sources */,
 				CB968C092F5E829900C3FD9C /* NebulaPerformanceMonitor.swift in Sources */,
 				CB968C0A2F5E829900C3FD9C /* NebulaNativeModuleBridge.m in Sources */,
 				CB968C0B2F5E829900C3FD9C /* NebulaContainerController.swift in Sources */,
@@ -335,6 +339,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 69BV75J53K;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = SuperApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
@@ -349,6 +354,7 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = org.reactjtive.example.SuperApp;
 				PRODUCT_NAME = SuperApp;
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "SuperApp/SuperApp-Bridging-Header.h";
@@ -365,6 +371,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 69BV75J53K;
 				INFOPLIST_FILE = SuperApp/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (

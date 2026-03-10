@@ -33,6 +33,9 @@ export interface Spec extends TurboModule {
     mode: MiniAppRuntimeMode,
   ): Promise<MiniAppResult>;
   getInstalledMiniApps(): Promise<InstalledMiniAppsResult>;
+  registerRoutes(appId: string, routes: UnsafeObject): Promise<UnsafeObject>;
+  postMessageToHost(appId: string, message: UnsafeObject): Promise<NavigationResult>;
+  postMessageToMiniApp(appId: string, message: UnsafeObject): Promise<NavigationResult>;
   
   // Mini-app navigation APIs
   navigateTo(appId: string, url: string): Promise<NavigationResult>;

@@ -1,6 +1,6 @@
 {
   "pages": {
-    "/": "NebulaApp_Home",
+    "/": "NebulaApp",
     "/home": "NebulaApp_Home",
     "/page1": "NebulaApp_Page1",
     "/page2": "NebulaApp_Page2",
