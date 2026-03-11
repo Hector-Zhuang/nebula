@@ -1,0 +1,22 @@
+{
+  "name": "sample-miniapp",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "root": "packages/sample-miniapp",
+  "sourceRoot": "packages/sample-miniapp/src",
+  "projectType": "application",
+  "targets": {
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run sample:start"
+      }
+    },
+    "bundle-ios": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run sample:bundle:ios"
+      }
+    }
+  },
+  "tags": ["scope:miniapp", "type:app"]
+}

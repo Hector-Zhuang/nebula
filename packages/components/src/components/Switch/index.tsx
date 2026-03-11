@@ -1,0 +1,105 @@
+/**
+ * ✔ checked
+ * ✔ disabled
+ * ✔ type
+ * ✔ onChange(bindchange) :isChecked
+ * ✔ color
+ *
+ * @warn When type="switch", use native Switch
+ * @example
+ *  <Switch
+ *    checked={isSwitchChecked}
+ *    onChange={onSwitchChange}
+ *    color="red"
+ *  />
+ */
+
+import * as React from 'react'
+import {
+  Switch,
+} from 'react-native'
+
+import { noop } from '../../utils'
+import Checkbox, { CheckboxHandle } from '../Checkbox'
+import { SwitchProps } from './PropsType'
+
+export interface SwitchHandle {
+  _simulateNativePress: () => void
+}
+
+const SwitchComp = React.forwardRef<SwitchHandle, SwitchProps>((props, ref): JSX.Element => {
+  const {
+    style,
+    type = 'switch',
+    color = '#04BE02',
+    disabled = false,
+    checked: checkedProp,
+    defaultChecked,
+    onChange = noop
+  } = props
+
+  const touchableRef = React.useRef<CheckboxHandle | Switch>(null)
+  const [checked, setChecked] = React.useState<boolean>(!!checkedProp)
+  const [pChecked, setPChecked] = React.useState<boolean | undefined>(false)
+
+  React.useEffect(() => {
+    // eslint-disable-next-line eqeqeq
+    const isControlled = checkedProp != undefined
+    if (isControlled) {
+      if (checkedProp !== pChecked) {
+        setChecked(!!checkedProp)
+        setPChecked(checkedProp)
+      } else if (checkedProp !== checked) {
+        setChecked(!!checkedProp)
+      }
+    } else if (pChecked !== checkedProp) {
+      setPChecked(checkedProp)
+      setChecked(defaultChecked ?? false)
+    }
+  }, [checked, checkedProp, defaultChecked, pChecked])
+
+  const onCheckedChange = React.useCallback((isChecked: boolean): void => {
+    onChange({ detail: { value: isChecked } })
+    setChecked(isChecked)
+  }, [onChange])
+
+  const simulateNativePress = React.useCallback((): void => {
+    if (type === 'checkbox') {
+      const node = touchableRef.current as CheckboxHandle
+      node && node._simulateNativePress?.()
+    } else {
+      setChecked((prev) => !prev)
+    }
+  }, [type])
+
+  React.useImperativeHandle(ref, () => ({
+    _simulateNativePress: simulateNativePress
+  }), [simulateNativePress])
+
+  if (type === 'checkbox') {
+    return (
+      <Checkbox
+        onChange={(item: { checked: boolean }) => onCheckedChange(item.checked)}
+        checked={checked}
+        disabled={disabled}
+        ref={touchableRef as React.RefObject<CheckboxHandle>}
+      />
+    )
+  }
+
+  return (
+    <Switch
+      value={checked}
+      onValueChange={disabled ? undefined : onCheckedChange}
+      trackColor={{ false: '#FFFFFF', true: color }}
+      ios_backgroundColor="#FFFFFF"
+      style={style}
+      disabled={disabled}
+      ref={touchableRef as React.RefObject<Switch>}
+    />
+  )
+})
+
+SwitchComp.displayName = '_Switch'
+
+export default SwitchComp

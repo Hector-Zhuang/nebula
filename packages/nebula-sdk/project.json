@@ -1,0 +1,8 @@
+{
+  "name": "nebula-sdk",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "root": "packages/nebula-sdk",
+  "sourceRoot": "packages/nebula-sdk/src",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:sdk"]
+}

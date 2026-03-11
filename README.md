@@ -95,3 +95,22 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+
+## Nebula Components Integration
+
+Host app and mini-apps can import shared RN components directly from:
+
+- `@nebula/components`
+
+It follows this rule:
+
+- Keep RN-native base components as-is (`Text`, `View`, `ScrollView`)
+- Use `@nebula/components` for additional components when available (`Picker`, `Swiper`, `RichText`, `WebView`, `VirtualList`, etc.)
+
+### Install
+
+Install the local package and its required runtime dependencies:
+
+```sh
+yarn add @nebula/components react-native-webview react-native-pager-view @react-native-picker/picker @react-native-community/slider react-native-svg expo expo-av expo-camera
+```

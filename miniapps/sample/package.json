@@ -1,9 +1,0 @@
-{
-  "name": "superapp-sample-miniapp",
-  "private": true,
-  "version": "0.0.1",
-  "scripts": {
-    "start": "react-native start --config metro.config.js --port 8081",
-    "bundle:ios": "react-native bundle --config metro.config.js --platform ios --dev false --entry-file index.js --bundle-output ./build/main.jsbundle --assets-dest ./build"
-  }
-}

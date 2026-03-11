@@ -1,29 +1,29 @@
 {
-  "name": "SuperApp",
+  "name": "superapp",
   "version": "0.0.1",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "android": "npm run --workspace=@superapp/host android",
+    "ios": "npm run --workspace=@superapp/host ios",
+    "start": "npm run --workspace=@superapp/host start",
     "lint": "eslint .",
-    "start": "react-native start",
     "test": "jest",
-    "sample:start": "react-native start --config miniapps/sample/metro.config.js --port 8082",
-    "sample:bundle:ios": "react-native bundle --config miniapps/sample/metro.config.js --platform ios --dev false --entry-file index.js --bundle-output miniapps/sample/build/main.jsbundle --assets-dest miniapps/sample/build"
-  },
-  "codegenConfig": {
-    "name": "AppSpecs",
-    "type": "modules",
-    "jsSrcsDir": "specs",
-    "android": {
-      "javaPackageName": "com.superapp.specs"
-    }
+    "nx:graph": "nx graph",
+    "nx:host:start": "nx run superapp-host:start",
+    "nx:host:ios": "nx run superapp-host:ios",
+    "nx:host:android": "nx run superapp-host:android",
+    "nx:components:build": "nx run nebula-components:build",
+    "nx:miniapp:start": "nx run sample-miniapp:start",
+    "nx:miniapp:bundle-ios": "nx run sample-miniapp:bundle-ios",
+    "sample:start": "react-native start --config packages/sample-miniapp/metro.config.js --port 8082",
+    "sample:bundle:ios": "react-native bundle --config packages/sample-miniapp/metro.config.js --platform ios --dev false --entry-file index.js --bundle-output packages/sample-miniapp/build/main.jsbundle --assets-dest packages/sample-miniapp/build"
   },
   "dependencies": {
     "react": "19.2.0",
-    "react-native": "0.83.1",
-    "@react-native/new-app-screen": "0.83.1",
-    "react-native-safe-area-context": "^5.5.2"
+    "react-native": "0.83.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -43,9 +43,11 @@
     "jest": "^29.6.3",
     "prettier": "2.8.8",
     "react-test-renderer": "19.2.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "nx": "22.5.4"
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "nx": {}
 }
