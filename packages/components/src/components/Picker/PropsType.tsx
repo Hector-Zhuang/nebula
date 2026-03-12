@@ -1,4 +1,73 @@
-import { PickerDateProps, PickerMultiSelectorProps, PickerRegionProps, PickerSelectorProps, PickerTimeProps } from '../types/Picker'
+import { ReactNode } from 'react'
+
+interface FormItemProps {
+  name?: string
+}
+
+type CommonEventFunction<T = any> = (event: { detail: T }) => void
+
+interface PickerStandardProps extends FormItemProps {
+  children?: ReactNode
+  headerText?: string
+  mode?: 'selector' | 'multiSelector' | 'time' | 'date' | 'region'
+  disabled?: boolean
+  onCancel?: () => void
+  textProps?: {
+    okText?: string
+    cancelText?: string
+  }
+}
+
+interface PickerSelectorProps extends PickerStandardProps {
+  mode?: 'selector'
+  range: string[] | number[] | Record<string, any>[]
+  rangeKey?: string
+  value?: number
+  defaultValue?: number
+  itemStyle?: any
+  indicatorStyle?: any
+  onChange?: CommonEventFunction<{ value: string | number }>
+}
+
+interface PickerMultiSelectorProps extends PickerStandardProps {
+  mode: 'multiSelector'
+  range: Array<string[]> | Array<number[]> | Array<Record<string, any>[]>
+  rangeKey?: string
+  value: number[] | string[] | Record<string, any>[]
+  itemStyle?: any
+  indicatorStyle?: any
+  onChange?: CommonEventFunction<{ value: number[] }>
+  onColumnChange?: CommonEventFunction<{ column: number; value: number }>
+}
+
+interface PickerTimeProps extends PickerStandardProps {
+  mode?: 'time'
+  value?: string
+  defaultValue?: string
+  start?: string
+  end?: string
+  onChange?: CommonEventFunction<{ value: string }>
+}
+
+interface PickerDateProps extends PickerStandardProps {
+  mode?: 'date'
+  value?: string
+  defaultValue?: string
+  start?: string
+  end?: string
+  fields?: 'year' | 'month' | 'day'
+  onChange?: CommonEventFunction<{ value: string }>
+}
+
+interface PickerRegionProps extends PickerStandardProps {
+  mode?: 'region'
+  value?: string[]
+  defaultValue?: string[]
+  customItem?: string
+  level?: 'province' | 'city' | 'region' | 'sub-district'
+  regionData?: RegionObj[]
+  onChange?: CommonEventFunction<{ value: string[]; code: string[]; postcode?: string }>
+}
 
 export interface BaseState<T> {
   /** Current selected value. */

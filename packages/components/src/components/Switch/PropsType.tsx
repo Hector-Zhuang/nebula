@@ -1,5 +1,8 @@
-import { FormItemProps } from '../types'
 import { StyleProp, ViewStyle } from 'react-native'
+
+interface FormItemProps {
+  name?: string
+}
 
 export type EventOnChange = {
   detail: {

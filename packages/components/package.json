@@ -33,7 +33,6 @@
     "node": ">= 18"
   },
   "dependencies": {
-    "@react-native-community/slider": "4.4.2",
     "@react-native-picker/picker": "2.6.1",
     "@ant-design/react-native": "5.0.0",
     "prop-types": "^15.8.1"

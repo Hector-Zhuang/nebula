@@ -6,7 +6,14 @@
  */
 
 import React from 'react';
-import { Alert, Button, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Button,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
   Input as NebulaInput,
@@ -40,12 +47,11 @@ function AppContent() {
   const [checkboxVal, setCheckboxVal] = React.useState(false);
 
   React.useEffect(() => {
-    const unsubscribe = NebulaAPI.addMiniAppMessageListener((event: {
-      appId: string;
-      message: Record<string, unknown>;
-    }) => {
-      setBridgeLog(`from ${event.appId}: ${JSON.stringify(event.message)}`);
-    });
+    const unsubscribe = NebulaAPI.addMiniAppMessageListener(
+      (event: { appId: string; message: Record<string, unknown> }) => {
+        setBridgeLog(`from ${event.appId}: ${JSON.stringify(event.message)}`);
+      },
+    );
     return unsubscribe;
   }, []);
 
@@ -139,7 +145,10 @@ function AppContent() {
         text: 'Hello from host',
         ts: Date.now(),
       };
-      const result = await NebulaAPI.postMessageToMiniApp(SAMPLE_MINI_APP_ID, payload);
+      const result = await NebulaAPI.postMessageToMiniApp(
+        SAMPLE_MINI_APP_ID,
+        payload,
+      );
       setBridgeLog(`to ${SAMPLE_MINI_APP_ID}: ${JSON.stringify(result)}`);
     } catch (error) {
       setBridgeLog(`send failed: ${String(error)}`);
@@ -183,7 +192,7 @@ function AppContent() {
         <Text style={styles.label}>Textarea</Text>
         <NebulaTextarea
           value={hostMemo}
-          onInput={(e) => setHostMemo(e.detail.value)}
+          onInput={e => setHostMemo(e.detail.value)}
           placeholder="Nebula Textarea component"
           style={styles.hostTextarea}
         />
@@ -192,18 +201,18 @@ function AppContent() {
         <NebulaProgress percent={sliderVal} />
 
         <Text style={styles.label}>Slider</Text>
-        {/* <NebulaSlider
+        <NebulaSlider
           value={sliderVal}
           min={0}
           max={100}
-          onChange={(e) => setSliderVal(e.detail.value)}
-        /> */}
+          onChange={e => setSliderVal(e.detail.value)}
+        />
 
         <View style={styles.row}>
           <Text style={styles.label}>Switch</Text>
           <NebulaSwitch
             checked={switchOn}
-            onChange={(e) => setSwitchOn(e.detail.value)}
+            onChange={e => setSwitchOn(e.detail.value)}
           />
         </View>
 
@@ -211,7 +220,7 @@ function AppContent() {
           <NebulaCheckbox
             value="test"
             checked={checkboxVal}
-            onChange={(e) => setCheckboxVal(e.detail.value)}
+            onChange={e => setCheckboxVal(e.detail.value)}
           />
           <Text style={styles.label}>Checkbox</Text>
         </View>

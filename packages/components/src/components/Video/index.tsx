@@ -1,4 +1,4 @@
-import { VideoProps } from '../types/Video';
+import { VideoProps } from './PropsType';
 import {
   useVideoPlayer,
   VideoView,
