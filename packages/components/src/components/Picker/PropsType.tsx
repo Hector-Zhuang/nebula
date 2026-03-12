@@ -1,9 +1,9 @@
-import { PickerDateProps, PickerMultiSelectorProps, PickerRegionProps, PickerSelectorProps, PickerTimeProps } from '@tarojs/components/types/Picker'
+import { PickerDateProps, PickerMultiSelectorProps, PickerRegionProps, PickerSelectorProps, PickerTimeProps } from '../types/Picker'
 
 export interface BaseState<T> {
-  /** 表示当前选中的值 */
+  /** Current selected value. */
   value: T
-  /** 表示上一次选中的值 */
+  /** Previously selected value. */
   pValue: T | undefined
 }
 

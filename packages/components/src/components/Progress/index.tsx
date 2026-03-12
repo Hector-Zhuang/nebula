@@ -22,7 +22,7 @@
  *  />
  */
 
-import * as React from 'react'
+import React, { useEffect, useRef } from 'react'
 import {
   Animated,
   DimensionValue,
@@ -47,10 +47,10 @@ const Progress = (props: ProgressProps): JSX.Element => {
     activeMode = 'backwards',
   } = props
 
-  const valve = React.useRef(new Animated.Value(0)).current
-  const prevPercentRef = React.useRef(0)
+  const valve = useRef(new Animated.Value(0)).current
+  const prevPercentRef = useRef(0)
 
-  React.useEffect(() => {
+  useEffect(() => {
     const toValve = percent / 100
 
     if (!active || (activeMode !== 'backwards' && activeMode !== 'forwards')) {

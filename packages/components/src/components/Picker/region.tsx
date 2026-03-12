@@ -1,6 +1,6 @@
 import AntPicker from '@ant-design/react-native/lib/picker'
 import { PickerData } from '@ant-design/react-native/lib/picker/PropsType'
-import * as React from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 import { noop } from '../../utils'
 import { RegionObj, RegionProps } from './PropsType'
@@ -47,16 +47,16 @@ const RegionSelector = (props: RegionProps): JSX.Element => {
     regionData: propRegionData
   } = props
 
-  const [value, setValue] = React.useState<any[]>([])
-  const [pValue, setPValue] = React.useState<any[]>([])
-  const [isInOnChangeUpdate, setIsInOnChangeUpdate] = React.useState(false)
-  const dismissByOkRef = React.useRef(false)
+  const [value, setValue] = useState<any[]>([])
+  const [pValue, setPValue] = useState<any[]>([])
+  const [isInOnChangeUpdate, setIsInOnChangeUpdate] = useState(false)
+  const dismissByOkRef = useRef(false)
 
-  const formattedRegionData = React.useMemo(() => {
+  const formattedRegionData = useMemo(() => {
     return formateRegionData(propRegionData || regionData, customItem)
   }, [customItem, propRegionData])
 
-  React.useEffect(() => {
+  useEffect(() => {
     // eslint-disable-next-line eqeqeq
     const isControlled = incomingValue != undefined
     if (isControlled) {

@@ -1,8 +1,8 @@
 import {
-  BarCodeScanningResult,
+  BarcodeScanningResult,
   Camera,
   CameraMountError,
-  CameraType,
+  CameraView,
   PermissionStatus,
 } from 'expo-camera';
 import React from 'react';
@@ -13,7 +13,7 @@ import styles from './styles';
 
 const CameraComponent: React.FC<CameraProps> = (props) => {
   const [hasPermission, setHasPermission] = React.useState<CameraState['hasPermission']>(null);
-  const expoCameraRef = React.useRef<Camera | null>(null);
+  const expoCameraRef = React.useRef<CameraView | null>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -32,14 +32,14 @@ const CameraComponent: React.FC<CameraProps> = (props) => {
   const onError = React.useCallback((event: CameraMountError): void => {
     props.onError && props.onError(event as any);
   }, [props]);
-
+ 
   const onInitDone = React.useCallback((): void => {
     global._taroCamera = expoCameraRef.current;
     const event: any = {};
     props.onInitDone && props.onInitDone(event);
   }, [props]);
 
-  const onScanCode = React.useCallback((event: BarCodeScanningResult): void => {
+  const onScanCode = React.useCallback((event: BarcodeScanningResult): void => {
     const { data } = event;
     props.onScanCode &&
       props.onScanCode({
@@ -51,7 +51,9 @@ const CameraComponent: React.FC<CameraProps> = (props) => {
   }, [props]);
 
   const { devicePosition, style, mode, flash } = props;
-  const type = !devicePosition ? CameraType.front : CameraType[devicePosition];
+  const facing = devicePosition ?? 'back';
+  const normalizedFlash = flash === 'torch' ? 'on' : flash;
+  const cameraStyle = typeof style === 'string' ? undefined : (style as any);
 
   if (hasPermission === null) {
     return <View />;
@@ -70,14 +72,14 @@ const CameraComponent: React.FC<CameraProps> = (props) => {
       : {};
 
   return (
-    <Camera
+    <CameraView
       ref={expoCameraRef}
-      type={type}
-      flashMode={flash}
+      facing={facing}
+      flash={normalizedFlash}
       onMountError={onError}
       onCameraReady={onInitDone}
       {...barCodeScannerSettings}
-      style={[styles.camera, style]}
+      style={[styles.camera, cameraStyle]}
     />
   );
 };

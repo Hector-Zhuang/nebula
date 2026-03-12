@@ -1,4 +1,4 @@
-import { FormItemProps } from '@tarojs/components'
+import { FormItemProps } from '../types'
 import * as React from 'react'
 import { StyleProp, ViewStyle } from 'react-native'
 
@@ -6,7 +6,7 @@ export type EventOnChange = {
   value: any
   checked: boolean
 };
-
+ 
 export type EventGroupOnChange = {
   detail: {
     value: any[]

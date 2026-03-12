@@ -1,22 +1,3 @@
-/**
- * Semi-controlled component.
- *
- * ✔ min
- * ✔ max
- * ✔ step
- * ✔ disabled
- * ✔ value
- * - color
- * - selected-color
- * ✔ activeColor
- * ✔ backgroundColor
- * ✘ blockSize(block-size)
- * ✔ blockColor(block-color)
- * ✔ showValue(show-value)
- * ✔ onChange(bindchange)
- * ✔ onChanging(bindchanging)
- */
-
 import Slider from '@react-native-community/slider'
 import * as React from 'react'
 import { Text, View } from 'react-native'

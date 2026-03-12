@@ -1,4 +1,4 @@
-import { VideoProps } from '@tarojs/components/types/Video'
+import { VideoProps } from '../types/Video'
 import * as React from 'react'
 import { StyleProp, ViewStyle } from 'react-native'
 

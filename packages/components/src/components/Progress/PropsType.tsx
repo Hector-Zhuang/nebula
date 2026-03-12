@@ -1,4 +1,4 @@
-import { ProgressProps as _ProgressProps } from '@tarojs/components/types/Progress'
+import { ProgressProps as _ProgressProps } from '../types/Progress'
 import { Animated, StyleProp, ViewStyle } from 'react-native'
 
 export interface ProgressState {

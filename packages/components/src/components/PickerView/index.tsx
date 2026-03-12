@@ -1,18 +1,23 @@
 import AntPickerView from '@ant-design/react-native/lib/picker-view'
-import * as React from 'react'
+import React from 'react'
 
 import { noop } from '../../utils'
 import { PickerViewProps } from './PropsType'
 
-const joinString = (data: string | any[] | React.ReactElement): string => {
-  return (Array.isArray(data) ? data : [data]).join('')
+const joinString = (data: React.ReactNode): string => {
+  const arr = Array.isArray(data) ? data : [data]
+  return arr.map(item => (item == null ? '' : String(item))).join('')
 }
 
-const getLabelFromChildren = (child: React.ReactElement): string => {
-  return child.props && child.props.children ? getLabelFromChildren(child.props.children) : joinString(child)
+const getLabelFromChildren = (node: React.ReactNode): string => {
+  if (React.isValidElement(node)) {
+    const maybeChildren = (node.props as { children?: React.ReactNode })?.children
+    return maybeChildren ? getLabelFromChildren(maybeChildren) : ''
+  }
+  return joinString(node)
 }
 
-const handleChildren = (children: React.ReactChild[]): any[] => {
+const handleChildren = (children: React.ReactNode[]): any[] => {
   return children.map((child: any, index: number) => ({
     label: getLabelFromChildren(child),
     value: index
@@ -21,7 +26,13 @@ const handleChildren = (children: React.ReactChild[]): any[] => {
 
 const getDataFromChildren = (children: React.ReactNode): any[] => {
   return (Array.isArray(children) ? children : [children]).map((child: any) => {
-    return handleChildren(child.props && child.props.children ? child.props.children : [child])
+    const rawChildren = child?.props?.children
+    const list = Array.isArray(rawChildren)
+      ? rawChildren
+      : rawChildren != null
+        ? [rawChildren]
+        : [child]
+    return handleChildren(list)
   })
 }
 

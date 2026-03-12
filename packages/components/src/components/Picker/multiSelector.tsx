@@ -1,5 +1,5 @@
 import AntPicker from '@ant-design/react-native/lib/picker'
-import * as React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 import { noop } from '../../utils'
 import { MultiSelectorProps, MultiSelectorState } from './PropsType'
@@ -73,14 +73,14 @@ const MultiSelector = (props: MultiSelectorProps): JSX.Element => {
     indicatorStyle,
   } = props
 
-  const [cols, setCols] = React.useState(3)
-  const [pRange, setPRange] = React.useState<any[]>([])
-  const [pValue, setPValue] = React.useState<number[]>([])
-  const [range, setRange] = React.useState<any[]>([])
-  const [value, setValue] = React.useState<any[]>([])
-  const dismissByOkRef = React.useRef(false)
+  const [cols, setCols] = useState(3)
+  const [pRange, setPRange] = useState<any[]>([])
+  const [pValue, setPValue] = useState<number[]>([])
+  const [range, setRange] = useState<any[]>([])
+  const [value, setValue] = useState<any[]>([])
+  const dismissByOkRef = useRef(false)
 
-  React.useEffect(() => {
+  useEffect(() => {
     let nextRange = range
     if (incomingRange !== pRange) {
       setCols(incomingRange.length)

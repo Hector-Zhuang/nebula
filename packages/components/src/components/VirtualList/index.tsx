@@ -89,12 +89,4 @@ const VirtualList = React.forwardRef<any, VirtualListProps & ScrollViewProps<any
   )
 })
 
-VirtualList.defaultProps = {
-  upperThreshold: 50,
-  lowerThreshold: 50,
-  enableBackToTop: false,
-  layout: 'vertical',
-  overscanCount: 1
-}
-
 export default VirtualList

@@ -130,8 +130,8 @@ const Carousel = (props: CarouselProps): JSX.Element => {
     const childrenArray = React.Children.toArray(children)
     if (infinite) {
       for (let index = 0; index < INFINITE_BUFFER; index++) {
-        childrenArray.push(React.cloneElement(children[index] as React.ReactElement, { ref: null }))
-        childrenArray.unshift(React.cloneElement(children[count - index - 1] as React.ReactElement, { ref: null }))
+        childrenArray.push(React.cloneElement(children[index] as React.ReactElement))
+        childrenArray.unshift(React.cloneElement(children[count - index - 1] as React.ReactElement))
       }
     }
 
@@ -146,7 +146,6 @@ const Carousel = (props: CarouselProps): JSX.Element => {
     <View style={[styles.wrapperStyle]}>
       <ViewPager
         initialPage={selectedIndex}
-        showPageIndicator={false}
         onPageSelected={(e) => {
           if (count < 2) return
           const pos = e.nativeEvent.position

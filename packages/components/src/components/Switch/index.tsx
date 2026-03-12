@@ -14,7 +14,7 @@
  *  />
  */
 
-import * as React from 'react'
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import {
   Switch,
 } from 'react-native'
@@ -27,7 +27,7 @@ export interface SwitchHandle {
   _simulateNativePress: () => void
 }
 
-const SwitchComp = React.forwardRef<SwitchHandle, SwitchProps>((props, ref): JSX.Element => {
+const SwitchComp = forwardRef<SwitchHandle, SwitchProps>((props, ref): JSX.Element => {
   const {
     style,
     type = 'switch',
@@ -38,11 +38,11 @@ const SwitchComp = React.forwardRef<SwitchHandle, SwitchProps>((props, ref): JSX
     onChange = noop
   } = props
 
-  const touchableRef = React.useRef<CheckboxHandle | Switch>(null)
-  const [checked, setChecked] = React.useState<boolean>(!!checkedProp)
-  const [pChecked, setPChecked] = React.useState<boolean | undefined>(false)
+  const touchableRef = useRef<CheckboxHandle | Switch>(null)
+  const [checked, setChecked] = useState<boolean>(!!checkedProp)
+  const [pChecked, setPChecked] = useState<boolean | undefined>(false)
 
-  React.useEffect(() => {
+  useEffect(() => {
     // eslint-disable-next-line eqeqeq
     const isControlled = checkedProp != undefined
     if (isControlled) {
@@ -58,12 +58,12 @@ const SwitchComp = React.forwardRef<SwitchHandle, SwitchProps>((props, ref): JSX
     }
   }, [checked, checkedProp, defaultChecked, pChecked])
 
-  const onCheckedChange = React.useCallback((isChecked: boolean): void => {
+  const onCheckedChange = useCallback((isChecked: boolean): void => {
     onChange({ detail: { value: isChecked } })
     setChecked(isChecked)
   }, [onChange])
 
-  const simulateNativePress = React.useCallback((): void => {
+  const simulateNativePress = useCallback((): void => {
     if (type === 'checkbox') {
       const node = touchableRef.current as CheckboxHandle
       node && node._simulateNativePress?.()
@@ -72,13 +72,14 @@ const SwitchComp = React.forwardRef<SwitchHandle, SwitchProps>((props, ref): JSX
     }
   }, [type])
 
-  React.useImperativeHandle(ref, () => ({
+  useImperativeHandle(ref, () => ({
     _simulateNativePress: simulateNativePress
   }), [simulateNativePress])
 
   if (type === 'checkbox') {
     return (
       <Checkbox
+        value={checked}
         onChange={(item: { checked: boolean }) => onCheckedChange(item.checked)}
         checked={checked}
         disabled={disabled}

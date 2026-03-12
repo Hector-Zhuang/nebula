@@ -1,4 +1,4 @@
-import { FormItemProps } from '@tarojs/components'
+import { FormItemProps } from '../types'
 
 import { EventOnLineChange, InputProps } from '../Input/PropsType'
 
