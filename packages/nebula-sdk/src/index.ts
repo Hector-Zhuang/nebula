@@ -8,7 +8,7 @@ export {
   // Taro/Nebula components
   Block, Button, Camera, Checkbox, CheckboxGroup, CoverImage, CoverView,
   Form, Icon, Image, Input, Label, Map, Navigator, PageContainer,
-  Picker, PickerView, PickerViewColumn, Progress, Radio, RadioGroup,
+  Picker, PickerView, Progress, Radio, RadioGroup,
   RichText, Slider, Swiper, SwiperItem, Switch, Textarea, Video,
   VirtualList, WebView,
 } from './NebulaComponents';

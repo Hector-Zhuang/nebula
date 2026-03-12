@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ScrollView, Text, TextInput, View } from 'react-native';
 
 type AnyComponent = React.ComponentType<any>;
 type TaroComponentMap = Record<string, AnyComponent>;
@@ -12,7 +7,9 @@ type TaroComponentMap = Record<string, AnyComponent>;
 const warningSet = new Set<string>();
 
 function warnOnce(message: string): void {
-  if (warningSet.has(message)) { return; }
+  if (warningSet.has(message)) {
+    return;
+  }
   warningSet.add(message);
   console.warn(message);
 }
@@ -21,14 +18,18 @@ function loadTaroComponents(): TaroComponentMap {
   try {
     return require('@nebula/components') as TaroComponentMap;
   } catch {
-    warnOnce('[NebulaComponents] @nebula/components is not installed. Falling back to RN/placeholder components.');
+    warnOnce(
+      '[NebulaComponents] @nebula/components is not installed. Falling back to RN/placeholder components.',
+    );
     return {};
   }
 }
 
 function createUnavailableComponent(name: string): AnyComponent {
   const UnavailableComponent: AnyComponent = () => {
-    warnOnce(`[NebulaComponents] Component "${name}" is unavailable. Install @nebula/components and its dependencies.`);
+    warnOnce(
+      `[NebulaComponents] Component "${name}" is unavailable. Install @nebula/components and its dependencies.`,
+    );
     return null;
   };
   return UnavailableComponent;
@@ -40,13 +41,27 @@ function pickComponent(name: string, fallback?: AnyComponent): AnyComponent {
   return taro[name] ?? fallback ?? createUnavailableComponent(name);
 }
 
-const FallbackTextarea: AnyComponent = ({ value, defaultValue, style, ...rest }) => (
-  <TextInput multiline value={value} defaultValue={defaultValue} style={style} {...rest} />
+const FallbackTextarea: AnyComponent = ({
+  value,
+  defaultValue,
+  style,
+  ...rest
+}) => (
+  <TextInput
+    multiline
+    value={value}
+    defaultValue={defaultValue}
+    style={style}
+    {...rest}
+  />
 );
 
 const FallbackBlock: AnyComponent = ({ children }) => <>{children}</>;
 const FallbackCoverView: AnyComponent = View;
-const FallbackCoverImage: AnyComponent = pickComponent('Image', createUnavailableComponent('Image'));
+const FallbackCoverImage: AnyComponent = pickComponent(
+  'Image',
+  createUnavailableComponent('Image'),
+);
 
 // RN primitives — exported directly without wrapping
 export { View, Text, ScrollView };
@@ -69,7 +84,6 @@ export const Navigator = pickComponent('Navigator');
 export const PageContainer = pickComponent('PageContainer');
 export const Picker = pickComponent('Picker');
 export const PickerView = pickComponent('PickerView');
-export const PickerViewColumn = pickComponent('PickerViewColumn');
 export const Progress = pickComponent('Progress');
 export const Radio = pickComponent('Radio');
 export const RadioGroup = pickComponent('RadioGroup');
@@ -80,18 +94,37 @@ export const SwiperItem = pickComponent('SwiperItem');
 export const Switch = pickComponent('Switch');
 export const Textarea = pickComponent('Textarea', FallbackTextarea);
 export const Video = pickComponent('Video');
-export const VirtualList = pickComponent('VirtualList');
 export const WebView = pickComponent('WebView');
 
 export const NebulaComponents = {
-  // RN primitives
-  View, Text, ScrollView,
-  // Taro components
-  Block, Button, Camera, Checkbox, CheckboxGroup, CoverImage, CoverView,
-  Form, Icon, Image, Input, Label, Map, Navigator, PageContainer,
-  Picker, PickerView, PickerViewColumn, Progress, Radio, RadioGroup,
-  RichText, Slider, Swiper, SwiperItem, Switch, Textarea, Video,
-  VirtualList, WebView,
+  Block,
+  Button,
+  Camera,
+  Checkbox,
+  CheckboxGroup,
+  CoverImage,
+  CoverView,
+  Form,
+  Icon,
+  Image,
+  Input,
+  Label,
+  Map,
+  Navigator,
+  PageContainer,
+  Picker,
+  PickerView,
+  Progress,
+  Radio,
+  RadioGroup,
+  RichText,
+  Slider,
+  Swiper,
+  SwiperItem,
+  Switch,
+  Textarea,
+  Video,
+  WebView,
 };
 
 export default NebulaComponents;

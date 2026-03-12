@@ -83,15 +83,97 @@ export default function HomePage(props) {
         <View style={styles.buttonWrap}>
           <Button title="📄 Go to Page 3" onPress={() => navigateToPage(3)} color="#ec4899" />
         </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>🧩 Component Test Pages</Text>
+        <Text style={styles.hint}>Test all @nebula/components</Text>
         <View style={styles.buttonWrap}>
           <Button
-            title="🧩 @nebula/components Demo"
+            title="📋 Existing Components (Input, Button, etc)"
             onPress={() =>
-              run('Nebula Demo', () =>
+              run('Components Demo', () =>
                 MiniAppAPI.navigateTo(`nebula://sample-miniapp/nebula?from=home&ts=${Date.now()}`),
               )
             }
             color="#6366f1"
+          />
+        </View>
+        <View style={styles.buttonWrap}>
+          <Button
+            title="📸 Media Components (Camera, Video)"
+            onPress={() =>
+              run('Media', () =>
+                MiniAppAPI.navigateTo(`nebula://sample-miniapp/components-media?from=home&ts=${Date.now()}`),
+              )
+            }
+            color="#ec4899"
+          />
+        </View>
+        <View style={styles.buttonWrap}>
+          <Button
+            title="🎠 Swiper Components"
+            onPress={() =>
+              run('Swiper', () =>
+                MiniAppAPI.navigateTo(`nebula://sample-miniapp/components-swiper?from=home&ts=${Date.now()}`),
+              )
+            }
+            color="#8b5cf6"
+          />
+        </View>
+        <View style={styles.buttonWrap}>
+          <Button
+            title="🎯 Picker Components"
+            onPress={() =>
+              run('Picker', () =>
+                MiniAppAPI.navigateTo(`nebula://sample-miniapp/components-picker?from=home&ts=${Date.now()}`),
+              )
+            }
+            color="#f59e0b"
+          />
+        </View>
+        <View style={styles.buttonWrap}>
+          <Button
+            title="📝 RichText Component"
+            onPress={() =>
+              run('RichText', () =>
+                MiniAppAPI.navigateTo(`nebula://sample-miniapp/components-richtext?from=home&ts=${Date.now()}`),
+              )
+            }
+            color="#10b981"
+          />
+        </View>
+        <View style={styles.buttonWrap}>
+          <Button
+            title="🎨 Icon Component"
+            onPress={() =>
+              run('Icon', () =>
+                MiniAppAPI.navigateTo(`nebula://sample-miniapp/components-icon?from=home&ts=${Date.now()}`),
+              )
+            }
+            color="#06b6d4"
+          />
+        </View>
+        <View style={styles.buttonWrap}>
+          <Button
+            title="🗺️ Map Component"
+            onPress={() =>
+              run('Map', () =>
+                MiniAppAPI.navigateTo(`nebula://sample-miniapp/components-map?from=home&ts=${Date.now()}`),
+              )
+            }
+            color="#14b8a6"
+          />
+        </View>
+        <View style={styles.buttonWrap}>
+          <Button
+            title="🌐 WebView Component"
+            onPress={() =>
+              run('WebView', () =>
+                MiniAppAPI.navigateTo(`nebula://sample-miniapp/components-webview?from=home&ts=${Date.now()}`),
+              )
+            }
+            color="#0ea5e9"
           />
         </View>
       </View>

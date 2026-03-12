@@ -3,6 +3,13 @@
     "/": "NebulaApp",
     "/home": "NebulaApp_Home",
     "/nebula": "NebulaApp_Nebula",
+    "/components-media": "NebulaApp_ComponentsMedia",
+    "/components-swiper": "NebulaApp_ComponentsSwiper",
+    "/components-picker": "NebulaApp_ComponentsPicker",
+    "/components-richtext": "NebulaApp_ComponentsRichText",
+    "/components-icon": "NebulaApp_ComponentsIcon",
+    "/components-map": "NebulaApp_ComponentsMap",
+    "/components-webview": "NebulaApp_ComponentsWebView",
     "/page1": "NebulaApp_Page1",
     "/page2": "NebulaApp_Page2",
     "/page3": "NebulaApp_Page3"

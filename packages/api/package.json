@@ -1,0 +1,74 @@
+{
+  "name": "@nebula/api",
+  "version": "4.1.12-alpha.4",
+  "description": "Taro RN framework",
+  "author": "O2Team",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "types/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "types",
+    "apiList.js",
+    "libList.js"
+  ],
+  "scripts": {
+    "prod": "pnpm run build",
+    "assets": "cpy 'src/**/*.png' '!src/__tests__/*' dist",
+    "prebuild": "pnpm run clean",
+    "clean": "rimraf ./dist apiList.js libList.js",
+    "build": "tsc && pnpm run assets && pnpm run script",
+    "dev": "pnpm run assets && tsc --watch",
+    "lint": "eslint src script __tests__ --ext .js,.jsx.ts,.tsx",
+    "test": "jest --silent",
+    "test:ci": "jest --ci -i --coverage --silent",
+    "test:coverage": "jest --coverage",
+    "test:dev": "jest --watch",
+    "script": "node ./script"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NervJS/taro.git"
+  },
+  "keywords": [
+    "taro"
+  ],
+  "engines": {
+    "node": ">= 18"
+  },
+  "dependencies": {
+    "base64-js": "^1.5.1",
+    "deprecated-react-native-prop-types": "^5.0.0",
+    "prop-types": "^15.8.1"
+  },
+  "devDependencies": {
+    "@bam.tech/react-native-image-resizer": "^3.0.11",
+    "cpy-cli": "^5.0.0",
+    "dpdm": "^3.14.0",
+    "expo-brightness": "^55.0.8",
+    "expo-camera": "^55.0.9",
+    "jest-expo": "~50.0.3",
+    "react-native-image-zoom-viewer": "^3.0.1",
+    "react-native-root-siblings": "^5.0.1",
+    "react-native-safe-area-context": "^5.7.0"
+  },
+  "peerDependencies": {
+    "@bam.tech/react-native-image-resizer": "^3.0.11",
+    "@react-native-camera-roll/camera-roll": "^7.10.2",
+    "@react-native-clipboard/clipboard": "^1.16.3",
+    "@react-native-community/geolocation": "^3.4.0",
+    "@react-native-community/netinfo": "^12.0.1",
+    "expo-brightness": "^55.0.8",
+    "expo-camera": "^55.0.9",
+    "expo-file-system": "^55.0.10",
+    "expo-image-picker": "^55.0.12",
+    "expo-keep-awake": "^55.0.4",
+    "expo-location": "^55.1.2",
+    "expo-sensors": "^55.0.8",
+    "react-native-device-info": "^15.0.2",
+    "react-native-image-zoom-viewer": "^3.0.1",
+    "react-native-mmkv": "^4.2.0",
+    "react-native-safe-area-context": "^5.7.0"
+  }
+}
