@@ -7,7 +7,8 @@
     "ios": "react-native run-ios",
     "start": "react-native start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "test": "jest"
+    "test": "jest",
+    "bundle:ios": "react-native bundle --config metro.config.js --platform ios --dev false --entry-file index.js --bundle-output ./build/main.jsbundle --assets-dest ./build"
   },
   "dependencies": {
     "@nebula/components": "*",
