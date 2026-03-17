@@ -1,9 +1,9 @@
 import type { options } from '@tarojs/runtime'
 
-import Taro from './index'
+import Nebula from './index'
 
 declare module './index' {
-  interface TaroStatic {
+  interface NebulaStatic {
     options: typeof options
   }
 }

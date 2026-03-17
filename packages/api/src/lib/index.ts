@@ -1,4 +1,4 @@
-// 由 getLibList.js 脚本生成, 不要进行手动修改, 请不要手动修改
+// Documentation in English.
 export * from './ENV_TYPE'
 export * from './arrayBufferToBase64'
 export * from './authorize'

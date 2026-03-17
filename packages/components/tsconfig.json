@@ -2,16 +2,7 @@
   "extends": "../../tsconfig.root.json",
   "compilerOptions": {
     "rootDir": "./src",
-    "outDir": "./dist",
-    "sourceMap": true,
-    "esModuleInterop": true,
-    "jsx": "react",
-    "lib": ["ESNEXT"],
-    "types": ["react", "react-native", "jest"],
-    "strict": false,
-    "skipLibCheck": true,
-    "noImplicitAny": false,
-    "strictPropertyInitialization": false
+    "outDir": "./dist"
   },
   "include": ["./src", "types", "types/jsx-compat.d.ts"],
   "exclude": ["./src/__tests__/**"]

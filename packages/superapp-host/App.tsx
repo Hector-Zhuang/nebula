@@ -12,16 +12,11 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  View,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
-  Input as NebulaInput,
   Slider as NebulaSlider,
-  Switch as NebulaSwitch,
-  Textarea as NebulaTextarea,
   Progress as NebulaProgress,
-  Checkbox as NebulaCheckbox,
 } from '@nebula/components';
 
 const { NebulaAPI } = require('@nebula/sdk');
@@ -183,20 +178,6 @@ function AppContent() {
         {/* ── @nebula/components showcase ── */}
         <Text style={styles.sectionTitle}>@nebula/components</Text>
 
-        <Text style={styles.label}>Input</Text>
-        <NebulaInput
-          placeholder="Nebula Input component"
-          style={styles.nebulaInput}
-        />
-
-        <Text style={styles.label}>Textarea</Text>
-        <NebulaTextarea
-          value={hostMemo}
-          onInput={e => setHostMemo(e.detail.value)}
-          placeholder="Nebula Textarea component"
-          style={styles.hostTextarea}
-        />
-
         <Text style={styles.label}>Progress ({sliderVal}%)</Text>
         <NebulaProgress percent={sliderVal} />
 
@@ -208,22 +189,6 @@ function AppContent() {
           onChange={e => setSliderVal(e.detail.value)}
         />
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Switch</Text>
-          <NebulaSwitch
-            checked={switchOn}
-            onChange={e => setSwitchOn(e.detail.value)}
-          />
-        </View>
-
-        <View style={styles.row}>
-          <NebulaCheckbox
-            value="test"
-            checked={checkboxVal}
-            onChange={e => setCheckboxVal(e.detail.value)}
-          />
-          <Text style={styles.label}>Checkbox</Text>
-        </View>
 
         <Text style={styles.bridgeLog}>Bridge: {bridgeLog}</Text>
       </ScrollView>
@@ -270,14 +235,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 12,
     color: '#334155',
-  },
-  nebulaInput: {
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    height: 44,
-    color: '#0f172a',
   },
   hostTextarea: {
     minHeight: 72,

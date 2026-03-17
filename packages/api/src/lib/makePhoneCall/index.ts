@@ -1,17 +1,16 @@
 import { Linking } from 'react-native'
 
-import { errorHandler, successHandler } from '../../utils'
 export async function makePhoneCall(opts: makePhoneCall.Option): Promise<CallbackResult> {
-  const { phoneNumber, success, fail, complete } = opts
+  const { phoneNumber } = opts
   const res = { errMsg: 'makePhoneCall:ok' }
   const telUrl = `tel:${phoneNumber}`
 
   const isSupport = await Linking.canOpenURL(telUrl)
   if (isSupport) {
     await Linking.openURL(telUrl)
-    return successHandler(success, complete)(res)
+    return Promise.resolve(res)
   } else {
     res.errMsg = 'makePhoneCall:fail. Do not support the makePhoneCall Api'
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }

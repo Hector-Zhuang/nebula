@@ -20,11 +20,9 @@ function showActionSheet (obj: showActionSheet.Option): Promise<showActionSheet.
       sibling && sibling.destroy()
       sibling = undefined
       const res = { tapIndex, errMsg: 'showActionSheet:ok' }
-      // fix: iOS 无法打开相册
+      // Documentation in English.
       // https://github.com/expo/expo/issues/25705
       setTimeout(() => {
-        success?.(res)
-        complete?.(res)
         resolve(res)
       }, 1)
     }
@@ -33,8 +31,6 @@ function showActionSheet (obj: showActionSheet.Option): Promise<showActionSheet.
       const res = { errMsg: 'showActionSheet:fail cancel' }
       sibling && sibling.destroy()
       sibling = undefined
-      fail?.(res)
-      complete?.(res)
       reject(res)
     }
 

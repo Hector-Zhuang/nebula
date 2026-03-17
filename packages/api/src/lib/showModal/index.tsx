@@ -24,8 +24,6 @@ function showModal (obj: showModal.Option): Promise<showModal.SuccessCallbackRes
       const res = { errMsg: 'showModal:ok', confirm: true, cancel: false }
       sibling && sibling.destroy()
       sibling = undefined
-      success?.(res)
-      complete?.(res)
       resolve(res)
     }
 
@@ -33,8 +31,6 @@ function showModal (obj: showModal.Option): Promise<showModal.SuccessCallbackRes
       const res = { errMsg: 'showModal:cancel', confirm: false, cancel: true }
       sibling && sibling.destroy()
       sibling = undefined
-      success?.(res)
-      complete?.(res)
       resolve(res)
     }
     try {
@@ -60,8 +56,6 @@ function showModal (obj: showModal.Option): Promise<showModal.SuccessCallbackRes
       )
     } catch (e) {
       const res = { errMsg: `showModal fail:${e.message}` }
-      fail?.(res)
-      complete?.(res)
       reject(res)
     }
   })

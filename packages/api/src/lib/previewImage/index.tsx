@@ -40,16 +40,12 @@ export function previewImage(obj: previewImage.Option): void {
   function onSuccess() {
     const rsp = { errMsg: 'previewImage:ok' }
     onSwipeDown()
-    success?.(rsp)
-    complete?.(rsp)
   }
 
   function onFail(e) {
     onSwipeDown()
-    fail?.({ errMsg: 'err', ...e })
-    complete?.('err', ...e)
   }
-  // 长按保存图片
+  // Documentation in English.
   function saveImage(uri) {
     downloadFile({
       url: uri,

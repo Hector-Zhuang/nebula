@@ -13,15 +13,15 @@ function temporarilyNotSupport(apiName: string, recommended?: string, isImmediat
   }
 }
 
-// 屏幕
+// Documentation in English.
 export const onUserCaptureScreen = temporarilyNotSupport('onUserCaptureScreen', '', false)
 export const offUserCaptureScreen = temporarilyNotSupport('offUserCaptureScreen', '', false)
 
-// 文件
+// Documentation in English.
 export const getFileSystemManager = temporarilyNotSupport('getFileSystemManager', '', false)
 
 // WXML
 export const createSelectorQuery = temporarilyNotSupport('createSelectorQuery', '', false)
 
-// 用户信息
+// Documentation in English.
 export const getUserProfile = temporarilyNotSupport('getUserProfile', '', false)

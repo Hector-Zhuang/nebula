@@ -1,69 +1,77 @@
 import { Camera } from 'expo-camera'
 
-import { errorHandler, successHandler } from '../../utils'
 const globalAny: any = global
 
 class CameraContext {
   private cameraRef: any
-  private recordCallback: CameraContext.StopRecordOption
+  private recordPromise: Promise<{ tempVideoPath: string; tempThumbPath: string; errMsg: string }> | null = null
 
-  constructor(cameraRef) {
+  constructor(cameraRef: any) {
     this.cameraRef = cameraRef
   }
 
   /**
-   * 开始录像
+   * Start video recording.
    */
-  startRecord = (option: CameraContext.StartRecordOption) => {
-    Promise.all([Camera.requestCameraPermissionsAsync(), Camera.requestMicrophonePermissionsAsync()]).then(([cameraPermission, microphonePermission]) => {
-      if (cameraPermission.granted && microphonePermission.granted) {
-        this.cameraRef?.recordAsync().then((res) => {
-          const { uri } = res
-          const result = {
-            tempVideoPath: uri,
-            tempThumbPath: '',
-            errMsg: 'stopRecord: ok'
-          }
-          this.recordCallback?.success?.(result)
-        }).catch((e) => {
-          const res = {
-            errMsg: e.message
-          }
-          option?.fail?.(res)
-          option?.complete?.(res)
-          this.recordCallback?.fail?.({ errMsg: e })
-        }).finally(() => {
-          this.recordCallback?.complete?.({ errMsg: '' })
-        })
-        const res = {
-          errMsg: 'startRecord: ok'
-        }
-        option?.success?.(res)
-        option?.complete?.(res)
-      } else {
-        const res = {
-          errMsg: 'startRecord: fail',
-          err: Error('You have not enabled camera or microphone permissions')
-        }
-        option?.fail?.(res)
-        option?.complete?.(res)
+  startRecord = async (_option: CameraContext.StartRecordOption) => {
+    const [cameraPermission, microphonePermission] = await Promise.all([
+      Camera.requestCameraPermissionsAsync(),
+      Camera.requestMicrophonePermissionsAsync(),
+    ])
+
+    if (!cameraPermission.granted || !microphonePermission.granted) {
+      return Promise.reject({
+        errMsg: 'startRecord: fail',
+        err: Error('You have not enabled camera or microphone permissions')
+      })
+    }
+
+    if (!this.cameraRef?.recordAsync) {
+      return Promise.reject({
+        errMsg: 'startRecord: fail',
+        err: Error('camera not ready')
+      })
+    }
+
+    this.recordPromise = this.cameraRef.recordAsync().then((res: { uri: string }) => {
+      const { uri } = res
+      return {
+        tempVideoPath: uri,
+        tempThumbPath: '',
+        errMsg: 'stopRecord: ok'
       }
     })
+
+    return Promise.resolve({ errMsg: 'startRecord: ok' })
   }
 
   /**
-   * 结束录像
+    * Stop video recording.
    */
-  stopRecord = (option: CameraContext.StopRecordOption) => {
-    this.recordCallback = option
-    this.cameraRef?.stopRecording()
+  stopRecord = async (_option: CameraContext.StopRecordOption) => {
+    if (!this.recordPromise || !this.cameraRef?.stopRecording) {
+      return Promise.reject({
+        errMsg: 'stopRecord: fail',
+        err: Error('no active recording')
+      })
+    }
+
+    this.cameraRef.stopRecording()
+    try {
+      const result = await this.recordPromise
+      this.recordPromise = null
+      return Promise.resolve(result)
+    } catch (error) {
+      this.recordPromise = null
+      return Promise.reject({ errMsg: 'stopRecord: fail', err: error })
+    }
   }
 
   /**
-   * 拍摄照片
+    * Take a photo.
    */
   takePhoto = async (option: CameraContext.TakePhotoOption) => {
-    const { quality = 'normal', success, fail, complete } = option
+    const { quality = 'normal' } = option
     let _quality = 0
     switch (quality) {
       case 'high':
@@ -85,32 +93,32 @@ class CameraContext {
             tempImagePath: uri,
             errMsg: 'takePhoto: ok'
           }
-          return successHandler(success, complete)(res)
+          return Promise.resolve(res)
         } else {
           const err = {
             errMsg: 'takePhoto: fail',
             err: Error('unknown')
           }
-          return errorHandler(fail, complete)(err)
+          return Promise.reject(err)
         }
       } else {
         const err = {
           errMsg: 'takePhoto: fail',
           err: Error('You have not enabled camera permissions')
         }
-        return errorHandler(fail, complete)(err)
+        return Promise.reject(err)
       }
     } catch (error) {
       const err = {
         errMsg: 'takePhoto: fail',
         err: error
       }
-      return errorHandler(fail, complete)(err)
+      return Promise.reject(err)
     }
   }
 
   /**
-   * 获取 Camera 实时帧数据
+    * Get camera frame stream data.
    * not support
    */
   onCameraFrame = () => {
@@ -129,13 +137,11 @@ class CameraContext {
   }
 }
 /**
- * 创建 video 上下文 VideoContext 对象。
- * {string} @param - id video 组件的 id
- * {object} @param t - 在自定义组件下，当前组件实例的this，以操作组件内 video 组件
+ * Create a camera context object.
  */
 
 export function createCameraContext(): CameraContext | undefined {
-  const ref = globalAny._taroCamera
+  const ref = globalAny._nebulaCamera
   if (ref) {
     return new CameraContext(ref)
   } else {

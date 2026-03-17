@@ -1,8 +1,7 @@
 import Geolocation from '@react-native-community/geolocation'
 
-import { errorHandler } from '../../utils'
 export async function getLocation(opts: getLocation.Option = {}): Promise<getLocation.SuccessCallbackResult> {
-  const { isHighAccuracy = false, highAccuracyExpireTime = 3000, success, fail, complete } = opts
+  const { isHighAccuracy = false, highAccuracyExpireTime = 3000 } = opts
   const requestAuthorization = () => {
     return new Promise((resolve, reject) => {
       Geolocation.requestAuthorization(() => resolve({ granted: true }), (err) => reject(err))
@@ -15,11 +14,11 @@ export async function getLocation(opts: getLocation.Option = {}): Promise<getLoc
     const { granted } = await requestAuthorization()
     if (!granted) {
       const res = { errMsg: 'Permissions denied!' }
-      return errorHandler(fail, complete)(res)
+      return Promise.reject(res)
     }
   } catch (err) {
     const res = { errMsg: 'Permissions denied!' }
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 
   return new Promise((resolve, reject) => {
@@ -36,8 +35,6 @@ export async function getLocation(opts: getLocation.Option = {}): Promise<getLoc
           horizontalAccuracy: 0,
           errMsg: 'getLocation:ok'
         }
-        success?.(res)
-        complete?.(res)
         resolve(res)
       },
       (err) => {
@@ -45,14 +42,12 @@ export async function getLocation(opts: getLocation.Option = {}): Promise<getLoc
           errMsg: 'getLocation fail',
           err
         }
-        fail?.(res)
-        complete?.(res)
         reject(res)
       },
       {
-        // 当 maximumAge 为 0 时，如果不设置 timeout 或 timeout 太少可能会超时
+        // Documentation in English.
         timeout: highAccuracyExpireTime,
-        // maximumAge 设置为 0 则会获取当前位置，而不是获取一个前不久缓存的位置
+        // Documentation in English.
         maximumAge: 0,
         enableHighAccuracy: isHighAccuracy
       }

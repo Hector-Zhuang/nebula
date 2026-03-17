@@ -1,4 +1,3 @@
-import { errorHandler, successHandler } from '../../utils'
 function serializeParams(params) {
   if (!params) {
     return ''
@@ -59,7 +58,6 @@ function _request<T = any>(options: request.Option): RequestTask<T> {
     params.signal = signal
   }
 
-  const { success, fail, complete } = options
 
   const fetchPromise = fetch(url, params)
     .then(response => {
@@ -87,10 +85,10 @@ function _request<T = any>(options: request.Option): RequestTask<T> {
 
   const p: any = Promise.race([fetchPromise, timeoutPromise]).then(resData => {
     res.data = resData
-    return successHandler(success, complete)(res)
+    return Promise.resolve(res)
   }).catch(err => {
     res.errMsg = err.message
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   })
 
   p.abort = function () {

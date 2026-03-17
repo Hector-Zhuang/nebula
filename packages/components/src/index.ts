@@ -1,10 +1,7 @@
 export { default as Provider } from './components/Provider';
 
 export { default as Camera } from './components/Camera';
-export { default as Checkbox } from './components/Checkbox';
-export { default as CheckboxGroup } from './components/CheckboxGroup';
 export { default as Icon } from './components/Icon';
-export { default as Input } from './components/Input';
 export { default as Map } from './components/Map';
 export { default as Picker } from './components/Picker';
 export { default as PickerView } from './components/PickerView';
@@ -13,7 +10,5 @@ export { default as RichText } from './components/RichText';
 export { default as Slider } from './components/Slider';
 export { default as Swiper } from './components/Swiper';
 export { default as SwiperItem } from './components/SwiperItem';
-export { default as Switch } from './components/Switch';
-export { default as Textarea } from './components/Textarea';
-export { default as Video } from './components/Video';
+export { Video } from './components/Video';
 export { default as WebView } from './components/WebView';

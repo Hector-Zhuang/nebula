@@ -41,7 +41,7 @@ const _global = {
   weuiCellLabelWidth: 105,
 
   // unit((weuiCellHeight - 2 * weuiCellGapV) / weuiCellFontSize)
-  // 高度为44，减去上下padding的行高
+  // Documentation in English.
   weuiCellLineHeight: 44 - 20,
   // unit(20 / @weuiCellFontSize, em),
   weuiCellsMarginTop: 20,

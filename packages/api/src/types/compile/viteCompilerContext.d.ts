@@ -58,8 +58,8 @@ export interface ViteHarmonyBuildConfig extends CommonBuildConfig, IHarmonyConfi
   blended?: boolean
   runtimePath?: string | string[]
   isPure?: boolean
-  taroComponentsPath: string
-  cssVariables?: boolean  // 是否动态解析css变量
+  nebulaComponentsPath: string
+  cssVariables?: boolean  // Documentation in English.
 }
 
 export interface CommonBuildConfig extends IProjectConfig<'vite'> {
@@ -86,7 +86,7 @@ export interface ViteMiniBuildConfig extends CommonBuildConfig, IMiniAppConfig<'
   globalObject: string
   template: RecursiveTemplate | UnRecursiveTemplate
   runtimePath?: string | string[]
-  taroComponentsPath: string
+  nebulaComponentsPath: string
   blended?: boolean
   hot?: boolean
   injectOptions?: {
@@ -100,8 +100,8 @@ export interface ViteMiniBuildConfig extends CommonBuildConfig, IMiniAppConfig<'
 export interface ViteCompilerContext<T> {
   cwd: string
   sourceDir: string
-  taroConfig: T
-  rawTaroConfig: T
+  nebulaConfig: T
+  rawNebulaConfig: T
   frameworkExts: string[]
   app: ViteAppMeta
   pages: VitePageMeta[]

@@ -1,3 +1,5 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Text, View } from 'react-native';
 import {
   BarcodeScanningResult,
   Camera,
@@ -5,17 +7,16 @@ import {
   CameraView,
   PermissionStatus,
 } from 'expo-camera';
-import React from 'react';
-import { Text, View } from 'react-native';
 
 import { CameraProps, CameraState } from './PropsType';
 import styles from './styles';
 
-const CameraComponent: React.FC<CameraProps> = (props) => {
-  const [hasPermission, setHasPermission] = React.useState<CameraState['hasPermission']>(null);
-  const expoCameraRef = React.useRef<CameraView | null>(null);
+const CameraComponent: React.FC<CameraProps> = props => {
+  const [hasPermission, setHasPermission] =
+    useState<CameraState['hasPermission']>(null);
+  const expoCameraRef = useRef<CameraView | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let active = true;
     const requestPermission = async () => {
       const permission = await Camera.requestCameraPermissionsAsync();
@@ -29,26 +30,32 @@ const CameraComponent: React.FC<CameraProps> = (props) => {
     };
   }, []);
 
-  const onError = React.useCallback((event: CameraMountError): void => {
-    props.onError && props.onError(event as any);
-  }, [props]);
- 
-  const onInitDone = React.useCallback((): void => {
+  const onCameraError = useCallback(
+    (event: CameraMountError): void => {
+      props.onError && props.onError(event as any);
+    },
+    [props],
+  );
+
+  const onCameraInitDone = useCallback((): void => {
     global._taroCamera = expoCameraRef.current;
     const event: any = {};
     props.onInitDone && props.onInitDone(event);
   }, [props]);
 
-  const onScanCode = React.useCallback((event: BarcodeScanningResult): void => {
-    const { data } = event;
-    props.onScanCode &&
-      props.onScanCode({
-        detail: {
-          result: data,
-        },
-        ...event,
-      } as any);
-  }, [props]);
+  const onCameraScanCode = useCallback(
+    (event: BarcodeScanningResult): void => {
+      const { data } = event;
+      props.onScanCode &&
+        props.onScanCode({
+          detail: {
+            result: data,
+          },
+          ...event,
+        } as any);
+    },
+    [props],
+  );
 
   const { devicePosition, style, mode, flash } = props;
   const facing = devicePosition ?? 'back';
@@ -61,13 +68,14 @@ const CameraComponent: React.FC<CameraProps> = (props) => {
   if (hasPermission === false) {
     return <Text>No access to camera</Text>;
   }
+
   const barCodeScannerSettings =
     mode === 'scanCode'
       ? {
           barCodeScannerSettings: {
-            barCodeTypes: ['qr'],
+            barCodeTypes: ['qr'] as const,
           },
-          onBarCodeScanned: onScanCode,
+          onBarCodeScanned: onCameraScanCode,
         }
       : {};
 
@@ -76,8 +84,8 @@ const CameraComponent: React.FC<CameraProps> = (props) => {
       ref={expoCameraRef}
       facing={facing}
       flash={normalizedFlash}
-      onMountError={onError}
-      onCameraReady={onInitDone}
+      onMountError={onCameraError}
+      onCameraReady={onCameraInitDone}
       {...barCodeScannerSettings}
       style={[styles.camera, cameraStyle]}
     />

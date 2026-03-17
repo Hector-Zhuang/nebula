@@ -3,7 +3,7 @@ import React from 'react'
 import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native'
 import RootSiblings from 'react-native-root-siblings'
 
-import { errorHandler, shouldBeObject, successHandler } from '../../utils'
+import { shouldBeObject } from '../../utils'
 import errorPng from './error.png'
 import successPng from './success.png'
 const globalAny: any = global
@@ -118,7 +118,7 @@ function showToast (options: showToast.Option): Promise<CallbackResult> {
     return Promise.reject(res)
   }
 
-  let { title = '', icon = 'success', image, duration = 1500, mask = false, success, fail, complete } = options || {} // eslint-disable-line
+  let { title = '', icon = 'success', image, duration = 1500, mask = false } = options || {} // eslint-disable-line
 
   const isLoading = (icon === 'loading')
 
@@ -170,10 +170,10 @@ function showToast (options: showToast.Option): Promise<CallbackResult> {
         globalAny.wxToastRootSiblings && globalAny.wxToastRootSiblings.destroy()
       }, duration)
     }
-    return successHandler(success, complete)(res)
+    return Promise.resolve(res)
   } catch (e) {
     res.errMsg = isLoading ? `showLoading:fail invalid ${e}` : `showToast:fail invalid ${e}`
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }
 
@@ -185,7 +185,7 @@ function showLoading (options: showLoading.Option = { title: '加载中' }): Pro
     return Promise.reject(res)
   }
 
-  const { title = '', mask, success, fail, complete } = options || {}
+  const { title = '', mask } = options || {}
 
   return showToast({
     title,
@@ -199,34 +199,24 @@ function showLoading (options: showLoading.Option = { title: '加载中' }): Pro
 }
 
 function hideToast (opts: hideToast.Option = {}): void {
-  const { success, fail, complete } = opts
 
   try {
     globalAny.wxToastRootSiblings && globalAny.wxToastRootSiblings.destroy()
     globalAny.wxToastRootSiblings = undefined
     const res = { errMsg: 'showToast:ok' }
-    success?.(res)
-    complete?.(res)
   } catch (e) {
     const res = { errMsg: e }
-    fail?.(res)
-    complete?.(res)
   }
 }
 
 function hideLoading (opts: hideLoading.Option = {}): void {
-  const { success, fail, complete } = opts
 
   try {
     globalAny.wxToastRootSiblings && globalAny.wxToastRootSiblings.destroy()
     globalAny.wxToastRootSiblings = undefined
     const res = { errMsg: 'showLoading:ok' }
-    success?.(res)
-    complete?.(res)
   } catch (e) {
     const res = { errMsg: e }
-    fail?.(res)
-    complete?.(res)
   }
 }
 

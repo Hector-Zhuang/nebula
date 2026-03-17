@@ -1,10 +1,10 @@
 import React from 'react'
 
-import Taro from '../index'
+import Nebula from '../index'
 
 declare module '../index' {
   namespace getAppInfo {
-    /** 应用信息 */
+    /** Documentation in English. */
     interface AppInfo {
       platform: string
       taroVersion: string
@@ -21,15 +21,13 @@ declare module '../index' {
       onHide: string
       onShow: string
       preloadData?: Record<any, any>
-      /**
-       * RN 私有对象 navigationRef，用于使用底层接口控制路由
-       */
+      /** Documentation in English. */
       rnNavigationRef?: React.RefObject<any>
     }
   }
 
   namespace setGlobalDataPlugin {
-    /** Vue3 插件，用于设置 `getApp()` 中的全局变量 */
+    /** Documentation in English. */
     interface Plugin {
       install(app: any, data: any): void
     }
@@ -37,18 +35,18 @@ declare module '../index' {
 
   /** @ignore */
   interface TARO_ENV_TYPE {
-    [TaroGeneral.ENV_TYPE.WEAPP]: TaroGeneral.ENV_TYPE.WEAPP
-    [TaroGeneral.ENV_TYPE.SWAN]: TaroGeneral.ENV_TYPE.SWAN
-    [TaroGeneral.ENV_TYPE.ALIPAY]: TaroGeneral.ENV_TYPE.ALIPAY
-    [TaroGeneral.ENV_TYPE.TT]: TaroGeneral.ENV_TYPE.TT
-    [TaroGeneral.ENV_TYPE.QQ]: TaroGeneral.ENV_TYPE.QQ
-    [TaroGeneral.ENV_TYPE.JD]: TaroGeneral.ENV_TYPE.JD
-    [TaroGeneral.ENV_TYPE.WEB]: TaroGeneral.ENV_TYPE.WEB
-    [TaroGeneral.ENV_TYPE.RN]: TaroGeneral.ENV_TYPE.RN
-    [TaroGeneral.ENV_TYPE.HARMONY]: TaroGeneral.ENV_TYPE.HARMONY
-    [TaroGeneral.ENV_TYPE.QUICKAPP]: TaroGeneral.ENV_TYPE.QUICKAPP
-    [TaroGeneral.ENV_TYPE.HARMONYHYBRID]: TaroGeneral.ENV_TYPE.HARMONYHYBRID
-    [TaroGeneral.ENV_TYPE.ASCF]: TaroGeneral.ENV_TYPE.ASCF
+    [NebulaGeneral.ENV_TYPE.WEAPP]: NebulaGeneral.ENV_TYPE.WEAPP
+    [NebulaGeneral.ENV_TYPE.SWAN]: NebulaGeneral.ENV_TYPE.SWAN
+    [NebulaGeneral.ENV_TYPE.ALIPAY]: NebulaGeneral.ENV_TYPE.ALIPAY
+    [NebulaGeneral.ENV_TYPE.TT]: NebulaGeneral.ENV_TYPE.TT
+    [NebulaGeneral.ENV_TYPE.QQ]: NebulaGeneral.ENV_TYPE.QQ
+    [NebulaGeneral.ENV_TYPE.JD]: NebulaGeneral.ENV_TYPE.JD
+    [NebulaGeneral.ENV_TYPE.WEB]: NebulaGeneral.ENV_TYPE.WEB
+    [NebulaGeneral.ENV_TYPE.RN]: NebulaGeneral.ENV_TYPE.RN
+    [NebulaGeneral.ENV_TYPE.HARMONY]: NebulaGeneral.ENV_TYPE.HARMONY
+    [NebulaGeneral.ENV_TYPE.QUICKAPP]: NebulaGeneral.ENV_TYPE.QUICKAPP
+    [NebulaGeneral.ENV_TYPE.HARMONYHYBRID]: NebulaGeneral.ENV_TYPE.HARMONYHYBRID
+    [NebulaGeneral.ENV_TYPE.ASCF]: NebulaGeneral.ENV_TYPE.ASCF
   }
 
   namespace interceptorify {
@@ -65,169 +63,82 @@ declare module '../index' {
     }
   }
 
-  interface TaroStatic {
+  interface NebulaStatic {
     /** @ignore */
     Events: {
-      new (): TaroGeneral.Events
+      new (): NebulaGeneral.Events
     }
 
-    /** 事件中心
-     * @supported global
-     */
-    eventCenter: TaroGeneral.Events
+    /** Documentation in English. */
+    eventCenter: NebulaGeneral.Events
 
     /** @ignore */
     ENV_TYPE: TARO_ENV_TYPE
 
-    /** 获取环境变量
-     * @supported global
-     */
-    getEnv(): TaroGeneral.ENV_TYPE
+    /** Documentation in English. */
+    getEnv(): NebulaGeneral.ENV_TYPE
 
-    /** 尺寸转换
-     * @supported global
-     */
+    /** Documentation in English. */
     pxTransform(size: number): string
 
-    /** 尺寸转换初始化
-     * @supported global
-     */
+    /** Documentation in English. */
     initPxTransform(config: {
       baseFontSize?: number
-      deviceRatio?: TaroGeneral.TDeviceRatio
+      deviceRatio?: NebulaGeneral.TDeviceRatio
       designWidth?: number | ((size?: string | number) => number)
       targetUnit?: string
       unitPrecision?: number
     }): void
 
-    /** 小程序获取和 Taro 相关的 App 信息
-     * @supported weapp, alipay, jd, qq, swan, tt, h5, harmony, harmony_hybrid
-     */
+    /** Documentation in English. */
     getAppInfo(): getAppInfo.AppInfo
 
     getEnvInfoSync(): {
-      /** 小程序信息 */
+      /** Documentation in English. */
       microapp: {
-        /** 小程序版本号 */
+        /** Documentation in English. */
         mpVersion: string
-        /** 小程序环境 */
+        /** Documentation in English. */
         envType: string
-        /** 小程序 appId */
+        /** Documentation in English. */
         appId: string
       }
-      /** 插件信息 */
+      /** Documentation in English. */
       plugin: Record<string, unknown>
-      /** 通用参数 */
+      /** Documentation in English. */
       common: {
-        /** 用户数据存储的路径 */
+        /** Documentation in English. */
         USER_DATA_PATH: string
-        /** 校验白名单属性中的 appInfoLaunchFrom 后返回额外信息 */
+        /** Documentation in English. */
         location: string | undefined
         launchFrom: string | undefined
         schema: string | undefined
       }
     }
 
-    /** 小程序引用插件 JS 接口
-     * @supported weapp, alipay, h5, rn, jd, qq, swan, tt, quickapp
-     */
+    /** Documentation in English. */
     requirePlugin: {
       (pluginName: string): any
-      /** @supported weapp */
-      (pluginName: string, success?: (mod: any) => any, error?: (e: { mod: any; errMsg: string }) => any): any;
       /** @supported weapp */
       async?: (pluginName: string) => Promise<any>
     }
 
-    /** 获取当前页面实例
-     * @supported global
-     */
+    /** Documentation in English. */
     getCurrentInstance(): getCurrentInstance.Current
 
     /** @ignore */
     Current: getCurrentInstance.Current
 
-    /** Vue3 插件，用于设置 `getApp()` 中的全局变量
-     * @supported weapp, alipay, h5, rn, jd, qq, swan, tt, quickapp, harmony_hybrid
-     * @example
-     * ```js
-     * // 使用插件
-     * const App = createApp(...)
-     * App.use(setGlobalDataPlugin, {
-     *   xxx: 999
-     * })
-     * // 获取全局变量
-     * Taro.getApp().xxx
-     * ```
-     */
+    /** Documentation in English. */
     setGlobalDataPlugin: setGlobalDataPlugin.Plugin
 
-    /** 获取自定义 TabBar 对应的 React 或 Vue 组件实例
-     * @supported weapp, jd
-     * @param page 小程序页面对象，可以通过 Taro.getCurrentInstance().page 获取
-     */
+    /** Documentation in English. */
     getTabBar<T>(page: getCurrentInstance.Current['page']): T | undefined
 
-    /** 获取当前页面渲染引擎类型
-     * @supported weapp
-     */
+    /** Documentation in English. */
     getRenderer(): 'webview' | 'skyline'
 
-    /**
-     * 包裹 promisify api 的洋葱圈模型
-     * @supported global
-     * @param promisifyApi
-     * @example
-     * ```tsx
-     * // 创建实例
-     * const modalInterceptorify = interceptorify(taro.showModal)
-     * // 添加拦截器
-     * modalInterceptorify.addInterceptor(async function (chain) {
-     *   const res = await chain.proceed({
-     *     ...chain.requestParams,
-     *     title: 'interceptor1'
-     *   })
-     *   return res
-     * })
-     * modalInterceptorify.addInterceptor(async function (chain) {
-     *   const res = await chain.proceed({
-     *     ...chain.requestParams,
-     *     content: 'interceptor2'
-     *   })
-     *   return res
-     * })
-     * // 使用
-     * modalInterceptorify.request({})
-     * ```
-     * @example
-     * ```tsx
-     * // 创建实例
-     * const fetchDataInterceptorify = interceptorify(taro.request)
-     * // 添加拦截器
-     * fetchDataInterceptorify.addInterceptor(async function (chain) {
-     *   taro.showLoading({
-     *     title: 'Loading...'
-     *   })
-     *   const res = await chain.proceed(chain.requestParams)
-     *   taro.hideLoading()
-     *   return res
-     * })
-     * fetchDataInterceptorify.addInterceptor(async function (chain) {
-     *   const params = chain.requestParams
-     *   const res = await chain.proceed({
-     *     url: 'http://httpbin.org' + params.url,
-     *   })
-     *   return res.data
-     * })
-     * // 使用
-     * fetchDataInterceptorify.request({
-     *   url: '/ip'
-     * }).then((res) => {
-     *   // log my ip
-     *   console.log(res.origin)
-     * })
-     * ```
-     */
+    /** Documentation in English. */
     interceptorify<T, R>(api: interceptorify.promisifyApi<T, R>): interceptorify.Interceptorify<T, R>
   }
 }

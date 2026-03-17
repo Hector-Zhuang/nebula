@@ -1,8 +1,6 @@
-import { errorHandler, successHandler } from '../../utils'
 import { getStorageCurrentSize, getStorageKeys } from '../../utils/storage'
 
 export async function getStorageInfo(option: getStorageInfo.Option = {}): Promise<CallbackResult> {
-  const { success, fail, complete } = option
   const res = { errMsg: 'getStorageInfo:ok' }
 
   try {
@@ -14,9 +12,9 @@ export async function getStorageInfo(option: getStorageInfo.Option = {}): Promis
       limitSize: Infinity
     }
     // @ts-ignore
-    return successHandler(success, complete)(result)
+    return Promise.resolve(result)
   } catch (err) {
     res.errMsg = err.message
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }

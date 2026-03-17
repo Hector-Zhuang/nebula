@@ -38,19 +38,15 @@ class SocketTask {
   }
 
   send(opts: SocketTask.SendOption): void {
-    const { data, success, fail, complete } = opts
+    const { data } = opts
     const res = { errMsg: 'sendSocketMessage:ok' }
 
     try {
       this.ws.send(data)
 
-      success?.(res)
-      complete?.(res)
     } catch (err) {
       const res = { errMsg: err.message }
 
-      fail?.(res)
-      complete?.(res)
     }
   }
 
@@ -67,14 +63,10 @@ class SocketTask {
 
     try {
       this.ws.close(code, reason)
-      // 把自己从链接数组中清除
+      // Documentation in English.
       this._destroyWhenClose && this._destroyWhenClose()
-      success?.(res)
-      complete?.(res)
     } catch (err) {
       const res = { errMsg: err.message }
-      fail?.(res)
-      complete?.(res)
     }
   }
 

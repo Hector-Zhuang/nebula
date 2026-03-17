@@ -1,11 +1,4 @@
-/**
- *
- * 微信端能力
- * original code from: https://github.com/wx-minapp/minapp-wx/blob/master/typing/wx.d.ts
- * Licensed under MIT license: https://github.com/qiu8310/minapp/issues/69
- * thanks for the great work by @qiu8310 👍👍👍
- *
- */
+
 /// <reference path="api/framework/index.d.ts" />
 /// <reference path="api/base/index.d.ts" />
 /// <reference path="api/base/system.d.ts" />
@@ -126,5 +119,5 @@
 /// <reference path="api/swan/pay.d.ts" />
 
 
-/// <reference path="api/taro.extend.d.ts" />
-/// <reference path="api/taro.hooks.d.ts" />
+/// <reference path="api/nebula.extend.d.ts" />
+/// <reference path="api/nebula.hooks.d.ts" />

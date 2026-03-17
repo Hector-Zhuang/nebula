@@ -18,7 +18,6 @@ function getTypeFromState(connectionInfo:NetInfoState): keyof getNetworkType.Net
 }
 
 export function getNetworkType(opts: getNetworkType.Option = {}): Promise<getNetworkType.SuccessCallbackResult> {
-  const { success, fail, complete } = opts
 
   return new Promise((resolve, reject) => {
     NetInfo.fetch()
@@ -27,16 +26,12 @@ export function getNetworkType(opts: getNetworkType.Option = {}): Promise<getNet
           errMsg: 'getNetworkType:ok',
           networkType: getTypeFromState(connectionInfo),
         }
-        success?.(res)
-        complete?.(res)
 
         resolve(res)
       }).catch((err) => {
         const res: CallbackResult = {
           errMsg: err.message
         }
-        fail?.(res)
-        complete?.(res)
 
         reject(err)
       })

@@ -25,7 +25,7 @@ interface ICompiler<T> {
   type: T
   prebundle?: IPrebundle
   vitePlugins?: any
-  /** 错误处理级别。可选值：0、1 */
+  
   errorLevel?: number
 }
 

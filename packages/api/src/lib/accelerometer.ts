@@ -1,6 +1,6 @@
 import { Accelerometer } from 'expo-sensors'
 
-import { createCallbackManager, errorHandler, successHandler } from '../utils'
+import { createCallbackManager } from '../utils'
 const _cbManager = createCallbackManager()
 let _listener: any
 
@@ -24,16 +24,12 @@ function onAccelerometerChange(fnc: onAccelerometerChange.Callback): void {
   _cbManager.add(fnc)
 }
 
-/**
- * 开始监听加速度数据。
- * @param {Object} opts
- * @param {string} [opts.interval='normal'] 监听加速度数据回调函数的执行频率
- */
+
 function startAccelerometer(opts: startAccelerometer.Option = {}): Promise<CallbackResult> {
-  const { interval = 'normal', success, fail, complete } = opts
+  const { interval = 'normal' } = opts
   const res = { errMsg: 'startAccelerometer:ok' }
   try {
-    // 适配微信小程序行为：重复 start 失败
+    // Documentation in English.
     if (_listener) {
       console.error('startAccelerometer:fail')
       throw new Error('startAccelerometer:fail')
@@ -43,27 +39,23 @@ function startAccelerometer(opts: startAccelerometer.Option = {}): Promise<Callb
     })
     Accelerometer.setUpdateInterval(intervalMap[interval])
 
-    return successHandler(success, complete)(res)
+    return Promise.resolve(res)
   } catch (error) {
     res.errMsg = 'startAccelerometer:fail'
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }
 
-/**
- * 停止监听加速度数据
- * @param opts
- */
+
 function stopAccelerometer(opts: stopAccelerometer.Option = {}): Promise<CallbackResult> {
-  const { success, fail, complete } = opts
   const res = { errMsg: 'stopAccelerometer:ok' }
   try {
     _listener && _listener.remove()
     _listener = null
-    return successHandler(success, complete)(res)
+    return Promise.resolve(res)
   } catch (error) {
     res.errMsg = 'stopAccelerometer:fail'
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }
 

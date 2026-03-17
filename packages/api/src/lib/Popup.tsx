@@ -71,7 +71,7 @@ class Popup extends Component<any, any> {
           }).start()
         })
       })
-    },) // 处理鸿蒙系统handleLayout 回调 this.popup为空的情况
+    },) // Documentation in English.
   }
 
   render (): JSX.Element {

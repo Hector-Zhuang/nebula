@@ -92,7 +92,6 @@ export const Slider = pickComponent('Slider');
 export const Swiper = pickComponent('Swiper');
 export const SwiperItem = pickComponent('SwiperItem');
 export const Switch = pickComponent('Switch');
-export const Textarea = pickComponent('Textarea', FallbackTextarea);
 export const Video = pickComponent('Video');
 export const WebView = pickComponent('WebView');
 
@@ -122,7 +121,6 @@ export const NebulaComponents = {
   Swiper,
   SwiperItem,
   Switch,
-  Textarea,
   Video,
   WebView,
 };

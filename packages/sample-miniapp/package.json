@@ -18,8 +18,18 @@
     "react-native-svg": "14.1.0",
     "react-native-webview": "13.6.4"
   },
+  "devDependencies": {
+    "@react-native-community/cli": "20.0.0",
+    "@react-native-community/cli-platform-android": "20.0.0",
+    "@react-native-community/cli-platform-ios": "20.0.0",
+    "@react-native/babel-preset": "0.83.1",
+    "@react-native/eslint-config": "0.83.1",
+    "@react-native/metro-config": "0.83.1",
+    "@react-native/typescript-config": "0.83.1",
+    "babel-preset-expo": "^55.0.11"
+  },
   "scripts": {
-    "start": "react-native start --config metro.config.js --port 8082",
-    "bundle:ios": "react-native bundle --config metro.config.js --platform ios --dev false --entry-file index.js --bundle-output ./build/main.jsbundle --assets-dest ./build"
+    "start": "expo start --port 8082",
+    "bundle:ios": "react-native bundle --config metro.config.js --platform ios --dev false --entry-file ./index.js --bundle-output ./build/main.jsbundle --assets-dest ./build"
   }
 }

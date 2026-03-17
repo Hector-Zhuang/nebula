@@ -1,7 +1,6 @@
 import React from 'react';
-import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MiniAppAPI, wx } from '@nebula/sdk';
-import { Textarea as NebulaTextarea } from '@nebula/components';
 
 export default function HomePage(props) {
   const [now, setNow] = React.useState(new Date());
@@ -218,12 +217,13 @@ export default function HomePage(props) {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>🧩 Nebula Components Demo</Text>
-        <Text style={styles.hint}>Textarea comes from @nebula/components.</Text>
-        <NebulaTextarea
+        <Text style={styles.hint}>Textarea uses React Native TextInput.</Text>
+        <TextInput
           value={memo}
           onChangeText={setMemo}
           placeholder="Type here..."
           style={styles.textarea}
+          multiline
         />
       </View>
 

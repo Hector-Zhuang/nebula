@@ -1,15 +1,14 @@
 import Clipboard from '@react-native-clipboard/clipboard'
 
-import { errorHandler, successHandler } from '../../utils'
 import { showToast } from '../showModal/toast'
 export function setClipboardData(opts: setClipboardData.Option): Promise<setClipboardData.Promised> {
-  const { data, success, fail, complete } = opts
+  const { data } = opts
 
   if (typeof data !== 'string') {
     const res = {
       errMsg: 'setClipboardData:fail parameter error: parameter.data should be String'
     }
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 
   Clipboard.setString(data)
@@ -21,5 +20,5 @@ export function setClipboardData(opts: setClipboardData.Option): Promise<setClip
     icon: 'none',
     title: '内容已复制'
   })
-  return successHandler(success, complete)(res)
+  return Promise.resolve(res)
 }

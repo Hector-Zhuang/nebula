@@ -8,7 +8,6 @@ import {
 } from 'expo-location'
 import { AppState, Linking, NativeEventSubscription } from 'react-native'
 
-import { errorHandler, successHandler } from '../utils'
 const {
   getCameraPermissionsAsync,
   getMicrophonePermissionsAsync,
@@ -30,7 +29,7 @@ const scopeMap = {
   // 'scope.SYSTEM_BRIGHTNESS': Permissions.SYSTEM_BRIGHTNESS
 }
 
-let stateListener // 缓存监听函数
+let stateListener // Documentation in English.
 let appStateSubscription: NativeEventSubscription | undefined
 
 const getAuthSetting = async () => {
@@ -45,22 +44,17 @@ const getAuthSetting = async () => {
 }
 
 const handleAppStateChange = async (_nextAppState, resolve, reject, opts) => {
-  const { success, fail, complete } = opts
   const res: any = {}
 
   if (AppState.currentState === 'active') {
     try {
       res.authSetting = await getAuthSetting()
       res.errMsg = 'openSetting:ok'
-      success?.(res)
-      complete?.(res)
 
       appStateSubscription?.remove()
       resolve(res)
     } catch (error) {
       res.errMsg = 'openSetting:fail'
-      fail?.(res)
-      complete?.(res)
 
       reject(error)
     }
@@ -69,35 +63,34 @@ const handleAppStateChange = async (_nextAppState, resolve, reject, opts) => {
 }
 
 export async function authorize(opts: authorize.Option): Promise<CallbackResult> {
-  const { scope, success, fail, complete } = opts
+  const { scope } = opts
   const res: any = {}
 
   try {
     const { granted } = await scopeMap[scope][1]()
     if (granted) {
       res.errMsg = 'authorize:ok'
-      return successHandler(success, complete)(res)
+      return Promise.resolve(res)
     } else {
       res.errMsg = 'authorize:denied/undetermined'
-      return errorHandler(fail, complete)(res)
+      return Promise.reject(res)
     }
   } catch (error) {
     res.errMsg = 'authorize:fail'
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }
 
 export async function getSetting(opts: getSetting.Option = {}): Promise<getSetting.SuccessCallbackResult> {
-  const { success, fail, complete } = opts
   const res: any = {}
 
   try {
     res.authSetting = await getAuthSetting()
     res.errMsg = 'getSetting:ok'
-    return successHandler(success, complete)(res)
+    return Promise.resolve(res)
   } catch (error) {
     res.errMsg = 'getSetting:fail'
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }
 

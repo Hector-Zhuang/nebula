@@ -1,6 +1,6 @@
 import Geolocation from '@react-native-community/geolocation'
 
-import { createCallbackManager, errorHandler, successHandler } from '../utils'
+import { createCallbackManager } from '../utils'
 const _cbManager = createCallbackManager()
 let _watchID = -1
 
@@ -18,13 +18,8 @@ export function offLocationChange(callback: onLocationChange.Callback): void {
   }
 }
 
-/**
- * 开始监听位置信息
- * @param opts
- * @returns
- */
+
 export function startLocationUpdate(opts: startLocationUpdate.Option): Promise<CallbackResult> {
-  const { success, fail, complete } = opts
   const res = { errMsg: 'startLocationUpdate:ok' }
   try {
     if (_watchID > -1) {
@@ -53,30 +48,25 @@ export function startLocationUpdate(opts: startLocationUpdate.Option): Promise<C
         enableHighAccuracy: true,
         distanceFilter: 0,
       })
-      return successHandler(success, complete)(res)
+      return Promise.resolve(res)
     }
   } catch (error) {
     res.errMsg = 'startLocationUpdate:fail'
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }
 
-/**
- * 停止监听位置信息
- * @param opts
- * @returns
- */
+
 export function stopLocationUpdate(opts: stopLocationUpdate.Option): Promise<CallbackResult> {
-  const { success, fail, complete } = opts
   const res = { errMsg: 'stopLocationUpdate:ok' }
   try {
     Geolocation.clearWatch(_watchID)
     _watchID = -1
 
-    return successHandler(success, complete)(res)
+    return Promise.resolve(res)
   } catch (error) {
     res.errMsg = 'stopLocationUpdate:fail'
 
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }

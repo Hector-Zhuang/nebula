@@ -1,6 +1,6 @@
 import { DeviceMotion } from 'expo-sensors'
 
-import { createCallbackManager, errorHandler, successHandler } from '../utils'
+import { createCallbackManager } from '../utils'
 const _cbManager = createCallbackManager()
 let _listener: any
 
@@ -24,16 +24,12 @@ function offDeviceMotionChange(fnc: onDeviceMotionChange.Callback): void {
   }
 }
 
-/**
- * 开始监听设备方向的变化
- * @param object
- * @param {string} [object.interval='normal'] - 监听设备方向的变化回调函数的执行频率
- */
+
 function startDeviceMotionListening (object: startDeviceMotionListening.Option = {}): Promise<CallbackResult> {
-  const { interval = 'normal', success, fail, complete } = object
+  const { interval = 'normal' } = object
   const res = { errMsg: 'startDeviceMotionListening:ok' }
   try {
-    // 适配微信小程序行为：重复 start 失败
+    // Documentation in English.
     if (_listener) {
       console.error('startDeviceMotionListening:fail')
       throw new Error('startDeviceMotionListening:fail')
@@ -44,28 +40,24 @@ function startDeviceMotionListening (object: startDeviceMotionListening.Option =
     })
     DeviceMotion.setUpdateInterval(intervalMap[interval] || intervalMap.normal)
 
-    return successHandler(success, complete)(res)
+    return Promise.resolve(res)
   } catch (error) {
     res.errMsg = 'startDeviceMotionListening:fail'
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }
 
-/**
- * 停止监听设备方向的变化
- * @param object
- */
+
 function stopDeviceMotionListening (object: stopDeviceMotionListening.Option = {}): Promise<CallbackResult> {
-  const { success, fail, complete } = object
   const res = { errMsg: 'stopDeviceMotionListening:ok' }
   try {
     _listener.remove()
     _listener = null
 
-    return successHandler(success, complete)(res)
+    return Promise.resolve(res)
   } catch (error) {
     res.errMsg = 'stopDeviceMotionListening:fail'
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }
 

@@ -1,15 +1,13 @@
 import { Vibration } from 'react-native'
 
-import { errorHandler, successHandler } from '../utils'
 function vibrate (DURATION, API, OPTS): Promise<CallbackResult> {
   const res = { errMsg: `${API}:ok` }
-  const { success, fail, complete } = OPTS
   try {
     Vibration.vibrate(DURATION)
-    return successHandler(success, complete)(res)
+    return Promise.resolve(res)
   } catch (err) {
     res.errMsg = err.message
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }
 

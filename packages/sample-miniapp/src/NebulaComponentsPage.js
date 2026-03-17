@@ -1,14 +1,8 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
-  Button as NebulaButton,
-  Checkbox as NebulaCheckbox,
-  CheckboxGroup as NebulaCheckboxGroup,
-  Input as NebulaInput,
   Progress as NebulaProgress,
   Slider as NebulaSlider,
-  Switch as NebulaSwitch,
-  Textarea as NebulaTextarea,
 } from '@nebula/components';
 
 export default function NebulaComponentsPage() {
@@ -23,32 +17,18 @@ export default function NebulaComponentsPage() {
       <Text style={styles.title}>@nebula/components Demo</Text>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Button</Text>
-        <NebulaButton type="primary" size="default">Primary Button</NebulaButton>
-        <View style={styles.spacer} />
-        <NebulaButton type="default" size="default">Default Button</NebulaButton>
-        <View style={styles.spacer} />
-        <NebulaButton type="warn" size="mini">Warn Mini</NebulaButton>
-      </View>
-
-      <View style={styles.card}>
         <Text style={styles.cardTitle}>Input</Text>
-        <NebulaInput
-          value={inputVal}
-          onInput={(e) => setInputVal(e.detail.value)}
-          placeholder="Type something..."
-          style={styles.input}
-        />
         <Text style={styles.meta}>Value: {inputVal || '(empty)'}</Text>
       </View>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Textarea</Text>
-        <NebulaTextarea
+        <TextInput
           value={textareaVal}
-          onInput={(e) => setTextareaVal(e.detail.value)}
+          onChangeText={setTextareaVal}
           placeholder="Multi-line input..."
           style={styles.textarea}
+          multiline
         />
         <Text style={styles.meta}>Length: {textareaVal.length}</Text>
       </View>
@@ -63,40 +43,7 @@ export default function NebulaComponentsPage() {
           max={100}
           onChange={(e) => setSliderVal(e.detail.value)}
         />
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Switch</Text>
-        <View style={styles.row}>
-          <NebulaSwitch
-            checked={switchOn}
-            onChange={(e) => setSwitchOn(e.detail.value)}
-          />
-          <Text style={styles.meta}>{switchOn ? 'ON' : 'OFF'}</Text>
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>CheckboxGroup</Text>
-        <NebulaCheckboxGroup
-          value={checkedItems}
-          onChange={(e) => setCheckedItems(e.detail.value)}
-        >
-          <View style={styles.row}>
-            <NebulaCheckbox value="apple" />
-            <Text style={styles.meta}>Apple</Text>
-          </View>
-          <View style={styles.row}>
-            <NebulaCheckbox value="banana" />
-            <Text style={styles.meta}>Banana</Text>
-          </View>
-          <View style={styles.row}>
-            <NebulaCheckbox value="cherry" />
-            <Text style={styles.meta}>Cherry</Text>
-          </View>
-        </NebulaCheckboxGroup>
-        <Text style={styles.meta}>Selected: {checkedItems.join(', ') || '(none)'}</Text>
-      </View>
+      </View>  
     </ScrollView>
   );
 }

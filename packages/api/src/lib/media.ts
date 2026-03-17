@@ -8,16 +8,15 @@ import {
   requestMediaLibraryPermissionsAsync,
 } from 'expo-image-picker'
 
-import { errorHandler, successHandler } from '../utils'
 import { showActionSheet } from './showActionSheet'
 export const MEDIA_TYPE = MediaTypeOptions
 
 export async function saveMedia(opts: saveImageToPhotosAlbum.Option | saveVideoToPhotosAlbum.Option, type:string, API:string):Promise<CallbackResult> {
-  const { filePath, success, fail, complete } = opts
+  const { filePath } = opts
   const { granted } = await requestMediaLibraryPermissionsAsync()
   if (!granted) {
     const res = { errMsg: 'Permissions denied!' }
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 
   const res: any = { errMsg: `${API}:ok` }
@@ -25,15 +24,14 @@ export async function saveMedia(opts: saveImageToPhotosAlbum.Option | saveVideoT
   try {
     const url: string = await CameraRoll.save(filePath, { type: saveType })
     res.path = url
-    return successHandler(success, complete)(res)
-  } catch (err) {
-    res.errMsg = err.message
-    return errorHandler(fail, complete)(res)
+    return Promise.resolve(res)
+  } catch (err: any) {
+    res.errMsg = err?.message || `${API}:fail`
+    return Promise.reject(res)
   }
 }
 
 async function showPicker(opts: chooseImage.Option | chooseVideo.Option | chooseMedia.Option, mediaTypes: MediaTypeOptions):Promise<any> {
-  const { fail, complete } = opts
   try {
     const res = await showActionSheet({
       itemList: ['拍摄', '从手机相册选择'],
@@ -50,8 +48,6 @@ async function showPicker(opts: chooseImage.Option | chooseVideo.Option | choose
         mediaTypes === MediaTypeOptions.Images ? 'Image' : mediaTypes === MediaTypeOptions.Videos ? 'Video' : 'Media'
       } fail`
     }
-    fail?.(res)
-    complete?.(res)
   }
 }
 
@@ -71,9 +67,6 @@ export async function _chooseMedia(opts: chooseImage.Option | chooseVideo.Option
   const {
     sizeType = [],
     sourceType = [],
-    success,
-    fail,
-    complete,
     maxDuration,
     count = (mediaTypes === MEDIA_TYPE.Videos ? 1 : 9),
     compressed
@@ -90,7 +83,7 @@ export async function _chooseMedia(opts: chooseImage.Option | chooseVideo.Option
   const { granted } = isCamera ? await Camera.requestCameraPermissionsAsync() : await requestMediaLibraryPermissionsAsync()
   if (!granted) {
     const res = { errMsg: 'Permissions denied!' }
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 
   const launchMediaAsync = isCamera ? launchCameraAsync : launchImageLibraryAsync
@@ -117,18 +110,18 @@ export async function _chooseMedia(opts: chooseImage.Option | chooseVideo.Option
       }
     }
     if (res.tempFilePath || (!!res.tempFilePaths && res.tempFilePaths.length > 0)) {
-      return successHandler(success, complete)(res)
+      return Promise.resolve(res)
     } else {
       const res = {
         errMsg: `choose${messString}:fail cancel`
       }
-      return errorHandler(fail, complete)(res)
+      return Promise.reject(res)
     }
   } catch (err) {
     const res = {
       errMsg: `choose${messString}:fail`,
       err
     }
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }

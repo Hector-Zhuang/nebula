@@ -1,7 +1,7 @@
 
 const globalAny:any = global
 
-globalAny._taroVideoMap = globalAny._taroVideoMap || {}
+globalAny._nebulaVideoMap = globalAny._nebulaVideoMap || {}
 class VideoContext {
   private videoRef: any
 
@@ -9,9 +9,7 @@ class VideoContext {
     this.videoRef = videoRef
   }
 
-  /**
-   * 退出全屏
-   */
+  
   async exitFullScreen () {
     try {
       await this.videoRef?.dismissFullscreenPlayer()
@@ -20,17 +18,12 @@ class VideoContext {
     }
   }
 
-  /**
-   * 隐藏状态栏，仅在iOS全屏下有效
-   * @todo
-   */
+  
   hideStatusBar () {
     console.log('not support')
   }
 
-  /**
-   * 暂停视频
-   */
+  
   async pause () {
     try {
       await this.videoRef?.pauseAsync()
@@ -39,9 +32,7 @@ class VideoContext {
     }
   }
 
-  /**
-   * 播放视频
-   */
+  
   async play () {
     try {
       await this.videoRef?.playAsync?.()
@@ -50,10 +41,7 @@ class VideoContext {
     }
   }
 
-  /**
-   * 设置倍速播放
-   * {number} @param rate - 倍率，支持 0.5/0.8/1.0/1.25/1.5，2.6.3 起支持 2.0 倍速
-   */
+  
   async playbackRate (rate: number) {
     try {
       await this.videoRef?.setRateAsync(rate)
@@ -62,11 +50,7 @@ class VideoContext {
     }
   }
 
-  /**
-   * 进入全屏
-   * @package {object} [object]
-   * @package {number} [object.direction] - 设置全屏时视频的方向，不指定则根据宽高比自动判断。
-   */
+  
   async requestFullScreen () {
     try {
       await this.videoRef?.presentFullscreenPlayer()
@@ -75,10 +59,7 @@ class VideoContext {
     }
   }
 
-  /**
-   * 跳转到指定位置
-   * @param {number} position - 跳转到的位置，单位 s
-   */
+  
   async seek (position: number) {
     const millis = position * 1000
     try {
@@ -88,22 +69,12 @@ class VideoContext {
     }
   }
 
-  /**
-   * 发送弹幕 ❌
-   * @ todo
-   * @deprecated 暂未实现
-   * @param {DanmuData} data 弹幕内容
-   * @param {string} data.text 弹幕文字
-   * @param {string} data.color 弹幕颜色
-   */
+  
   sendDanmu () {
     console.log('not support')
   }
 
-  /**
-   * 显示状态栏，仅在iOS全屏下有效
-   * @todo
-   */
+  
   showStatusBar () {
     console.log('not support')
   }
@@ -120,9 +91,7 @@ class VideoContext {
     console.log('not support')
   }
 
-  /**
-   * 停止视频
-   */
+  
   async stop () {
     try {
       await this.videoRef?.stopAsync()
@@ -132,13 +101,9 @@ class VideoContext {
   }
 }
 
-/**
- * 创建 video 上下文 VideoContext 对象。
- * {string} @param - id video 组件的 id
- * {object} @param t - 在自定义组件下，当前组件实例的this，以操作组件内 video 组件
- */
+
 export function createVideoContext (id: string, t?: IAnyObject): VideoContext|undefined {
-  let ref = globalAny._taroVideoMap[id]
+  let ref = globalAny._nebulaVideoMap[id]
   if (t) ref = t
   if (ref) {
     return new VideoContext(ref)

@@ -4,15 +4,13 @@ let socketTasks: any[] = []
 
 export function connectSocket(opts: connectSocket.Option): Promise<SocketTask> {
   return new Promise((resolve, reject) => {
-    const { url, success, fail, complete } = opts
+    const { url } = opts
     let { protocols } = opts
     const res: any = { errMsg: 'connectSocket:ok' }
 
     if (typeof url !== 'string') {
       const error = new Error('connectSocket:fail parameter error: parameter.url should be String')
       res.errMsg = error.message
-      fail?.(res)
-      complete?.(res)
       return reject(res)
     }
 
@@ -29,35 +27,33 @@ export function connectSocket(opts: connectSocket.Option): Promise<SocketTask> {
     res.socketTaskId = socketsCounter++
     res.socketTask = task
 
-    success?.(res)
-    complete?.(res)
 
     return resolve(task)
   })
 }
 
 function onSocketOpen (): void {
-  console.warn('已废弃。请使用socketTask.onOpen方法')
+  console.warn('Deprecated. Please use socketTask.onOpen instead.')
 }
 
 function onSocketError (): void {
-  console.warn('已废弃。请使用socketTask.onError方法')
+  console.warn('Deprecated. Please use socketTask.onError instead.')
 }
 
 function sendSocketMessage (): void {
-  console.warn('已废弃。请使用socketTask.send方法')
+  console.warn('Deprecated. Please use socketTask.send instead.')
 }
 
 function onSocketMessage (): void {
-  console.warn('已废弃。请使用socketTask.onMessage方法')
+  console.warn('Deprecated. Please use socketTask.onMessage instead.')
 }
 
 function closeSocket (): void {
-  console.warn('已废弃。请使用socketTask.close方法')
+  console.warn('Deprecated. Please use socketTask.close instead.')
 }
 
 function onSocketClose (): void {
-  console.warn('已废弃。请使用socketTask.onClose方法')
+  console.warn('Deprecated. Please use socketTask.onClose instead.')
 }
 
 export default {

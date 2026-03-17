@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system'
 import { Platform } from 'react-native'
 
-import { errorHandler, shouldBeObject, successHandler } from '../utils'
+import { shouldBeObject } from '../utils'
 interface Func {
   (arg: any): void
 }
@@ -46,19 +46,9 @@ const createFormData = (filePath, body, name) => {
   return data
 }
 
-/**
- * 将本地资源上传到服务器。客户端发起一个 HTTPS POST 请求，其中 content-type 为 multipart/form-data。
- * @param {object} opts
- * @param {string} opts.url - 开发者服务器地址
- * @param {number} opts.timeout - 超时时间，单位为毫秒
- * @param {string} opts.filePath - 要上传文件资源的路径
- * @param {string} opts.name - 文件对应的 key，开发者在服务端可以通过这个 key 获取文件的二进制内容
- * @param {object} [opts.header] - HTTP 请求 Header，Header 中不能设置 Referer
- * @param {object} [opts.formData] - HTTP 请求中其他额外的 form data
- * @return UploadTask - 一个可以监听上传进度进度变化的事件和取消上传的对象
- */
+
 function uploadFile (opts: uploadFile.Option): Promise<uploadFile.SuccessCallbackResult & UploadTask> {
-  const { url, timeout = 2000, filePath, name, header, formData = {}, success, fail, complete } = opts
+  const { url, timeout = 2000, filePath, name, header, formData = {} } = opts
 
   const execFetch = fetch(url, {
     method: 'POST',
@@ -67,23 +57,16 @@ function uploadFile (opts: uploadFile.Option): Promise<uploadFile.SuccessCallbac
   })
 
   return _fetch(execFetch, timeout).then((res: any) => {
-    return successHandler(success, complete)(res)
+    return Promise.resolve(res)
   }).catch(e => {
     const errMsg = `uploadFile fail: ${e}`
-    return errorHandler(fail, complete)({ errMsg })
+    return Promise.reject({ errMsg })
   })
 }
 
-/**
- * 下载文件资源到本地。客户端直接发起一个 HTTPS GET 请求，返回文件的本地临时路径，单次下载允许的最大文件为 50MB。
- * @param opts
- * @param {string} opts.url - 下载资源的 url
- * @param {Object} [opts.header] - HTTP 请求的 Header，Header 中不能设置 Referer
- * @param {string} [opts.filePath] - 指定文件下载后存储的路径
- * @returns {*}
- */
+
 function downloadFile (opts: downloadFile.Option): Promise<DownloadTask> {
-  const { url, header, filePath, success, fail, complete }: any = opts
+  const { url, header, filePath }: any = opts
   let downloadResumable
   const p: ExtPromise<any> = new Promise((resolve, reject) => {
     let fileName = url.split('/')
@@ -114,16 +97,12 @@ function downloadFile (opts: downloadFile.Option): Promise<DownloadTask> {
         statusCode: status
       }
       filePath && (res.filePath = filePath)
-      success?.(res)
-      complete?.(res)
       resolve(res)
     }).catch((err) => {
       const res = {
         errMsg: 'download file fail',
         err
       }
-      fail?.(res)
-      complete?.(res)
       reject(res)
     })
   })
@@ -142,11 +121,7 @@ function downloadFile (opts: downloadFile.Option): Promise<DownloadTask> {
   return p
 }
 
-/**
- * 保存文件到本地。注意：saveFile 会把临时文件移动，因此调用成功后传入的 tempFilePath 将不可用
- * @param opts
- * @param {string} opts.tempFilePath 需要保存的文件的临时路径
- */
+
 async function saveFile (opts: saveFile.Option): Promise<saveFile.SuccessCallbackResult | saveFile.FailCallbackResult> {
   const res = <any>{ errMsg: 'saveFile:ok' }
   const isObject = shouldBeObject(opts)
@@ -155,7 +130,7 @@ async function saveFile (opts: saveFile.Option): Promise<saveFile.SuccessCallbac
     return Promise.reject(res)
   }
 
-  const { tempFilePath, filePath, success, fail, complete }: any = opts || {}
+  const { tempFilePath, filePath }: any = opts || {}
   const fileName = tempFilePath.substring(tempFilePath.lastIndexOf('/') + 1)
   const destPath = filePath || FileSystem.documentDirectory
   const savedFilePath = destPath + fileName
@@ -170,22 +145,14 @@ async function saveFile (opts: saveFile.Option): Promise<saveFile.SuccessCallbac
       await FileSystem.moveAsync({ from: tempFilePath, to: savedFilePath })
     }
     res.savedFilePath = savedFilePath
-    success?.(res)
-    complete?.(res)
     return res
   } catch (e) {
     res.errMsg = `saveFile:fail. ${e.message}`
-    fail?.(res)
-    complete?.(res)
     throw res
   }
 }
 
-/**
- * 删除本地缓存文件
- * @param opts
- * @param {string} opts.filePath 需要删除的文件路径
- */
+
 async function removeSavedFile (opts: removeSavedFile.Option): Promise<CallbackResult> {
   let res = <any>{ errMsg: 'removeSavedFile:ok' }
   const isObject = shouldBeObject(opts)
@@ -195,7 +162,7 @@ async function removeSavedFile (opts: removeSavedFile.Option): Promise<CallbackR
     return Promise.reject(res)
   }
 
-  const { filePath, success, fail, complete }: any = opts || {}
+  const { filePath }: any = opts || {}
 
   try {
     const obj: any = await FileSystem.deleteAsync(filePath)
@@ -203,18 +170,14 @@ async function removeSavedFile (opts: removeSavedFile.Option): Promise<CallbackR
       ...res,
       ...obj
     }
-    return successHandler(success, complete)(res)
+    return Promise.resolve(res)
   } catch (e) {
     res.errMsg = `removeSavedFile:fail. ${e.message}`
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }
 
-/**
- * 获取该小程序下已保存的本地缓存文件列表
- * @param opts
- * @param {string} opts.filePath 文件路径
- */
+
 async function getSavedFileList (opts: getSavedFileList.Option = {}): Promise<getSavedFileList.SuccessCallbackResult> {
   const res = <any>{ errMsg: 'getSavedFileList:ok' }
   const isObject = shouldBeObject(opts)
@@ -224,7 +187,6 @@ async function getSavedFileList (opts: getSavedFileList.Option = {}): Promise<ge
     return Promise.reject(res)
   }
 
-  const { success, fail, complete }: any = opts
   const fileList = <any>[]
   try {
     const fileNameList = await FileSystem.readDirectoryAsync(FileSystem.documentDirectory as string)
@@ -239,21 +201,14 @@ async function getSavedFileList (opts: getSavedFileList.Option = {}): Promise<ge
       }
     })
     res.fileList = fileList
-    success?.(res)
-    complete?.(res)
     return res
   } catch (e) {
     res.errMsg = `getSavedFileList:fail. ${e.message}`
-    fail?.(res)
-    complete?.(res)
     throw res
   }
 }
 
-/**
- * 获取本地文件的文件信息。此接口只能用于获取已保存到本地的文件，若需要获取临时文件信息，请使用 wx.getFileInfo() 接口。
- * @param opts
- */
+
 async function getSavedFileInfo (opts: getSavedFileInfo.Option): Promise<getSavedFileInfo.SuccessCallbackResult> {
   const res = <any>{ errMsg: 'getSavedFileInfo:ok' }
   const isObject = shouldBeObject(opts)
@@ -263,7 +218,7 @@ async function getSavedFileInfo (opts: getSavedFileInfo.Option): Promise<getSave
     return Promise.reject(res)
   }
 
-  const { filePath, success, fail, complete }: any = opts || {}
+  const { filePath }: any = opts || {}
 
   try {
     const obj = await FileSystem.getInfoAsync(filePath, { md5: true })
@@ -272,23 +227,14 @@ async function getSavedFileInfo (opts: getSavedFileInfo.Option): Promise<getSave
     }
     res.size = obj.size
     res.createTime = obj.modificationTime
-    success?.(res)
-    complete?.(res)
     return res
   } catch (e) {
     res.errMsg = `getSavedFileInfo:fail. ${e.message}`
-    fail?.(res)
-    complete?.(res)
     throw res
   }
 }
 
-/**
- * 获取文件信息
- * @param opts
- * @param {string} opts.filePath -  本地文件路径
- * @param {string} [opts.digestAlgorithm] - 计算文件摘要的算法
- */
+
 async function getFileInfo (opts: getFileInfo.Option): Promise<getFileInfo.SuccessCallbackResult | getFileInfo.FailCallbackResult> {
   const res = <any>{ errMsg: 'getFileInfo:ok' }
   const isObject = shouldBeObject(opts)
@@ -298,7 +244,7 @@ async function getFileInfo (opts: getFileInfo.Option): Promise<getFileInfo.Succe
     return Promise.reject(res)
   }
 
-  const { filePath, success, fail, complete }: any = opts || {}
+  const { filePath }: any = opts || {}
 
   try {
     const obj = await FileSystem.getInfoAsync(filePath, { md5: true })
@@ -307,32 +253,19 @@ async function getFileInfo (opts: getFileInfo.Option): Promise<getFileInfo.Succe
     }
     res.size = obj.size
     res.md5 = obj.md5
-    success?.(res)
-    complete?.(res)
     return res
   } catch (e) {
     res.errMsg = `getFileInfo:fail. ${e.message}`
-    fail?.(res)
-    complete?.(res)
     throw res
   }
 }
 
-/**
- * @todo
- * 获取全局唯一的文件管理器
- */
+
 // function getFileSystemManager () {
 //   console.log('not finished')
 // }
 
-/**
- * @todo
- * 新开页面打开文档
- * @param opts
- * @param opts.filePath 文件路径，可通过 downloadFile 获得
- * @param opts.fileType 文件类型，指定文件类型打开文件
- */
+
 // function openDocument (opts = {}) {
 //   console.log('not finished')
 // }

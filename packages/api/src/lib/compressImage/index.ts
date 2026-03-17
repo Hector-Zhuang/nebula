@@ -1,18 +1,11 @@
 import ImageResizer, { ResizeFormat } from '@bam.tech/react-native-image-resizer'
 import { Image } from 'react-native'
 
-import { errorHandler, successHandler } from '../../utils'
-/**
- * 压缩图片
- * @param opts
- */
+
 export async function compressImage(opt: compressImage.Option): Promise<compressImage.SuccessCallbackResult> {
   const {
     src,
     quality = 80,
-    success,
-    fail,
-    complete
   } = opt
 
   const res = { errMsg: 'compressImage:ok', tempFilePath: '' }
@@ -22,16 +15,28 @@ export async function compressImage(opt: compressImage.Option): Promise<compress
       const compressFormat: ResizeFormat = src.toLocaleLowerCase().endsWith('.png') ? 'PNG' : 'JPEG'
       const { uri } = await ImageResizer.createResizedImage(src, width, height, compressFormat, quality)
       res.tempFilePath = uri
-      return successHandler(success, complete)(res)
-    } catch (err) {
-      res.errMsg = err.message
-      return errorHandler(fail, complete)(res)
+      return Promise.resolve(res)
+    } catch (err: any) {
+      res.errMsg = err?.message || 'compressImage:fail'
+      return Promise.reject(res)
     }
   }
 
-  return Image.getSize(src, async (width, height) => {
-    return await _createResizedImage(width, height)
-  }, async () => {
-    return await _createResizedImage()
+  return new Promise((resolve, reject) => {
+    Image.getSize(src, async (width, height) => {
+      try {
+        const result = await _createResizedImage(width, height)
+        resolve(result)
+      } catch (error) {
+        reject(error)
+      }
+    }, async () => {
+      try {
+        const result = await _createResizedImage()
+        resolve(result)
+      } catch (error) {
+        reject(error)
+      }
+    })
   })
 }

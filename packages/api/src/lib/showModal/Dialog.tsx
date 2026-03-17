@@ -135,7 +135,7 @@ const styles = create({
 
 const underlayColor = V.weuiDialogLinkActiveBc
 
-// 类型定义
+// Documentation in English.
 const Index: React.FC<any> = (
   {
     visible = false,

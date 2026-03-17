@@ -5,6 +5,6 @@ export function getAppBaseInfo(): getAppBaseInfo.Result {
     version: DeviceInfo.getVersion(),
     language: '', // todo
     enableDebug: !!__DEV__,
-    theme: 'light' // 当前只支持 light
+    theme: 'light' // Documentation in English.
   }
 }

@@ -1,38 +1,18 @@
-import { VideoProps } from './PropsType';
+import { useVideoPlayer, type VideoContentFit } from 'expo-video';
+import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import {
-  useVideoPlayer,
-  VideoView,
-  VideoContentFit,
-  SourceLoadEventPayload,
-  StatusChangeEventPayload,
-} from 'expo-video';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Image as RNImage,
-  ImageStyle,
+  Image,
+  type ImageStyle,
   Pressable,
   StyleSheet,
-  Text as RNText,
-  View as RNView,
+  Text,
+  View,
 } from 'react-native';
 
-import Styles from './style';
+import { type VideoProps } from './PropsType';
 import { formatTime } from './utils';
 
-declare const global: any;
-global._taroVideoMap = global._taroVideoMap || {};
-
-interface Props extends VideoProps {
-  onLoad?: () => void;
-  style?: any;
-}
-
-const LocalStyles = StyleSheet.create({
-  fullSize: { width: '100%', height: '100%' },
-  absoluteFull: { position: 'absolute', width: '100%', height: '100%' },
-});
-
-const VideoComp = (props: Props): JSX.Element => {
+export const Video = (props: VideoProps): JSX.Element => {
   const {
     id = '',
     src = '',
@@ -62,6 +42,7 @@ const VideoComp = (props: Props): JSX.Element => {
   const [isFirst, setIsFirst] = useState(true);
   const [durationMs, setDurationMs] = useState<number | null>(null);
 
+  // Initialize player
   const player = useVideoPlayer(src, instance => {
     instance.loop = loop;
     instance.muted = muted;
@@ -73,71 +54,53 @@ const VideoComp = (props: Props): JSX.Element => {
   });
 
   useEffect(() => {
-    if (id) {
-      global._taroVideoMap[id] = player;
-    }
-  }, [id, player]);
+    return;
+    if (!player) return;
 
-  useEffect(() => {
-    const subscriptions = [
+    const subs = [
       player.addListener('playingChange', ({ isPlaying: playing }) => {
         setIsPlaying(playing);
         if (playing) {
           setIsFirst(false);
-          onPlay?.({ detail: {} } as any);
+          onPlay?.({});
         } else if (!isFirst) {
-          onPause?.({ detail: {} } as any);
+          onPause?.({});
         }
       }),
       player.addListener('playToEnd', () => {
-        onEnded?.({ detail: {} } as any);
+        onEnded?.({});
       }),
-      player.addListener('statusChange', (event: StatusChangeEventPayload) => {
+      player.addListener('statusChange', event => {
         if (event.error?.message) {
-          onError?.({
-            detail: { errMsg: event.error.message },
-          } as any);
+          onError?.({ errMsg: event.error.message });
         }
       }),
-      player.addListener('sourceLoad', (event: SourceLoadEventPayload) => {
+      player.addListener('sourceLoad', event => {
         const loadedDurationMs = (event.duration || 0) * 1000;
         setDurationMs(loadedDurationMs);
         onLoad?.();
 
         const firstTrack = event.availableVideoTracks?.[0];
         onLoadedMetaData?.({
-          detail: {
-            width: firstTrack?.size?.width,
-            height: firstTrack?.size?.height,
-            duration: loadedDurationMs,
-            durationMillis: loadedDurationMs,
-          },
-        } as any);
-      }),
-      player.addListener('playingChange', ({ isPlaying: playing }) => {
-        setIsPlaying(playing);
-        if (playing) {
-          setIsFirst(false);
-          onPlay?.({ detail: {} } as any);
-        } else if (!isFirst) {
-          onPause?.({ detail: {} } as any);
-        }
+          width: firstTrack?.size?.width ?? 0,
+          height: firstTrack?.size?.height ?? 0,
+          duration: loadedDurationMs,
+          durationMillis: loadedDurationMs,
+        });
       }),
       player.addListener('timeUpdate', ({ currentTime }) => {
         onTimeUpdate?.({
-          detail: {
-            currentTime: currentTime * 1000,
-            duration: durationMs ?? player.duration * 1000,
-          },
-        } as any);
+          currentTime: currentTime * 1000,
+          duration: durationMs ?? player.duration * 1000,
+        });
       }),
     ];
 
     return () => {
-      subscriptions.forEach(sub => sub.remove());
+      subs.forEach(s => s.remove());
     };
   }, [
-    player,
+    // player,
     onEnded,
     onError,
     onLoad,
@@ -149,84 +112,110 @@ const VideoComp = (props: Props): JSX.Element => {
     onPause,
   ]);
 
-  const onPlayVideo = useCallback(() => {
-    player.play();
-    setIsFirst(false);
-  }, [player]);
+  const onVideoPlay = useCallback(() => {
+    // player.play();
+  }, []);
 
-  const onEnterFullscreen = useCallback(() => {
+  const onVideoEnterFullscreen = useCallback(() => {
     setIsFullScreen(true);
-    onFullscreenChange?.({
-      detail: { fullScreen: true, direction: 'vertical' },
-    } as any);
+    onFullscreenChange?.({ fullScreen: true, direction: 'vertical' });
   }, [onFullscreenChange]);
 
-  const onExitFullscreen = useCallback(() => {
+  const onVideoExitFullscreen = useCallback(() => {
     setIsFullScreen(false);
-    onFullscreenChange?.({
-      detail: { fullScreen: false, direction: 'vertical' },
-    } as any);
+    onFullscreenChange?.({ fullScreen: false, direction: 'vertical' });
   }, [onFullscreenChange]);
 
-  const contentFit = useMemo(() => {
+  const contentFit = useMemo((): VideoContentFit => {
     const map: Record<string, VideoContentFit> = {
       contain: 'contain',
       cover: 'cover',
       fill: 'fill',
     };
-    return map[objectFit] || 'contain';
+    return (map[objectFit] || 'contain') as VideoContentFit;
   }, [objectFit]);
 
-  const computedDuration = formatTime(durationProp || durationMs || null);
+  const computedDuration = formatTime(durationProp || durationMs || 0);
   const showPlayBtn = (isFirst || showCenterPlayBtn) && !isPlaying;
 
   return (
-    <RNView style={[Styles['taro-video'], style as Record<string, unknown>]}>
-      <RNView
-        style={[
-          Styles['taro-video-container'],
-          isFullScreen && Styles['taro-video-type-fullscreen'],
-        ]}
+    <View style={[styles.video, style]}>
+      <View
+        style={[styles.videoContainer, isFullScreen && styles.videoFullscreen]}
       >
-        <VideoView
-          player={player}
-          style={LocalStyles.fullSize}
-          fullscreenOptions={{ enable: controls }}
-          allowsPictureInPicture
-          nativeControls={controls}
-          contentFit={contentFit}
-          onFullscreenEnter={onEnterFullscreen}
-          onFullscreenExit={onExitFullscreen}
-        />
+        {/* Guard: Only render VideoView if player is initialized */}
+        {/* {player && (
+          <VideoView
+            player={player}
+            style={styles.fullSize}
+            nativeControls={controls}
+            contentFit={contentFit}
+            allowsPictureInPicture
+            onFullscreenEnter={onVideoEnterFullscreen}
+            onFullscreenExit={onVideoExitFullscreen}
+          />
+        )} */}
 
         {showPlayBtn && (
-          <RNView style={Styles['taro-video-cover']}>
+          <View style={styles.videoCover}>
             {poster && isFirst && (
-              <RNImage
+              <Image
                 source={{ uri: poster }}
-                style={[
-                  Styles['taro-video-poster'],
-                  LocalStyles.absoluteFull,
-                ]}
+                style={styles.absoluteFull}
+                resizeMode="cover"
               />
             )}
-            <Pressable onPress={onPlayVideo}>
-              <RNImage
+            <Pressable onPress={onVideoPlay}>
+              <Image
                 source={require('../../assets/video/play.png')}
-                style={Styles['taro-video-cover-play-button'] as ImageStyle}
+                style={styles.videoCoverPlayButton as ImageStyle}
               />
             </Pressable>
             {computedDuration && (
-              <RNText style={Styles['taro-video-cover-duration']}>
-                {computedDuration}
-              </RNText>
+              <Text style={styles.videoCoverDuration}>{computedDuration}</Text>
             )}
-          </RNView>
+          </View>
         )}
         {children}
-      </RNView>
-    </RNView>
+      </View>
+    </View>
   );
 };
 
-export default VideoComp;
+const styles = StyleSheet.create({
+  fullSize: {
+    flex: 1,
+  },
+  absoluteFull: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  video: {
+    width: '100%',
+    height: 225,
+    overflow: 'hidden',
+  },
+  videoContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  videoFullscreen: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 999,
+  },
+  videoCover: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1,
+  },
+  videoCoverPlayButton: {
+    width: 40,
+    height: 40,
+  },
+  videoCoverDuration: {
+    color: '#fff',
+    fontSize: 14,
+    marginTop: 8,
+  },
+});

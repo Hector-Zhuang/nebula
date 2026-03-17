@@ -1,9 +1,7 @@
 import Clipboard from '@react-native-clipboard/clipboard'
 
-import { errorHandler } from '../../utils'
 
 export function getClipboardData (opts: getClipboardData.Option = {}): Promise<getClipboardData.Promised> {
-  const { success, fail, complete } = opts
 
   return Clipboard.getString()
     .then((content) => {
@@ -11,14 +9,12 @@ export function getClipboardData (opts: getClipboardData.Option = {}): Promise<g
         errMsg: 'getClipboardData:ok',
         data: content
       }
-      success?.(res)
-      complete?.(res)
 
       return Promise.resolve(res)
     }).catch((err) => {
       const res = {
         errMsg: err.message
       }
-      return errorHandler(fail, complete)(res)
+      return Promise.reject(res)
     })
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View, Button, Alert } from 'react-native';
-import { Camera as NebulaCamera, Video as NebulaVideo } from '@nebula/components';
+import { Camera as NebulaCamera, Video } from '@nebula/components';
 
 export default function ComponentsMediaPage() {
   const [cameraMode, setCameraMode] = React.useState('normal');
@@ -10,8 +10,7 @@ export default function ComponentsMediaPage() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>📸 Media Components</Text>
 
-      {/* Camera Component */}
-      <View style={styles.card}>
+      {/* <View style={styles.card}>
         <Text style={styles.cardTitle}>Camera</Text>
         <Text style={styles.hint}>Real-time camera capture</Text>
         <View style={styles.cameraContainer}>
@@ -51,16 +50,14 @@ export default function ComponentsMediaPage() {
             />
           </View>
         </View>
-      </View>
+      </View> */}
 
       {/* Video Component */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Video</Text>
         <Text style={styles.hint}>video player with controls</Text>
-        <NebulaVideo
-          id="test-video"
-          src="https://commondatastorage.googleapis.com/gtv-videos-library/sample/BigBuckBunny.mp4"
-          duration={600}
+        <Video
+          src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
           controls={true}
           autoplay={false}
           loop={false}

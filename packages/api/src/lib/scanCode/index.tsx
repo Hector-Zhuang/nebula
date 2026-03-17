@@ -16,12 +16,12 @@ const codeMap = {
   code39: 'CODE_39',
   code93: 'CODE_93',
   code128: 'CODE_128',
-  code39mod43: 'CODE_93', // 未准确对应
+  code39mod43: 'CODE_93', // Documentation in English.
   datamatrix: 'DATA_MATRIX',
   ean13: 'EAN_13',
   ean8: 'EAN_8',
-  interleaved2of5: 'ITF', // 未准确对应
-  itf14: 'ITF', // 未准确对应
+  interleaved2of5: 'ITF', // Documentation in English.
+  itf14: 'ITF', // Documentation in English.
   maxicode: 'MAXICODE',
   pdf417: 'PDF_417',
   rss14: 'RSS_14',
@@ -149,12 +149,10 @@ function scanFromPhoto(callback, errorCallBack) {
 }
 
 export async function scanCode(option: scanCode.Option = {}): Promise<scanCode.SuccessCallbackResult> {
-  const { success, fail, complete, onlyFromCamera, scanType = ['barCode', 'qrCode'] } = option
+  const { onlyFromCamera, scanType = ['barCode', 'qrCode'] } = option
   const { granted } = await requestPermissionsAsync()
   if (!granted) {
     const res = { errMsg: 'Permissions denied!' }
-    fail?.(res)
-    complete?.(res)
     return Promise.reject(res)
   }
   const barCodeTypes = getBarCodeTypes(scanType)
@@ -172,8 +170,6 @@ export async function scanCode(option: scanCode.Option = {}): Promise<scanCode.S
               result: data,
               scanType: formatCodeType(type),
             }
-            success?.(res)
-            complete?.(res)
             hide(scannerView)
             resolve(res)
           }}
@@ -195,8 +191,6 @@ export async function scanCode(option: scanCode.Option = {}): Promise<scanCode.S
               result: data,
               scanType: formatCodeType(type),
             }
-            success?.(res)
-            complete?.(res)
             hide(scannerView)
             resolve(res)
           }, (err) => {
@@ -204,8 +198,6 @@ export async function scanCode(option: scanCode.Option = {}): Promise<scanCode.S
               errMsg: 'scanCode fail',
               err
             }
-            fail?.(res)
-            complete?.(res)
             hide(scannerView)
             reject(res)
           })

@@ -1,23 +1,18 @@
 import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake'
 
-import { errorHandler, successHandler } from '../../utils'
-/**
- * keepScreenOn
- * @param {{}} opts
- * @param {boolean} opts.keepScreenOn - 是否保持屏幕常亮
- */
+
 export async function setKeepScreenOn(opts: setKeepScreenOn.Option): Promise<setKeepScreenOn.Promised> {
   const res = { errMsg: 'setKeepScreenOn:ok' } as any
-  const { keepScreenOn, success, fail, complete } = opts
+  const { keepScreenOn } = opts
   try {
     if (keepScreenOn) {
       activateKeepAwake()
     } else {
       deactivateKeepAwake()
     }
-    return successHandler(success, complete)(res)
+    return Promise.resolve(res)
   } catch (e) {
     res.errMsg = `setKeepScreenOn:fail invalid ${e}`
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }

@@ -1,7 +1,6 @@
-import { errorHandler, successHandler } from '../../utils'
 import { deserializeStorageValue, getStorageItem } from '../../utils/storage'
 export async function getStorage(option: getStorage.Option<any>): Promise<getStorage.SuccessCallbackResult<any>> {
-  const { key, success, fail, complete } = option
+  const { key } = option
   const res = { errMsg: 'getStorage:ok' }
 
   try {
@@ -11,13 +10,13 @@ export async function getStorage(option: getStorage.Option<any>): Promise<getSto
         data: deserializeStorageValue(data),
         ...res
       }
-      return successHandler(success, complete)(result)
+      return Promise.resolve(result)
     } else {
       res.errMsg = 'getStorage:fail data not found'
-      return errorHandler(fail, complete)(res)
+      return Promise.reject(res)
     }
   } catch (err) {
     res.errMsg = err.message
-    return errorHandler(fail, complete)(res)
+    return Promise.reject(res)
   }
 }
