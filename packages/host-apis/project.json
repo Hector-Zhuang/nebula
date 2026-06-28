@@ -1,0 +1,26 @@
+{
+  "name": "@nebula-rn/host-apis",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "root": "packages/host-apis",
+  "sourceRoot": "packages/host-apis/src",
+  "projectType": "library",
+  "implicitDependencies": ["@nebula-rn/sdk"],
+  "tags": ["scope:shared", "type:apis"],
+  "targets": {
+    "build": {
+      "dependsOn": ["^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/host-apis",
+        "command": "npm run build"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/host-apis",
+        "command": "npm run lint"
+      }
+    }
+  }
+}

@@ -1,0 +1,174 @@
+---
+title: 原生端 API
+description: 理解 Nebula 暴露的原生桥接层、它的职责范围，以及它在整个宿主栈中应该处于什么位置。
+---
+
+Nebula 通过 `NebulaNativeModule` 暴露一个原生桥接层。
+
+这个桥接层是 JavaScript 运行时与宿主原生实现之间的底层传输层。它的职责是暴露平台原语和宿主自有的运行时操作，而不是定义业务行为。
+
+在实践中，这一层位于以下内容之下：
+
+- 宿主功能注册
+- 业务 Host API
+- 面向小程序开发者的 SDK
+
+## 什么属于原生桥接层
+
+原生桥接层适合放置那些从根本上由宿主运行时拥有的能力，例如：
+
+- 打开、预加载、安装和卸载小程序
+- 页面导航和页面样式更新
+- 模态弹窗展示原语
+- 宿主与小程序之间的消息传输
+- 运行时能力发现
+- 宿主级配置，如 `serverBaseURL`
+
+这些是宿主运行时的职责，而不是业务特性的定义。
+
+## 什么不属于这里
+
+原生桥接层不应该成为直接实现业务逻辑的地方。
+
+避免将以下内容放入 `NebulaNativeModule` 本身：
+
+- 业务规则
+- 产品工作流
+- 审核策略
+- 应该放在 Host API 特性中的自定义 API 语义
+
+这些关注点应该保留在更高的层次，例如：
+
+- `@nebula-rn/sdk` 宿主特性模型
+- `@nebula-rn/host-apis`
+- 自定义宿主端 API 特性
+
+## 公开的原生桥接接口
+
+当前暴露给 JavaScript 的桥接接口包括以下几组。
+
+### 1. 小程序生命周期与安装
+
+这些 API 管理小程序容器、bundle 安装和本地运行时状态。
+
+| API                                                                                 | 职责                                 |
+| ----------------------------------------------------------------------------------- | ------------------------------------ |
+| `openMiniApp(appId, initialProps)`                                                  | 打开一个已安装的小程序               |
+| `openMiniAppWithBundleURL(appId, bundleURL, initialProps, connectToURLMetroServer)` | 从指定的 bundle URL 打开小程序       |
+| `preloadMiniApp(appId)`                                                             | 预加载一个已安装的小程序             |
+| `preloadMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer)`            | 从指定的 bundle URL 预加载小程序     |
+| `installMiniApp(appId, bundleURL)`                                                  | 安装小程序 bundle                    |
+| `installMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer)`            | 安装 bundle，同时区分开发/运行模式   |
+| `installMiniAppFromURLs(appId, bundleURL, manifestURL, connectToURLMetroServer)`    | 从显式的 bundle 和 manifest URL 安装 |
+| `closeMiniApp(appId)`                                                               | 关闭正在运行的小程序                 |
+| `uninstallMiniApp(appId)`                                                           | 移除本地安装的小程序                 |
+| `getInstalledMiniApps()`                                                            | 列出已安装的小程序                   |
+| `getInstalledMiniAppInfo(appId)`                                                    | 查询某个已安装小程序的信息           |
+
+这些 API 关注的是运行时状态管理，而不是业务路由。
+
+### 2. 宿主运行时配置
+
+这些 API 将宿主自有的运行时默认值暴露给桥接层。
+
+| API                                           | 职责                 |
+| --------------------------------------------- | -------------------- |
+| `getServerBaseURL()`                          | 读取当前宿主基础 URL |
+| `setServerBaseURL(serverBaseURL)`             | 更新宿主基础 URL     |
+| `setMiniappLoadingDelay(delayMs)`             | 配置加载视图消失延迟 |
+| `setMiniappLoadingEnterContentDelay(delayMs)` | 配置内容进入延迟     |
+| `getCapabilities()`                           | 返回桥接层能力元数据 |
+
+这些值通常通过 `NebulaAPI.wrap(...)` 配置，并且仅在宿主有明确理由时才在运行时调整。
+
+### 3. 导航与页面展示
+
+这些 API 驱动宿主自有的页面跳转和页面级视觉更新。
+
+| API                          | 职责                   |
+| ---------------------------- | ---------------------- |
+| `navigateTo(appId, url)`     | 推入一个新页面         |
+| `redirectTo(appId, url)`     | 替换当前页面           |
+| `reLaunch(appId, url)`       | 重置页面栈并重新启动   |
+| `navigateBack(appId, delta)` | 弹出一个或多个页面     |
+| `setPageStyle(appId, style)` | 更新页面级视觉样式     |
+| `showToast(title)`           | 显示宿主自有的短暂提示 |
+
+这些 API 定义了展示原语和路由行为，不定义业务语义。
+
+### 4. 消息传输
+
+这些 API 在宿主/小程序边界之间传递结构化的消息。
+
+| API                                    | 职责                   |
+| -------------------------------------- | ---------------------- |
+| `postMessageToHost(appId, message)`    | 从小程序向宿主发送消息 |
+| `postMessageToMiniApp(appId, message)` | 从宿主向小程序发送消息 |
+
+当你需要消息传输时使用这些 API。  
+当你需要受治理的、可重用的能力接口时，请使用 Host API 特性。
+
+### 5. 宿主模态弹窗原语
+
+这些 API 提供模态弹窗展示的基础设施。
+
+| API                                   | 职责                   |
+| ------------------------------------- | ---------------------- |
+| `presentHostModal(moduleName, props)` | 展示宿主自有的模态界面 |
+| `dismissHostModal()`                  | 关闭当前宿主模态弹窗   |
+
+这些 API 刻意保持底层。它们不定义模态弹窗对于业务场景意味着什么；它们只暴露更高层 Host API 可以使用的展示原语。
+
+### 6. 宿主可见性与恢复
+
+这些 API 协调宿主与小程序之间的过渡。
+
+| API                     | 职责                       |
+| ----------------------- | -------------------------- |
+| `bringHostToFront()`    | 将焦点返回到宿主           |
+| `restoreMiniApp(token)` | 恢复之前被置入后台的小程序 |
+
+它们是运行时的协调 API，而不是面向最终用户的业务 API。
+
+### 7. Manifest 与路由注册
+
+这些 API 让运行时可以将路由和 manifest 信息注册到原生侧。
+
+| API                                 | 职责                           |
+| ----------------------------------- | ------------------------------ |
+| `registerRoutes(appId, routes)`     | 注册路由到组件的映射           |
+| `registerManifest(appId, manifest)` | 注册 manifest 数据供运行时使用 |
+
+这些是面向基础设施的 API，主要与运行时本身相关，而不是普通的小程序业务代码。
+
+## 分层模型
+
+推荐的分层方式是：
+
+1. `NebulaNativeModule`
+   原生展示、传输、路由、安装和运行时控制
+2. `@nebula-rn/sdk`
+   JavaScript 端运行时抽象和宿主特性模型
+3. `@nebula-rn/host-apis`
+   可复用的官方宿主特性实现
+4. 自定义宿主特性层
+   业务特定的 Host API 和治理规则
+5. `@nebula-rn/client`
+   面向小程序开发者的 API
+
+这种分层有助于即使在业务 API 不断演进时，也能保持原生桥接层的稳定。
+
+## 实践建议
+
+- 保持原生桥接层小而专注，聚焦运行时
+- 优先在 Host API 特性中添加业务语义，而不是在原生桥接方法中
+- 将模态弹窗 API 视为展示原语
+- 将导航和安装 API 视为运行时控制接口
+- 尽可能将策略、权限和业务校验放在原生桥接层之上
+
+## 相关页面
+
+- [宿主配置](./configuration.mdx)
+- [宿主与小程序通信](./host-miniapp-messaging.mdx)
+- [小程序管理](./miniapp-management.mdx)
+- [自定义 API](../miniapp/custom-apis.mdx)

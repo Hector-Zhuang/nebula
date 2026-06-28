@@ -1,0 +1,229 @@
+---
+title: Navigation
+description: Understand Nebula miniapp navigation model, page stack management, and parameter passing.
+---
+
+Nebula miniapps use a page-stack model to manage multi-page navigation. All navigation operations are called through the `Miniapp` object.
+
+## Page address format
+
+For miniapp developers, it is recommended to use **relative page paths inside the current miniapp**:
+
+```
+/detail?id=123
+/result?status=success
+/components/media?autoplay=true
+```
+
+Where:
+
+- `pagePath`: the page path declared in the `pages` array in `app.json`
+- `queryParams`: query parameters that are injected into the page component props
+
+<Warning title="Protocol details">
+  Nebula runtime internally uses the `nebula://` protocol to describe navigation targets and parameters.
+
+  This is an internal implementation detail and may change in the future, so it is not documented as the main navigation model here.
+
+  Even for Host developers, it is not recommended to rely on this protocol string. Use the navigation APIs provided by the Nebula SDK instead.
+</Warning>
+
+## Page stack model
+
+Nebula keeps a stack of active pages for the current miniapp:
+
+```
+                    ┌─────────┐
+navigateTo ──────►  │ Page C  │  ◄── top of stack (current)
+                    ├─────────┤
+                    │ Page B  │
+                    ├─────────┤
+                    │ Page A  │  ◄── bottom of stack (home)
+                    └─────────┘
+```
+
+## Navigation methods
+
+### navigateTo — Open a new page
+
+Push a new page to the top of the stack and keep the current page. Users can return via the back button.
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+await Miniapp.navigateTo('/detail?id=123');
+```
+
+```
+Before:  [Home]
+After:   [Home, Detail]
+                  ↑ current
+```
+
+### redirectTo — Replace the current page
+
+Close the current page and replace it with a new one in the stack. The user cannot return to the replaced page.
+
+```ts
+await Miniapp.redirectTo('/result?status=success');
+```
+
+```
+Before:  [Home, Detail]
+After:   [Home, Result]
+                ↑ Detail replaced
+```
+
+### reLaunch — Re-launch
+
+Clear the entire page stack and open a new page. This is useful for jumping to a completely different flow.
+
+```ts
+await Miniapp.reLaunch('/home');
+```
+
+```
+Before:  [Home, List, Detail, Edit]
+After:   [Home]
+```
+
+### navigateBack — Go back
+
+Pop a specified number of pages from the stack. The default is 1 (back one page).
+
+```ts
+await Miniapp.navigateBack(1);
+await Miniapp.navigateBack(2);
+```
+
+```
+Before:       [Home, List, Detail]
+Back(1):      [Home, List]
+Back(2) from: [Home]
+```
+
+## Passing parameters
+
+### URL query parameters → component props
+
+Query parameters in the navigation URL are injected into the target page component props:
+
+```ts
+Miniapp.navigateTo('/detail?id=123&from=list');
+```
+
+```tsx
+export default function DetailPage(props) {
+  const itemId = props?.id;
+  const source = props?.from;
+
+  return <Text>Item: {itemId}, from: {source}</Text>;
+}
+```
+
+### Get parameters in `usePageOnLoad`
+
+You can also read them from the `usePageOnLoad` callback:
+
+```ts
+import { usePageOnLoad } from '@nebula-rn/sdk';
+
+usePageOnLoad((params) => {
+  console.log(params.id);
+  console.log(params.from);
+});
+```
+
+### Encoding notes
+
+You need URL encoding when passing non-ASCII or special characters:
+
+```ts
+const city = '多伦多';
+Miniapp.navigateTo(
+  `/weather?city=${encodeURIComponent(city)}`,
+);
+```
+
+```ts
+const city = decodeURIComponent(String(props?.city));
+```
+
+## Return values
+
+All navigation methods return `Promise<{ errMsg: string }>`:
+
+```ts
+const result = await Miniapp.navigateTo('/detail');
+// result.errMsg === 'navigateTo:ok'
+
+// On fail
+// result.errMsg === 'navigateTo:fail page not found'
+```
+
+## Dynamic page styling
+
+You can dynamically update the navigation bar and page styles inside a page:
+
+```ts
+await Miniapp.setNavigationBarTitle('New Title');
+
+await Miniapp.setNavigationBarColor({
+  backgroundColor: '#1e40af',
+  frontColor: '#ffffff',
+});
+
+await Miniapp.setPageStyle({
+  backgroundColor: '#0f172a',
+  navigationStyle: 'custom', // hide system navigation bar
+});
+```
+
+## Example
+
+```tsx
+import React, { useState } from 'react';
+import { Button, ScrollView, StyleSheet } from 'react-native';
+import { Miniapp, usePageOnLoad } from '@nebula-rn/sdk';
+
+export default function ListPage() {
+  const [items] = useState(['Item A', 'Item B', 'Item C']);
+
+  usePageOnLoad((params) => {
+    console.log('ListPage loaded, category:', params.category);
+  });
+
+  const openDetail = (id: string) => {
+    Miniapp.navigateTo(`/detail?id=${id}&from=list`);
+  };
+
+  const goHome = () => {
+    Miniapp.reLaunch('/home');
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      {items.map((item, i) => (
+        <Button
+          key={i}
+          title={item}
+          onPress={() => openDetail(String(i))}
+        />
+      ))}
+      <Button title="Back to home" onPress={goHome} />
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { padding: 20 },
+});
+```
+
+## Notes
+
+- Every page must be declared in the `pages` array in `app.json` before navigation
+- Query parameter values are strings and should be converted before use
+- `navigateBack` `delta` cannot exceed the current stack depth
+- `redirectTo` triggers the current page `onUnload`
+- `reLaunch` triggers `onUnload` for all cleared pages

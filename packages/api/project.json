@@ -1,0 +1,33 @@
+{
+  "name": "@nebula-rn/client",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "root": "packages/api",
+  "sourceRoot": "packages/api/src",
+  "projectType": "library",
+  "implicitDependencies": ["@nebula-rn/sdk"],
+  "tags": ["scope:shared", "type:client"],
+  "targets": {
+    "build": {
+      "dependsOn": ["^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/api",
+        "command": "npm run build"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/api",
+        "command": "npm run lint"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/api",
+        "command": "npm run test"
+      }
+    }
+  }
+}

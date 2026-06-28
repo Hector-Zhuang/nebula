@@ -1,0 +1,132 @@
+---
+title: Overview
+description: Starting from the relationship between Host, Miniapp, Nebula Cloud, and Dev Runner, quickly establish a mental model for Nebula development.
+---
+
+Nebula has two core application surfaces:
+
+- **Host**
+- **Miniapp**
+
+If you are new to Nebula, this page is the best place to start building your overall mental model: how Host and Miniapp work together, where Nebula Cloud fits in, and what the daily development loop looks like.
+
+## Core Concepts
+
+### What is a Host?
+
+A Host is the host application that integrates Nebula.
+
+The Host is responsible for:
+
+- The native runtime on iOS and Android
+- Which APIs are exposed to the miniapp
+- The installation, preloading, opening, and closing processes of miniapps
+- The real production environment where miniapps ultimately run
+
+A Host typically integrates:
+
+- `@nebula-rn/sdk`
+- `@nebula-rn/host`
+- `@nebula-rn/host-apis`
+
+If your team is responsible for native modules, login state, global UI, permissions, or business APIs, these efforts all belong to the Host.
+
+### What is a Miniapp?
+
+A Miniapp is a pure JavaScript application that runs on Nebula.
+
+The Miniapp is responsible for:
+
+- Pages
+- Business UI
+- Page navigation
+- Product logic
+- Calling host capabilities
+
+Miniapps primarily use:
+
+- `@nebula-rn/client`
+- `@nebula-rn/sdk`
+- `@nebula-rn/components`
+
+A Miniapp should not contain iOS code, Android code, or Host implementation details.
+
+### What is Nebula Cloud?
+
+Nebula Cloud is Nebula's version distribution and management layer.
+
+Teams typically use it to:
+
+- Upload miniapp versions
+- Manage `release` and `experience` channels
+- Provide installation metadata and bundle URLs
+- Support the installation and update processes on the Host side
+
+You don't necessarily need Nebula Cloud for local development at first, but it usually becomes important when you move into team collaboration, publishing, and online installation phases.
+
+### What is Dev Runner?
+
+Dev Runner is a development-mode Host.
+
+Its purpose is to help miniapp developers iterate quickly without first creating a full production Host. It is suitable for:
+
+- Page development
+- Testing basic Host APIs
+- Fast debugging via Metro
+
+It is always just a development-mode Host, not the final production Host used by end users.
+
+## How They Work Together
+
+The relationship can be summarized in four steps:
+
+1. The Host exposes capabilities
+2. The Miniapp calls these capabilities
+3. The Host loads and displays the Miniapp
+4. Nebula Cloud manages how versions are distributed
+
+For example:
+
+- The Miniapp calls `scanCode()` via `@nebula-rn/client`
+- The Host provides the actual QR code scanning implementation
+- The Host opens the miniapp in the Nebula container
+- Nebula Cloud provides the version metadata that should be installed and opened
+
+## Core Packages
+
+| Package              | What It Is                                                                                                                        | Who Uses It    |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| `@nebula-rn/sdk`        | The core runtime and bridge layer, providing `NebulaAPI`, page config helpers, lifecycle hooks, and the Host integration surface. | Host & Miniapp |
+| `@nebula-rn/client`     | A stable API layer for miniapps. Miniapps typically start here when they need to call Host capabilities.                          | Miniapp        |
+| `@nebula-rn/host`       | The native Host integration package for iOS/Android, containing the shared Host runtime and container.                            | Host           |
+| `@nebula-rn/host-apis`  | Official Host API implementations and helpers.                                                                                    | Host           |
+| `@nebula-rn/components` | Nebula UI components available to miniapps.                                                                                       | Miniapp        |
+| `@nebula-rn/dev-runner` | The development Host used by `npx nebula miniapp dev`. Miniapp developers typically don't need to interact with it directly.      | Dev Tools      |
+
+## Initialize and Run a Project
+
+The shortest path to experiencing Nebula is:
+
+```bash
+# terminal 1
+npx nebula create host my-host
+
+# terminal 2
+npx nebula create miniapp my-miniapp
+cd my-miniapp
+npm install
+npx nebula miniapp dev
+```
+
+This gives you:
+
+- A real Host project
+- A pure Miniapp project
+- A working miniapp development pipeline
+
+## Next Steps
+
+- If you want to start with the miniapp first, read the [Miniapp Development Guide](../miniapp/development.mdx).
+- If you want to start with a real Host first, read [Creating a Host](./create-host.mdx).
+- If you already have a React Native app and want to integrate manually, read [Integration into an Existing RN App](./integration.mdx).
+- If you want to learn about version distribution and the release process, read [Nebula Cloud](../nebula-cloud/version-and-channels.mdx).

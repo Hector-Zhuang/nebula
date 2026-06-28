@@ -1,0 +1,77 @@
+{
+  "name": "@nebula-rn/client",
+  "version": "0.0.1",
+  "description": "Nebula miniapp client API surface",
+  "author": "Hector Zhuang",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "react-native": "src/index.ts",
+  "source": "src/index.ts",
+  "types": "types/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "types",
+    "apiList.js",
+    "libList.js"
+  ],
+  "scripts": {
+    "prod": "npm run build",
+    "assets": "cpy 'src/**/*.png' '!src/__tests__/*' dist",
+    "prebuild": "npm run clean",
+    "clean": "rimraf ./dist apiList.js libList.js",
+    "build": "tsc && npm run assets",
+    "dev": "npm run assets && tsc --watch",
+    "prepack": "npm run build",
+    "docs": "node ./script",
+    "lint": "eslint src --ext .js,.jsx.ts,.tsx",
+    "test": "jest --silent",
+    "test:ci": "jest --ci -i --coverage --silent",
+    "test:coverage": "jest --coverage",
+    "test:dev": "jest --watch",
+    "script": "node ./script"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hector-Zhuang/nebula.git",
+    "directory": "packages/api"
+  },
+  "bugs": {
+    "url": "https://github.com/Hector-Zhuang/nebula/issues"
+  },
+  "homepage": "https://github.com/Hector-Zhuang/nebula/tree/main/packages/api#readme",
+  "keywords": ["nebula", "superapp", "miniapp", "react-native", "client"],
+  "publishConfig": { "access": "public" },
+  "engines": {
+    "node": ">= 18"
+  },
+  "dependencies": {
+    "@nebula-rn/sdk": "^0.0.1",
+    "@dr.pogodin/react-native-fs": "^2.37.0",
+    "base64-js": "^1.5.1",
+    "prop-types": "^15.8.1",
+    "react-native-image-picker": "^8.2.1",
+    "react-native-screenshot-aware": "^2.0.0",
+    "react-native-sensors": "^7.3.6"
+  },
+  "devDependencies": {
+    "@bam.tech/react-native-image-resizer": "^3.0.11",
+    "cpy-cli": "^5.0.0",
+    "dpdm": "^3.14.0",
+    "react-native-image-zoom-viewer": "^3.0.1",
+    "react-native-root-siblings": "^5.0.1",
+    "react-native-safe-area-context": "^5.7.0"
+  },
+  "peerDependencies": {
+    "@bam.tech/react-native-image-resizer": "^3.0.11",
+    "@react-native-camera-roll/camera-roll": "^7.10.2",
+    "@react-native-community/geolocation": "^3.4.0",
+    "@react-native-community/netinfo": "^12.0.1",
+    "react": ">=19",
+    "react-native": ">=0.83",
+    "react-native-device-info": "^15.0.2",
+    "react-native-image-zoom-viewer": "^3.0.1",
+    "react-native-mmkv": "^4.2.0",
+    "react-native-safe-area-context": "^5.7.0"
+  }
+}

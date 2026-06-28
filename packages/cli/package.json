@@ -1,0 +1,34 @@
+{
+  "name": "@nebula-rn/cli",
+  "version": "0.0.1",
+  "description": "Nebula CLI - build, bundle and upload mini-apps",
+  "author": "Hector Zhuang",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hector-Zhuang/nebula.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/Hector-Zhuang/nebula/issues"
+  },
+  "homepage": "https://github.com/Hector-Zhuang/nebula/tree/main/packages/cli#readme",
+  "keywords": ["nebula", "superapp", "miniapp", "cli"],
+  "main": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
+  "bin": {
+    "nebula": "./dist/cli.js"
+  },
+  "files": ["dist", "bin", "README.md"],
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "build": "tsc",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "archiver": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/archiver": "^8.0.0"
+  }
+}

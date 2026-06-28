@@ -1,0 +1,91 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+/* ─── IntersectionObserver scroll animations ─── */
+.animate-init {
+  opacity: 0;
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.animate-from-up   { transform: translateY(48px); }
+.animate-from-left { transform: translateX(-48px); }
+.animate-from-right{ transform: translateX(48px); }
+.animate-from-scale{ transform: scale(0.94); }
+
+.animate-visible {
+  opacity: 1 !important;
+  transform: translateY(0) translateX(0) scale(1) !important;
+}
+
+/* ─── Ambient glow ─── */
+@keyframes hero-glow {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.65; }
+}
+.animate-hero-glow {
+  animation: hero-glow 5s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* ─── Gradient text helper ─── */
+.gradient-text {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ─── Texture patterns ─── */
+
+/* Dot grid – subtle repeating dots */
+.texture-dots {
+  background-image: radial-gradient(circle, var(--color-fd-muted-foreground) 0.5px, transparent 0.5px);
+  background-size: 24px 24px;
+  opacity: 0.07;
+}
+
+/* Grid lines */
+.texture-grid {
+  background-image:
+    linear-gradient(var(--color-fd-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-fd-border) 1px, transparent 1px);
+  background-size: 64px 64px;
+  opacity: 0.4;
+}
+
+/* Diagonal lines */
+.texture-diagonal {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 8px,
+    var(--color-fd-muted-foreground) 8px,
+    var(--color-fd-muted-foreground) 8.5px
+  );
+  opacity: 0.03;
+}
+
+/* Noise – CSS only grain */
+.texture-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}

@@ -1,0 +1,27 @@
+---
+title: إدارة التطبيقات المصغّرة
+description: استخدم NebulaAPI من جانب المضيف لتثبيت التطبيقات المصغّرة وفتحها وتحميلها مسبقًا والاستعلام عنها وتحديثها.
+---
+
+يدير المضيف دورة حياة التطبيق المصغّر كاملة عبر `NebulaAPI`، بما في ذلك التثبيت والفتح والتحميل المسبق والاستعلام والإزالة والتحديث.
+
+## عمليات دورة الحياة الأساسية
+
+- `installMiniApp(...)`
+- `installMiniAppWithBundleURL(...)`
+- `openMiniApp(...)`
+- `openMiniAppWithBundleURL(...)`
+- `preloadMiniApp(...)`
+- `getInstalledMiniApps()`
+- `getInstalledMiniAppInfo(appId)`
+- `uninstallMiniApp(appId)`
+
+## مسار نموذجي
+
+```text
+install
+  -> preload (optional)
+  -> open
+  -> query installed state
+  -> update or uninstall later
+```

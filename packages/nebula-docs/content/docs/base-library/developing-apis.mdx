@@ -1,0 +1,217 @@
+---
+title: Developing New APIs
+description: Design new Nebula APIs as stable platform capabilities, not as direct leaks of host internals.
+---
+
+New Nebula APIs should be designed as **platform capabilities**.
+
+That means the API should feel stable to miniapp developers even if the host-side implementation changes over time. A good Nebula API is not just "something the host can do". It is a capability with:
+
+- a clear ownership boundary
+- a stable request and result shape
+- predictable platform behavior
+- room for compatibility checks and future evolution
+
+## Start with one question
+
+Before adding a new API, ask:
+
+> Does this belong to the Nebula, or is it only a business-specific host behavior?
+
+If it is only relevant to one host or one product flow, it usually should **not** become part of the base library.
+
+Good candidates for a new Nebula API are capabilities such as:
+
+- scanning
+- location
+- media selection
+- clipboard
+- file transfer
+- system information
+
+Poor candidates are:
+
+- checkout-specific operations
+- tenant-specific data queries
+- product-specific workflow shortcuts
+- anything that directly exposes internal host services
+
+## Choose the right layer
+
+Most new capabilities touch more than one package. The main design decision is where each part belongs.
+
+| Layer | Responsibility |
+|---|---|
+| `@nebula-rn/client` | Stable miniapp-facing API surface |
+| `@nebula-rn/sdk` | Runtime protocol, host invocation primitives, shared types |
+| `@nebula-rn/host-apis` | Official host-side feature implementations |
+| Host app | Business-specific behavior or custom extensions |
+
+As a rule:
+
+- put the **miniapp-facing function** in `@nebula-rn/client`
+- keep the **protocol and low-level primitives** in `@nebula-rn/sdk`
+- put the **official host implementation** in `@nebula-rn/host-apis`
+- keep **business-specific variants** in the host app, not in the base library
+
+## Choose the feature style
+
+Nebula host features usually fall into two shapes.
+
+### Non-visual API
+
+Use `createHostApiFeature(...)` when the host only needs to perform logic and return a result.
+
+Examples:
+
+- `getLocation`
+- `getBatteryInfo`
+- `getClipboardData`
+
+This shape is best when:
+
+- no host-managed UI is required
+- the request can be fulfilled in one logical step
+- the result can be returned directly
+
+### Modal API
+
+Use `createHostModalApiFeature(...)` when the host must present a host-owned interaction flow before returning a result.
+
+Examples:
+
+- `scanCode`
+- image preview
+- permission confirmation flows
+
+This shape is best when:
+
+- the host needs to render its own UI
+- the capability is driven by a host-managed modal or overlay
+- the result is only known after user interaction completes
+
+## Recommended design workflow
+
+### 1. Define the miniapp-facing contract
+
+Start with the API shape that miniapp developers will actually use.
+
+Focus on:
+
+- function name
+- input options
+- result shape
+- error model
+- timeout expectations
+
+This contract should be understandable without knowing anything about the host implementation.
+
+### 2. Decide whether the API is standard or host-specific
+
+If the capability is intended to be reused across hosts, it may belong in:
+
+- `@nebula-rn/client`
+- `@nebula-rn/host-apis`
+
+If it is business-specific, prefer:
+
+- a host-owned feature implementation
+- custom documentation in the host project
+
+Do not move business APIs into the base library just because more than one screen uses them.
+
+### 3. Design for capability boundaries
+
+A new API should make the capability boundary clearer, not blurrier.
+
+Ask:
+
+- Does the host explicitly opt into this capability?
+- Can a miniapp detect whether it is available?
+- Are platform differences hidden well enough?
+- Can the host reject the request safely?
+
+If the answer is no, the API contract is probably still too close to host internals.
+
+### 4. Implement the host feature
+
+Create the host-side feature in:
+
+- `@nebula-rn/host-apis` for official reusable implementations
+- the host app for business-specific implementations
+
+Then register it through:
+
+```tsx
+NebulaAPI.wrap({
+  hostApis: [...],
+})(App);
+```
+
+### 5. Validate the full result path
+
+Do not stop after the host feature compiles.
+
+Validate the full path:
+
+- miniapp calls the API
+- host receives the request
+- host completes logic or modal interaction
+- result returns in the expected shape
+- failure cases remain understandable to the caller
+
+## Design guidance
+
+### Prefer capability language over implementation language
+
+Good:
+
+- `scanCode`
+- `getLocation`
+- `chooseMedia`
+
+Less good:
+
+- `openNativeCameraScanner`
+- `fetchHostUserContext`
+- `invokeSystemXYZ`
+
+The API name should describe the capability, not the host implementation detail.
+
+### Keep result types stable
+
+The host implementation may evolve, but the miniapp-facing result should remain stable as long as possible.
+
+For example, avoid exposing raw native payloads when a normalized shape is enough.
+
+### Avoid leaking host UI assumptions
+
+Miniapp developers should not need to know:
+
+- which screen component is rendered
+- which native controller is used
+- how the host composes its internal flow
+
+Those details belong to the host side.
+
+### Avoid turning messaging into public APIs
+
+If a capability is important enough to be used repeatedly, it should usually become a structured Host API rather than an ad hoc message contract.
+
+## `scanCode` as the reference shape
+
+`scanCode` remains a good reference because it demonstrates:
+
+- a stable miniapp-facing function in `@nebula-rn/client`
+- a host-managed modal interaction
+- a reusable official host implementation
+- a clear result path back to the miniapp
+
+It is useful as a model, but it should not be treated as the template for every API. Some capabilities are much simpler and should remain non-visual.
+
+## Related docs
+
+- [Base Library Overview](./overview.mdx)
+- [Custom APIs](../miniapp/custom-apis.mdx)
+- [@nebula-rn/client](../reference/nebula-client.mdx)
+- [@nebula-rn/host-apis](../reference/nebula-host-apis.mdx)

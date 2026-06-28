@@ -1,0 +1,132 @@
+---
+title: 概览
+description: 从 Host、Miniapp、Nebula Cloud 与 Dev Runner 的关系出发，快速建立 Nebula 的开发心智模型。
+---
+
+Nebula 有两个核心应用面：
+
+- **Host**
+- **Miniapp**
+
+如果你刚接触 Nebula，这一页最适合先建立整体心智：Host 和 Miniapp 如何协作、Nebula Cloud 在哪里、日常开发循环是什么。
+
+## 核心概念
+
+### 什么是 Host？
+
+Host 是集成了 Nebula 的宿主应用。
+
+Host 负责：
+
+- iOS 和 Android 上的原生运行时
+- 向小程序暴露哪些 API
+- 小程序的安装、预加载、打开与关闭流程
+- 小程序最终运行的真实产品环境
+
+Host 通常会集成：
+
+- `@nebula-rn/sdk`
+- `@nebula-rn/host`
+- `@nebula-rn/host-apis`
+
+如果你的团队负责原生模块、登录态、全局 UI、权限或业务 API，这些工作都属于 Host。
+
+### 什么是 Miniapp？
+
+Miniapp 是运行在 Nebula 上的纯 JavaScript 应用。
+
+Miniapp 负责：
+
+- 页面
+- 业务 UI
+- 页面导航
+- 产品逻辑
+- 对宿主能力的调用
+
+Miniapp 主要使用：
+
+- `@nebula-rn/client`
+- `@nebula-rn/sdk`
+- `@nebula-rn/components`
+
+Miniapp 不应该拥有 iOS 代码、Android 代码或 Host 实现细节。
+
+### 什么是 Nebula Cloud？
+
+Nebula Cloud 是 Nebula 的版本分发与管理层。
+
+团队通常会在这里：
+
+- 上传小程序版本
+- 管理 `release` 与 `experience` 渠道
+- 提供安装元数据和 bundle URL
+- 支撑 Host 侧的安装与更新流程
+
+本地开发一开始不一定需要 Nebula Cloud，但当你进入团队协作、发布和线上安装阶段时，它通常会变得重要。
+
+### 什么是 Dev Runner？
+
+Dev Runner 是一个开发态 Host。
+
+它的作用是帮助小程序开发者在不先创建完整产品 Host 的情况下快速迭代，适合：
+
+- 页面开发
+- 基础 Host API 测试
+- 基于 Metro 的快速调试
+
+它始终只是开发态 Host，不是最终给用户使用的正式 Host。
+
+## 它们如何协作
+
+关系可以概括成四步：
+
+1. Host 暴露能力
+2. Miniapp 调用这些能力
+3. Host 加载并显示 Miniapp
+4. Nebula Cloud 管理版本如何分发
+
+例如：
+
+- Miniapp 通过 `@nebula-rn/client` 调用 `scanCode()`
+- Host 提供真实的扫码实现
+- Host 在 Nebula 容器中打开小程序
+- Nebula Cloud 提供应该安装和打开的版本元数据
+
+## 核心包
+
+| 包 | 它是什么 | 谁会用 |
+|---|---|---|
+| `@nebula-rn/sdk` | 核心 runtime 与 bridge 层，提供 `NebulaAPI`、页面配置 helper、生命周期 hook 和 Host 集成面。 | Host 与 Miniapp |
+| `@nebula-rn/client` | 面向小程序的稳定 API 层。小程序要调用 Host 能力时通常从这里开始。 | Miniapp |
+| `@nebula-rn/host` | iOS / Android 的原生 Host 集成包，包含共享的 Host runtime 与容器。 | Host |
+| `@nebula-rn/host-apis` | 官方 Host API 实现与 helper。 | Host |
+| `@nebula-rn/components` | 小程序可用的 Nebula UI 组件。 | Miniapp |
+| `@nebula-rn/dev-runner` | `npx nebula miniapp dev` 使用的开发宿主。小程序开发者通常不需要直接操作它。 | 开发工具 |
+
+## 初始化并运行一个项目
+
+体验 Nebula 的最短路径是：
+
+```bash
+# terminal 1
+npx nebula create host my-host
+
+# terminal 2
+npx nebula create miniapp my-miniapp
+cd my-miniapp
+npm install
+npx nebula miniapp dev
+```
+
+这会得到：
+
+- 一个真实 Host 项目
+- 一个纯 Miniapp 项目
+- 一条可工作的 Miniapp 开发链路
+
+## 下一步
+
+- 如果你想先做小程序，请阅读 [小程序开发指南](../miniapp/development.mdx)。
+- 如果你想先做真实 Host，请阅读 [创建 Host](./create-host.mdx)。
+- 如果你已经有 RN 应用并想手动集成，请阅读 [集成到现有 RN 应用](./integration.mdx)。
+- 如果你想了解版本分发与发布流程，请阅读 [Nebula Cloud](../nebula-cloud/version-and-channels.mdx)。

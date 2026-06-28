@@ -1,0 +1,784 @@
+---
+title: '@nebula-rn/components'
+description: 'Nebula 跨平台 UI 组件库 API 参考，包含各组件的完整 Props、事件回调和平台差异。'
+---
+
+`@nebula-rn/components` 提供了一组跨平台的 React Native 组件，供小程序开发者使用。同时重新导出了 React Native 的基础组件。
+
+**Peer Dependencies：** `react >= 18`，`react-native >= 0.83`
+
+---
+
+## Camera
+
+相机组件，支持拍照和扫码模式。基于 `react-native-vision-camera`。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```tsx
+import { Camera } from '@nebula-rn/components';
+```
+
+**示例：**
+
+```tsx
+import { useState } from 'react';
+import { Alert, View } from 'react-native';
+import { Camera } from '@nebula-rn/components';
+
+export default function ScanCodeDemo() {
+  const [mode, setMode] = useState<'normal' | 'scanCode'>('scanCode');
+
+  return (
+    <View style={{ height: 240, borderRadius: 12, overflow: 'hidden' }}>
+      <Camera
+        mode={mode}
+        devicePosition="back"
+        flash="auto"
+        onScanCode={event => {
+          Alert.alert('扫码结果', event.result);
+          setMode('normal');
+        }}
+        onError={error => {
+          Alert.alert('相机错误', error.message);
+        }}
+      />
+    </View>
+  );
+}
+```
+
+**Props：**
+
+| 参数             | 类型                                 | 必填 | 默认值     | 描述                                  |
+| ---------------- | ------------------------------------ | ---- | ---------- | ------------------------------------- |
+| `id`             | `string`                             | 否   | —          | 组件 ID。                             |
+| `className`      | `string`                             | 否   | —          | CSS 类名。                            |
+| `style`          | `StyleProp<ViewStyle>`               | 否   | —          | 自定义样式。                          |
+| `mode`           | `'normal' \| 'scanCode'`             | 否   | `'normal'` | 相机模式。`'scanCode'` 启用扫码识别。 |
+| `resolution`     | `'low' \| 'medium' \| 'high'`        | 否   | —          | 相机分辨率。                          |
+| `devicePosition` | `'front' \| 'back'`                  | 否   | `'back'`   | 前置/后置摄像头。                     |
+| `flash`          | `'auto' \| 'on' \| 'off' \| 'torch'` | 否   | —          | 闪光灯模式。                          |
+
+**事件回调：**
+
+| 回调         | 类型                                         | 描述                               |
+| ------------ | -------------------------------------------- | ---------------------------------- |
+| `onInitDone` | `(event: CameraInitEventDetail) => void`     | 相机初始化完成。                   |
+| `onReady`    | `(event: CameraInitEventDetail) => void`     | 相机准备就绪。                     |
+| `onScanCode` | `(event: CameraScanCodeEventDetail) => void` | 扫码成功（仅 `mode='scanCode'`）。 |
+| `onError`    | `(error: CameraError) => void`               | 发生错误。                         |
+
+**`CameraInitEventDetail`：**
+
+| 字段      | 类型     | 描述                     |
+| --------- | -------- | ------------------------ |
+| `maxZoom` | `number` | 设备支持的最大缩放倍数。 |
+
+**`CameraScanCodeEventDetail`：**
+
+| 字段         | 类型                    | 描述                      |
+| ------------ | ----------------------- | ------------------------- |
+| `result`     | `string`                | 扫码结果文本。            |
+| `fullResult` | `string`                | 完整扫码结果。            |
+| `rawData`    | `string`                | 原始数据。                |
+| `charSet`    | `string`                | 字符编码。                |
+| `type`       | `CodeType \| 'unknown'` | 码类型（如 QR、EAN-13）。 |
+
+**`CameraError`：**
+
+| 字段          | 类型                  | 描述                                                     |
+| ------------- | --------------------- | -------------------------------------------------------- |
+| `message`     | `string`              | 错误信息。                                               |
+| `code`        | `string \| undefined` | 错误码，如 `'PERMISSION_DENIED'`、`'PERMISSION_ERROR'`。 |
+| `nativeError` | `unknown`             | 原生错误对象。                                           |
+
+**权限要求：** 相机权限（组件挂载时自动请求）。
+
+**默认尺寸：** 300x300，`overflow: hidden`，黑色背景。
+
+**支持的码类型：** QR Code、EAN-13 条码。
+
+**原生依赖：** `react-native-vision-camera` v4.7.3
+
+---
+
+## Map
+
+地图展示与交互组件。基于 `react-native-maps`。
+
+<Warning title="Android 注意事项">
+如果你要在 Android 平台上使用 Map 组件，请务必提前查阅 `react-native-maps` 官方文档，了解如何为 Android 配置 API Key，否则你的应用可能会发生崩溃。
+
+https://github.com/react-native-maps/react-native-maps/blob/master/docs/installation.md#android
+</Warning>
+
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```tsx
+import { Map } from '@nebula-rn/components';
+```
+
+**示例：**
+
+```tsx
+import { Map } from '@nebula-rn/components';
+
+const markers = [
+  {
+    id: 1,
+    latitude: 31.2304,
+    longitude: 121.4737,
+    title: '上海办公室',
+    iconPath: 'https://example.com/marker.png',
+    callout: {
+      content: '点击查看详情',
+      display: 'BYCLICK',
+      bgColor: '#ffffff',
+      padding: 8,
+    },
+  },
+];
+
+export default function OfficeMap() {
+  return (
+    <Map
+      latitude={31.2304}
+      longitude={121.4737}
+      scale={14}
+      markers={markers}
+      showCompass
+      enableZoom
+      enableScroll
+      style={{ height: 280, borderRadius: 12 }}
+    />
+  );
+}
+```
+
+**Props：**
+
+| 参数                | 类型             | 必填 | 默认值  | 描述                       |
+| ------------------- | ---------------- | ---- | ------- | -------------------------- |
+| `latitude`          | `number`         | 是   | —       | 中心点纬度。               |
+| `longitude`         | `number`         | 是   | —       | 中心点经度。               |
+| `scale`             | `number`         | 否   | —       | 缩放级别。                 |
+| `markers`           | `MarkerItem[]`   | 否   | —       | 标记点列表。               |
+| `polyline`          | `PolylineItem[]` | 否   | —       | 折线列表。                 |
+| `polygons`          | `PolygonItem[]`  | 否   | —       | 多边形列表。               |
+| `circles`           | `CircleItem[]`   | 否   | —       | 圆形覆盖物列表。           |
+| `includePoints`     | `Coordinate[]`   | 否   | —       | 需要包含在视野内的坐标点。 |
+| `showLocation`      | `boolean`        | 否   | `false` | 是否显示用户当前位置。     |
+| `subkey`            | `string`         | 否   | —       | 地图服务 subkey。          |
+| `enable3D`          | `boolean`        | 否   | —       | 启用 3D 地图。             |
+| `showCompass`       | `boolean`        | 否   | `true`  | 显示指南针。               |
+| `enableOverlooking` | `boolean`        | 否   | —       | 允许透视（俯视视角）。     |
+| `enableZoom`        | `boolean`        | 否   | `true`  | 允许缩放。                 |
+| `enableScroll`      | `boolean`        | 否   | `true`  | 允许滚动。                 |
+| `enableRotate`      | `boolean`        | 否   | `true`  | 允许旋转。                 |
+
+**事件回调：**
+
+| 回调             | 类型                                 | 描述               |
+| ---------------- | ------------------------------------ | ------------------ |
+| `onMarkerClick`  | `(markerId: number) => void`         | 点击标记点。       |
+| `onCalloutClick` | `(markerId: number) => void`         | 点击标记气泡。     |
+| `onControlClick` | `(controlId?: number) => void`       | 点击控件。         |
+| `onRegionChange` | `(event: RegionChangeEvent) => void` | 视野区域变化。     |
+| `onClick`        | `(coordinate: Coordinate) => void`   | 点击地图空白区域。 |
+| `onUpdated`      | `() => void`                         | 地图更新完成。     |
+| `onPoiClick`     | `(event: any) => void`               | 点击 POI。         |
+
+**`MarkerItem`：**
+
+| 字段        | 类型                       | 必填 | 描述       |
+| ----------- | -------------------------- | ---- | ---------- |
+| `id`        | `number`                   | 是   | 唯一 ID。  |
+| `latitude`  | `number`                   | 是   | 纬度。     |
+| `longitude` | `number`                   | 是   | 经度。     |
+| `title`     | `string`                   | 否   | 标题文本。 |
+| `iconPath`  | `string`                   | 是   | 图标 URI。 |
+| `rotate`    | `number`                   | 否   | 旋转角度。 |
+| `alpha`     | `number`                   | 否   | 透明度。   |
+| `callout`   | `CalloutItem`              | 否   | 气泡配置。 |
+| `anchor`    | `{ x: number; y: number }` | 否   | 图标锚点。 |
+
+**`CalloutItem`：**
+
+| 字段           | 类型                            | 必填 | 描述                                              |
+| -------------- | ------------------------------- | ---- | ------------------------------------------------- |
+| `content`      | `string`                        | 否   | 气泡内容文本。                                    |
+| `color`        | `string`                        | 否   | 文字颜色。                                        |
+| `fontSize`     | `number`                        | 否   | 字体大小。                                        |
+| `borderRadius` | `number`                        | 否   | 圆角。                                            |
+| `borderWidth`  | `number`                        | 否   | 边框宽度。                                        |
+| `borderColor`  | `string`                        | 否   | 边框颜色。                                        |
+| `bgColor`      | `string`                        | 否   | 背景色。                                          |
+| `padding`      | `number`                        | 否   | 内边距。                                          |
+| `display`      | `'BYCLICK' \| 'ALWAYS'`         | 否   | 显示模式。`'BYCLICK'` 点击显示，`'ALWAYS'` 常驻。 |
+| `textAlign`    | `'left' \| 'right' \| 'center'` | 否   | 文字对齐。                                        |
+
+**`PolylineItem`：**
+
+| 字段     | 类型           | 必填 | 描述             |
+| -------- | -------------- | ---- | ---------------- |
+| `points` | `Coordinate[]` | 是   | 折线坐标点数组。 |
+| `color`  | `string`       | 否   | 线条颜色。       |
+| `width`  | `number`       | 否   | 线条宽度。       |
+
+**`PolygonItem`：**
+
+| 字段          | 类型           | 必填 | 描述               |
+| ------------- | -------------- | ---- | ------------------ |
+| `points`      | `Coordinate[]` | 是   | 多边形坐标点数组。 |
+| `strokeWidth` | `number`       | 否   | 边框宽度。         |
+| `strokeColor` | `string`       | 否   | 边框颜色。         |
+| `fillColor`   | `string`       | 否   | 填充颜色。         |
+
+**`CircleItem`：**
+
+| 字段          | 类型     | 必填 | 描述         |
+| ------------- | -------- | ---- | ------------ |
+| `latitude`    | `number` | 是   | 圆心纬度。   |
+| `longitude`   | `number` | 是   | 圆心经度。   |
+| `radius`      | `number` | 是   | 半径（米）。 |
+| `color`       | `string` | 否   | 边框颜色。   |
+| `fillColor`   | `string` | 否   | 填充颜色。   |
+| `strokeWidth` | `number` | 否   | 边框宽度。   |
+
+**`RegionChangeEvent`：**
+
+| 字段        | 类型                            | 描述       |
+| ----------- | ------------------------------- | ---------- |
+| `type`      | `'begin' \| 'end'`              | 变化阶段。 |
+| `timeStamp` | `number`                        | 时间戳。   |
+| `causedBy`  | `'scale' \| 'drag' \| 'update'` | 触发原因。 |
+
+**缩放约束：** 最小 5，最大 18。
+
+**默认视野：** `LATITUDE_DELTA = 0.0922`。
+
+**原生依赖：** `react-native-maps`
+
+---
+
+## Progress
+
+进度条组件，支持动画效果。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```tsx
+import { Progress } from '@nebula-rn/components';
+```
+
+**示例：**
+
+```tsx
+import { View } from 'react-native';
+import { Progress } from '@nebula-rn/components';
+
+export default function UploadProgress() {
+  return (
+    <View style={{ gap: 12 }}>
+      <Progress percent={32} showInfo />
+      <Progress
+        percent={76}
+        active
+        activeMode="forwards"
+        strokeWidth={8}
+        borderRadius={999}
+        activeColor="#2563eb"
+        backgroundColor="#dbeafe"
+      />
+    </View>
+  );
+}
+```
+
+**Props：**
+
+| 参数              | 类型                        | 必填 | 默认值        | 描述                       |
+| ----------------- | --------------------------- | ---- | ------------- | -------------------------- |
+| `percent`         | `number`                    | 是   | —             | 进度百分比（0-100）。      |
+| `showInfo`        | `boolean`                   | 否   | `false`       | 是否在右侧显示百分比文字。 |
+| `strokeWidth`     | `number \| string`          | 否   | `6`           | 进度条高度（px）。         |
+| `activeColor`     | `string`                    | 否   | `'#09BB07'`   | 已完成部分颜色。           |
+| `backgroundColor` | `string`                    | 否   | `'#EBEBEB'`   | 未完成部分背景色。         |
+| `borderRadius`    | `number \| string`          | 否   | `0`           | 圆角半径。                 |
+| `fontSize`        | `number \| string`          | 否   | —             | 百分比文字大小。           |
+| `active`          | `boolean`                   | 否   | —             | 是否启用动画。             |
+| `activeMode`      | `'backwards' \| 'forwards'` | 否   | `'backwards'` | 动画模式。                 |
+| `style`           | `StyleProp<ViewStyle>`      | 否   | —             | 自定义样式。               |
+
+**事件回调：**
+
+| 回调          | 类型                                   | 描述           |
+| ------------- | -------------------------------------- | -------------- |
+| `onActiveEnd` | `(event: { percent: number }) => void` | 进度动画结束。 |
+
+**动画模式：**
+
+| 模式        | 行为                   |
+| ----------- | ---------------------- |
+| `backwards` | 先归零再动画到目标值。 |
+| `forwards`  | 从当前值动画到目标值。 |
+
+**动画时长：** `(percent / 100) * 1000` ms，线性缓动。
+
+---
+
+## RichText
+
+富文本渲染组件，使用 WebView 渲染 HTML 内容并自动适配高度。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```tsx
+import { RichText } from '@nebula-rn/components';
+```
+
+**示例：**
+
+```tsx
+import { RichText } from '@nebula-rn/components';
+
+const article = `
+  <h1 style="font-size: 20px; color: #0f172a;">欢迎来到 Nebula</h1>
+  <p style="color: #475569; line-height: 1.7;">
+    RichText 适合渲染运营文章、活动规则、服务协议等 HTML 内容。
+  </p>
+  <ul>
+    <li>支持基础标签</li>
+    <li>支持内联样式</li>
+    <li>自动适配高度</li>
+  </ul>
+`;
+
+export default function RichArticle() {
+  return <RichText html={article} style={{ backgroundColor: '#fff' }} />;
+}
+```
+
+**Props：**
+
+| 参数    | 类型                   | 必填 | 默认值 | 描述                 |
+| ------- | ---------------------- | ---- | ------ | -------------------- |
+| `html`  | `string`               | 是   | —      | 要渲染的 HTML 内容。 |
+| `style` | `StyleProp<ViewStyle>` | 否   | —      | 自定义样式。         |
+
+**特性：**
+
+- 自动计算并适配内容高度（通过注入 JS 获取 `scrollHeight`）。
+- 禁用内部滚动。
+- 透明背景。
+- 默认字体：`-apple-system, system-ui`。
+- Viewport 配置：`width=device-width, initial-scale=1, user-scalable=0`。
+
+**原生依赖：** `react-native-webview`
+
+---
+
+## Slider
+
+滑动选择器组件，支持受控和非受控两种模式。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```tsx
+import { Slider } from '@nebula-rn/components';
+```
+
+**示例：**
+
+```tsx
+import { useState } from 'react';
+import { Text, View } from 'react-native';
+import { Slider } from '@nebula-rn/components';
+
+export default function VolumeSlider() {
+  const [value, setValue] = useState(40);
+
+  return (
+    <View style={{ gap: 8 }}>
+      <Text>音量：{value}</Text>
+      <Slider
+        min={0}
+        max={100}
+        step={5}
+        value={value}
+        showValue
+        activeColor="#2563eb"
+        onChanging={event => setValue(event.value)}
+        onChange={event => setValue(event.value)}
+      />
+    </View>
+  );
+}
+```
+
+**Props：**
+
+| 参数              | 类型                   | 必填 | 默认值      | 描述                                 |
+| ----------------- | ---------------------- | ---- | ----------- | ------------------------------------ |
+| `min`             | `number`               | 否   | `0`         | 最小值。                             |
+| `max`             | `number`               | 否   | `100`       | 最大值。                             |
+| `step`            | `number`               | 否   | `1`         | 步长。                               |
+| `value`           | `number`               | 否   | —           | 受控值。传入此 prop 将进入受控模式。 |
+| `defaultValue`    | `number`               | 否   | —           | 非受控初始值。                       |
+| `disabled`        | `boolean`              | 否   | —           | 禁用交互。                           |
+| `activeColor`     | `string`               | 否   | `'#1aad19'` | 已选区域颜色。                       |
+| `backgroundColor` | `string`               | 否   | `'#e9e9e9'` | 未选区域颜色。                       |
+| `blockColor`      | `string`               | 否   | `'#fff'`    | 滑块颜色。                           |
+| `showValue`       | `boolean`              | 否   | `false`     | 是否在右侧显示当前值。               |
+| `name`            | `string`               | 否   | —           | 表单字段名。                         |
+| `style`           | `StyleProp<ViewStyle>` | 否   | —           | 自定义样式。                         |
+
+**事件回调：**
+
+| 回调         | 类型                                 | 描述                 |
+| ------------ | ------------------------------------ | -------------------- |
+| `onChange`   | `(event: { value: number }) => void` | 拖动结束时触发。     |
+| `onChanging` | `(event: { value: number }) => void` | 拖动过程中持续触发。 |
+
+**受控模式同步间隔：** 50ms 防抖。
+
+**原生依赖：** `@react-native-community/slider`
+
+---
+
+## Swiper
+
+图片/内容轮播组件，支持自动播放、循环和分页指示器。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```tsx
+import { Swiper } from '@nebula-rn/components';
+```
+
+**示例：**
+
+```tsx
+import { Image, View } from 'react-native';
+import { Swiper } from '@nebula-rn/components';
+
+const banners = [
+  'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200',
+  'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1200',
+  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200',
+];
+
+export default function BannerSwiper() {
+  return (
+    <View style={{ height: 180, borderRadius: 12, overflow: 'hidden' }}>
+      <Swiper autoplay circular indicatorDots interval={3000}>
+        {banners.map(uri => (
+          <Image
+            key={uri}
+            source={{ uri }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+          />
+        ))}
+      </Swiper>
+    </View>
+  );
+}
+```
+
+**Props：**
+
+| 参数                   | 类型                   | 必填 | 默认值              | 描述                   |
+| ---------------------- | ---------------------- | ---- | ------------------- | ---------------------- |
+| `indicatorDots`        | `boolean`              | 否   | —                   | 是否显示分页指示器。   |
+| `indicatorColor`       | `string`               | 否   | `'rgba(0,0,0,0.3)'` | 指示器未选中颜色。     |
+| `indicatorActiveColor` | `string`               | 否   | `'#000'`            | 指示器选中颜色。       |
+| `autoplay`             | `boolean`              | 否   | —                   | 是否自动播放。         |
+| `current`              | `number`               | 否   | `0`                 | 当前显示的幻灯片索引。 |
+| `interval`             | `number`               | 否   | `5000`              | 自动播放间隔（ms）。   |
+| `circular`             | `boolean`              | 否   | —                   | 是否循环（无限滚动）。 |
+| `vertical`             | `boolean`              | 否   | —                   | 是否纵向滚动。         |
+| `style`                | `StyleProp<ViewStyle>` | 否   | —                   | 自定义样式。           |
+
+**事件回调：**
+
+| 回调                | 类型                                   | 描述                 |
+| ------------------- | -------------------------------------- | -------------------- |
+| `onChange`          | `(event: { current: number }) => void` | 幻灯片切换时触发。   |
+| `onAnimationFinish` | `(event: { current: number }) => void` | 切换动画完成后触发。 |
+
+**子组件：**
+
+```tsx
+<Swiper autoplay circular indicatorDots>
+  <Swiper.Item>
+    <Image source={img1} />
+  </Swiper.Item>
+  <Swiper.Item>
+    <Image source={img2} />
+  </Swiper.Item>
+</Swiper>
+```
+
+**指示器样式：** 圆点 8x8，borderRadius 8，未选中 `#999`，选中 `#333`。
+
+**原生依赖：** `react-native-reanimated-carousel` v4.0.3、`react-native-reanimated` v4.2.3
+
+---
+
+## Video
+
+视频播放器组件，支持全屏、海报图和播放控件。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```tsx
+import { Video } from '@nebula-rn/components';
+```
+
+**示例：**
+
+```tsx
+import { Video } from '@nebula-rn/components';
+
+export default function CourseVideo() {
+  return (
+    <Video
+      src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+      poster="https://peach.blender.org/wp-content/uploads/title_anouncement.jpg?x11217"
+      controls
+      objectFit="cover"
+      style={{ height: 220, borderRadius: 12, backgroundColor: '#000' }}
+      onError={event => {
+        console.error('video error', event.errMsg);
+      }}
+    />
+  );
+}
+```
+
+**Props：**
+
+| 参数                | 类型                             | 必填 | 默认值      | 描述                       |
+| ------------------- | -------------------------------- | ---- | ----------- | -------------------------- |
+| `src`               | `string`                         | 是   | —           | 视频资源 URI。             |
+| `duration`          | `number`                         | 否   | —           | 视频时长（ms）。           |
+| `controls`          | `boolean`                        | 否   | `true`      | 是否显示播放控件。         |
+| `autoplay`          | `boolean`                        | 否   | `false`     | 是否自动播放。             |
+| `loop`              | `boolean`                        | 否   | `false`     | 是否循环播放。             |
+| `muted`             | `boolean`                        | 否   | `false`     | 是否静音。                 |
+| `initialTime`       | `number`                         | 否   | `0`         | 初始播放位置（ms）。       |
+| `objectFit`         | `'contain' \| 'fill' \| 'cover'` | 否   | `'contain'` | 视频缩放模式。             |
+| `poster`            | `string`                         | 否   | —           | 海报图 URI，在播放前显示。 |
+| `showCenterPlayBtn` | `boolean`                        | 否   | `true`      | 是否显示居中播放按钮。     |
+| `style`             | `StyleProp<ViewStyle>`           | 否   | —           | 自定义样式。               |
+| `children`          | `ReactNode`                      | 否   | —           | 叠加在视频上的内容。       |
+
+**事件回调：**
+
+| 回调                 | 类型                                          | 描述                 |
+| -------------------- | --------------------------------------------- | -------------------- |
+| `onLoad`             | `() => void`                                  | 视频加载完成。       |
+| `onPlay`             | `() => void`                                  | 开始播放。           |
+| `onPause`            | `() => void`                                  | 暂停。               |
+| `onEnded`            | `() => void`                                  | 播放结束。           |
+| `onError`            | `(event: { errMsg: string }) => void`         | 播放错误。           |
+| `onTimeUpdate`       | `(event: VideoTimeUpdateEvent) => void`       | 播放进度更新。       |
+| `onFullscreenChange` | `(event: VideoFullscreenChangeEvent) => void` | 全屏状态变化。       |
+| `onLoadedMetaData`   | `(event: VideoMetaDataEvent) => void`         | 视频元数据加载完成。 |
+
+**`VideoTimeUpdateEvent`：**
+
+| 字段          | 类型     | 描述                 |
+| ------------- | -------- | -------------------- |
+| `currentTime` | `number` | 当前播放位置（ms）。 |
+| `duration`    | `number` | 视频总时长（ms）。   |
+
+**`VideoFullscreenChangeEvent`：**
+
+| 字段         | 类型                         | 描述       |
+| ------------ | ---------------------------- | ---------- |
+| `fullScreen` | `boolean`                    | 是否全屏。 |
+| `direction`  | `'vertical' \| 'horizontal'` | 全屏方向。 |
+
+**`VideoMetaDataEvent`：**
+
+| 字段       | 类型     | 描述             |
+| ---------- | -------- | ---------------- |
+| `width`    | `number` | 视频宽度（px）。 |
+| `height`   | `number` | 视频高度（px）。 |
+| `duration` | `number` | 视频时长（ms）。 |
+
+**缩放模式映射：**
+
+| `objectFit` | React Native `ResizeMode` |
+| ----------- | ------------------------- |
+| `'contain'` | `ResizeMode.CONTAIN`      |
+| `'fill'`    | `ResizeMode.STRETCH`      |
+| `'cover'`   | `ResizeMode.COVER`        |
+
+**默认尺寸：** 宽度 100%，高度 225px，黑色背景。
+
+**进度更新频率：** 250ms。
+
+**原生依赖：** `react-native-video` v6.19.1
+
+---
+
+## WebView
+
+嵌入式 Web 内容组件，扩展 `react-native-webview` 的全部功能。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```tsx
+import { WebView } from '@nebula-rn/components';
+```
+
+**示例：**
+
+```tsx
+import { Alert } from 'react-native';
+import { WebView } from '@nebula-rn/components';
+
+const html = `
+  <html>
+    <body style="font-family: -apple-system; padding: 24px;">
+      <h2>本地 HTML 内容</h2>
+      <button onclick="window.ReactNativeWebView.postMessage('clicked')">
+        发送消息给小程序
+      </button>
+    </body>
+  </html>
+`;
+
+export default function EmbeddedPage() {
+  return (
+    <WebView
+      html={html}
+      style={{ height: 320, borderRadius: 12, overflow: 'hidden' }}
+      onMessage={event => {
+        Alert.alert('收到消息', event.nativeEvent.data);
+      }}
+    />
+  );
+}
+```
+
+**Props：**
+
+| 参数      | 类型                   | 必填 | 描述                                              |
+| --------- | ---------------------- | ---- | ------------------------------------------------- |
+| `src`     | `string`               | 否   | 要加载的 URL。                                    |
+| `html`    | `string`               | 否   | 要渲染的 HTML 内容。提供 `html` 时优先于 `src`。  |
+| `style`   | `StyleProp<ViewStyle>` | 否   | 自定义样式。                                      |
+| `...rest` | `RNWebViewProps`       | 否   | 所有 `react-native-webview` 原生 Props 均可使用。 |
+
+**默认配置：**
+
+- `originWhitelist`: `['*']`（允许所有来源）。
+
+**原生依赖：** `react-native-webview`
+
+---
+
+## 基础组件
+
+小程序中可直接使用 React Native 的基础组件，从 `react-native` 导入：
+
+```tsx
+import { View, Text, ScrollView, Image, Button } from 'react-native';
+```
+
+**示例：**
+
+```tsx
+import { Button, Image, ScrollView, Text, View } from 'react-native';
+
+export default function BasicLayout() {
+  return (
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+      <Image
+        source={{
+          uri: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1200',
+        }}
+        style={{ width: '100%', height: 180, borderRadius: 12 }}
+      />
+      <View style={{ gap: 6 }}>
+        <Text style={{ fontSize: 20, fontWeight: '700' }}>组件库首页</Text>
+        <Text style={{ color: '#475569' }}>
+          React Native 基础组件仍然是搭建页面布局的核心。
+        </Text>
+      </View>
+      <Button title="立即体验" onPress={() => {}} />
+    </ScrollView>
+  );
+}
+```
+
+以下列出小程序中常用的基础组件：
+
+| 组件                         | 说明         |
+| ---------------------------- | ------------ |
+| `View`                       | 基础容器     |
+| `Text`                       | 文本         |
+| `ScrollView`                 | 可滚动容器   |
+| `Image`                      | 图片         |
+| `Button`                     | 按钮         |
+| `Input`                      | 文本输入     |
+| `Textarea`                   | 多行文本输入 |
+| `Block`                      | 布局块       |
+| `Checkbox` / `CheckboxGroup` | 多选         |
+| `Radio` / `RadioGroup`       | 单选         |
+| `Form`                       | 表单         |
+| `Icon`                       | 图标         |
+| `Label`                      | 标签         |
+| `Navigator`                  | 导航         |
+| `Picker` / `PickerView`      | 选择器       |
+| `Switch`                     | 开关         |
+| `CoverImage` / `CoverView`   | 覆盖视图     |
+| `PageContainer`              | 页面容器     |
+| `SwiperItem`                 | 轮播项       |
+
+---
+
+## 原生依赖
+
+使用包含原生组件的模块时，需要在宿主项目中安装对应的原生依赖：
+
+| 依赖                               | 版本    | 用于              |
+| ---------------------------------- | ------- | ----------------- |
+| `react-native-vision-camera`       | ^4.7.3  | Camera            |
+| `react-native-video`               | ^6.19.1 | Video             |
+| `react-native-reanimated`          | ^4.2.3  | Swiper 动画       |
+| `react-native-reanimated-carousel` | ^4.0.3  | Swiper            |
+| `react-native-gesture-handler`     | ^2.30.0 | 手势交互          |
+| `react-native-webview`             | —       | RichText、WebView |
+| `react-native-maps`                | —       | Map               |
+| `@react-native-community/slider`   | —       | Slider            |

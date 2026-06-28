@@ -1,0 +1,33 @@
+{
+  "name": "@nebula-rn/components",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "root": "packages/components",
+  "sourceRoot": "packages/components/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "dependsOn": ["^build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/components",
+        "command": "npm run build"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/components",
+        "command": "npm run lint"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/components",
+        "command": "npm run test"
+      }
+    }
+  },
+  "implicitDependencies": ["@nebula-rn/sdk"],
+  "tags": ["scope:shared", "type:ui"]
+}

@@ -1,0 +1,101 @@
+---
+title: Miniapp Development Guide
+description: Understand the Nebula miniapp development model, runtime, components, APIs, debugging, and release flow.
+---
+
+Nebula miniapps provide a simple, efficient development model, along with components, APIs, host runtime, and cloud distribution, to help developers build miniapps with a native experience.
+
+This chapter introduces the core topics of miniapp development, including project creation, runtime, host environment, directory structure, configuration, components, APIs, compatibility, and version release, to help you build a complete mental model quickly.
+
+If you are new to Nebula, start with the shortest path:
+
+```bash
+npx nebula create miniapp hello-nebula
+cd hello-nebula
+npm install
+npx nebula miniapp dev
+```
+
+This creates a pure miniapp project. You only need to focus on pages, state, and API calls, without maintaining `ios/` or `android/` shell projects yourself.
+
+## Core concepts
+
+Nebula miniapp development can be understood with these concepts:
+
+- **Miniapp**: the project that contains business pages, state, and interaction logic.
+- **Host**: the host app that runs miniapps and provides native capabilities, container, and lifecycle.
+- **Dev Runner**: a shared development host that helps you run and debug miniapps independently.
+- **Nebula Cloud**: the cloud service for version management, distribution, installation, and updates.
+
+It is important to note that Dev Runner is the default development path, but it is still a development Host. It is better for mocked Host APIs and default development behavior, not for real business implementations.
+
+## Development workflow
+
+Nebula recommends this miniapp workflow:
+
+- use `npx nebula create miniapp` to create a pure miniapp project
+- use `npx nebula miniapp dev` to start development
+- develop and debug pages inside Dev Runner
+- integrate into a real Host when you need real integration validation
+
+Common commands:
+
+```bash
+# create a miniapp
+npx nebula create miniapp hello-nebula
+
+# start development
+npx nebula miniapp dev
+
+# build production output
+npx nebula miniapp build
+
+# upload to Nebula Cloud
+npx nebula miniapp upload --version 1.0.0
+
+```
+
+## Recommended dependencies
+
+You will typically use these packages:
+
+- `@nebula-rn/client`
+  For calling miniapp base APIs and Host APIs.
+- `@nebula-rn/components`
+  For using cross-platform UI components provided by Nebula.
+- `@nebula-rn/sdk`
+  For page lifecycle, runtime, and host-related capabilities.
+
+## Continue reading
+
+If you want to dive deeper into the framework, components, APIs, host environment, or version distribution, continue with these docs:
+
+- [Miniapp Host Environment](./host-environment.mdx)
+  Learn how miniapps run inside the Host and the basic interaction model.
+- [Dev Runner](./dev-runner.mdx)
+  Learn how the development host works and how `npx nebula miniapp dev` runs.
+- [Page Lifecycle](./page-lifecycle.mdx)
+  Learn about `onLoad`, `onShow`, `onHide`, and `onUnload`.
+- [Page Navigation](./navigation.mdx)
+  Learn how miniapp pages navigate, go back, and redirect.
+- [Host Communication](./host-communication.mdx)
+  Learn how miniapps communicate with the Host in both directions.
+- [Miniapp Versioning and Release](./versioning.mdx)
+  Learn about release/experience versions, installation, updates, and publishing.
+- [Miniapp Directory Structure](./directory-structure.mdx)
+  Learn the recommended directory organization.
+- [Miniapp Configuration](./configuration.mdx)
+  Learn how to configure `app.json` and `page.config.ts`.
+- [Custom APIs](./custom-apis.mdx)
+  Learn how to extend custom business capabilities.
+- [Base Library Versioning](./base-library-versioning.mdx)
+  Learn how to do capability detection and compatibility handling.
+
+## Related references
+
+- [Nebula SDK Reference](../reference/nebula-sdk.mdx)
+- [Host Configuration](../host/configuration.mdx)
+- [Host Configuration](../host/configuration.mdx)
+- [Native-side APIs](../host/native-apis.mdx)
+- [Nebula Cloud](../nebula-cloud/version-and-channels.mdx)
+- [CLI Reference](../reference/cli.mdx)

@@ -1,0 +1,197 @@
+---
+title: File Transfer
+description: Transfer files with Nebula download and upload APIs, with progress updates and cancellation.
+---
+
+Nebula provides file download/upload APIs with progress updates and cancellation. Transfer operations return a Task object that acts like a Promise and supports event listeners.
+
+## Download files
+
+### Basic usage
+
+```ts
+import { downloadFile } from '@nebula-rn/client';
+
+const result = await downloadFile({
+  url: 'https://example.com/image.jpg',
+});
+console.log('Temp file path:', result.tempFilePath);
+console.log('HTTP status:', result.statusCode);
+```
+
+### Listen to download progress
+
+```ts
+const task = downloadFile({
+  url: 'https://example.com/large-file.zip',
+});
+
+task.onProgressUpdate((progress) => {
+  console.log(`Progress: ${progress.progress}%`);
+  console.log(`Downloaded: ${progress.totalBytesWritten} bytes`);
+  console.log(`Total: ${progress.totalBytesExpectedToWrite} bytes`);
+});
+
+const result = await task;
+```
+
+### Cancel a download
+
+```ts
+const task = downloadFile({ url: 'https://example.com/file.zip' });
+
+// Cancel at any time
+await task.abort();
+```
+
+### Options
+
+```ts
+type DownloadFileOption = {
+  url: string;                      // download URL
+  header?: Record<string, string>;  // custom headers
+  timeout?: number;                 // timeout in ms, default 60000
+  filePath?: string;                // optional save path
+};
+```
+
+### Result
+
+```ts
+type DownloadFileResult = {
+  tempFilePath: string;  // temp file path after download
+  statusCode: number;    // HTTP status code
+};
+```
+
+## Upload files
+
+### Basic usage
+
+```ts
+import { uploadFile } from '@nebula-rn/client';
+
+const result = await uploadFile({
+  url: 'https://example.com/upload',
+  filePath: localFilePath,
+  name: 'file',  // form field name
+});
+console.log('Server response:', result.data);
+console.log('HTTP status:', result.statusCode);
+```
+
+### Listen to upload progress
+
+```ts
+const task = uploadFile({
+  url: 'https://example.com/upload',
+  filePath: localFilePath,
+  name: 'file',
+  formData: { userId: '123' },
+});
+
+task.onProgressUpdate((progress) => {
+  console.log(`Progress: ${progress.progress}%`);
+  console.log(`Uploaded: ${progress.totalBytesSent} bytes`);
+});
+
+const result = await task;
+```
+
+### Options
+
+```ts
+type UploadFileOption = {
+  url: string;                        // upload URL
+  filePath: string;                   // local file path
+  name: string;                       // multipart field name
+  header?: Record<string, string>;    // custom headers
+  formData?: Record<string, string>;  // extra form fields
+  timeout?: number;                   // timeout in ms, default 60000
+};
+```
+
+### Result
+
+```ts
+type UploadFileResult = {
+  data: string;        // response body
+  statusCode: number;  // HTTP status code
+};
+```
+
+## Task interface
+
+Download and upload both return a Task object that supports Promise and event listeners:
+
+```ts
+interface Task<T, P> {
+  // Promise interface
+  then(onFulfilled, onRejected): Promise<T>;
+  catch(onRejected): Promise<T>;
+
+  // Progress updates
+  onProgressUpdate(listener: (res: P) => void): void;
+  offProgressUpdate(listener: (res: P) => void): void;
+
+  // Response headers
+  onHeadersReceived(listener: (res: { header: Record<string, string> }) => void): void;
+  offHeadersReceived(listener: (res: { header: Record<string, string> }) => void): void;
+
+  // Cancel
+  abort(): Promise<void>;
+}
+```
+
+## Complete example: download and save an image
+
+```tsx
+import React, { useState } from 'react';
+import { Button, Image, StyleSheet, Text, View } from 'react-native';
+import { downloadFile } from '@nebula-rn/client';
+import { getFileSystemManager } from '@nebula-rn/client';
+
+export default function DownloadDemoPage() {
+  const [progress, setProgress] = useState(0);
+  const [imagePath, setImagePath] = useState('');
+
+  const handleDownload = async () => {
+    const task = downloadFile({
+      url: 'https://picsum.photos/480/480',
+    });
+
+    task.onProgressUpdate((p) => {
+      setProgress(p.progress);
+    });
+
+    const result = await task;
+    setImagePath(result.tempFilePath);
+
+    // Persist to storage
+    const fs = getFileSystemManager();
+    await fs.saveFile({ tempFilePath: result.tempFilePath });
+  };
+
+  return (
+    <View style={styles.container}>
+      <Button title="Download image" onPress={handleDownload} />
+      <Text>Progress: {progress}%</Text>
+      {imagePath ? (
+        <Image source={{ uri: imagePath }} style={styles.image} />
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { padding: 20 },
+  image: { width: 200, height: 200, marginTop: 16 },
+});
+```
+
+## Notes
+
+- Downloads are saved as temporary files by default; use `getFileSystemManager().saveFile()` to persist them
+- After calling `abort()`, the Task Promise will be rejected
+- `progress` is an integer percentage from 0 to 100
+- The default timeout is 60 seconds; increase `timeout` for large files

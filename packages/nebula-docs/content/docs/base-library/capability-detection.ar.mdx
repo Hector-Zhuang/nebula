@@ -1,0 +1,43 @@
+---
+title: كشف القدرات
+description: تحقّق من دعم المضيف لواجهة Nebula API وإصدارها قبل استخدامها.
+---
+
+يجب ألا يفترض التطبيق المصغّر أن كل مضيف يوفّر كل واجهة API.
+
+تدعم Nebula كشف القدرات عبر:
+
+- `Miniapp.getCapabilities()`
+- `Miniapp.isSupported(...)`
+
+<Info title="وثائق ذات صلة">
+  تركز هذه الصفحة على آلية الكشف نفسها. وإذا كنت تريد فهم نموذج التوافق والإصدارات بشكل أوسع،
+  فراجع [Base Library Versioning](../miniapp/base-library-versioning.mdx).
+</Info>
+
+## لماذا يهم هذا
+
+- قد تتطور إصدارات المضيف والتطبيق المصغّر بشكل مستقل
+- بعض الواجهات قد تتوفر فقط في نسخ محددة من المضيف
+- بعض القدرات قد يعطّلها المضيف عمدًا
+
+## مثال
+
+```ts
+const capabilities = await Miniapp.getCapabilities();
+const supportsScanCode = await Miniapp.isSupported('scanCode', '1.0');
+```
+
+## أفضل الممارسات
+
+- نفّذ كشف القدرات قبل عرض نقاط الدخول الاختيارية
+- تعامل مع فشل وقت التشغيل حتى بعد نجاح التحقق
+- اجعل سلوك "غير مدعوم" واضحًا ومنظمًا
+
+## سلوك الواجهة غير المدعومة
+
+يجب على المضيف إعادة نتيجة منظّمة تحتوي على `UNSUPPORTED_API` بدلاً من الفشل الصامت.
+
+## وثائق ذات صلة
+
+- [Base Library Versioning](../miniapp/base-library-versioning.mdx)

@@ -1,0 +1,80 @@
+{
+  "name": "nebula",
+  "version": "0.0.1",
+  "private": true,
+  "description": "nebula monorepo workspace",
+  "author": "Hector Zhuang",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hector-Zhuang/nebula.git"
+  },
+  "workspaces": [
+    "packages/*",
+    "examples/*/host",
+    "examples/*/miniapps/*"
+  ],
+  "scripts": {
+    "android": "npm run --workspace=@nebula-rn/sample-host android",
+    "ios": "npm run --workspace=@nebula-rn/sample-host ios",
+    "start": "npm run --workspace=@nebula-rn/sample-host start",
+    "runner:android": "npm run --workspace=@nebula-rn/dev-runner android",
+    "runner:ios": "npm run --workspace=@nebula-rn/dev-runner ios",
+    "runner:start": "npm run --workspace=@nebula-rn/dev-runner start",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "jest",
+    "nx:graph": "nx graph",
+    "nx:host:start": "nx run sample-host:start",
+    "nx:host:ios": "nx run sample-host:ios",
+    "nx:host:android": "nx run sample-host:android",
+    "nx:components:build": "nx run nebula-components:build",
+    "nx:miniapp:start": "nx run sample-miniapp:start",
+    "nx:miniapp:bundle-ios": "nx run sample-miniapp:bundle-ios",
+    "cloud:dev": "npm run --workspace=@nebula-rn/cloud start:dev",
+    "console:dev": "npm run --workspace=@nebula-rn/nebula-console dev",
+    "docs:dev": "npm run --workspace=@nebula-rn/docs dev",
+    "docs:build": "npm run --workspace=@nebula-rn/docs build",
+    "docs:serve": "npm run --workspace=@nebula-rn/docs start",
+    "sample:start": "npm run --workspace=@nebula-rn/miniapp dev",
+    "sample:bundle:ios": "npm run --workspace=@nebula-rn/miniapp build",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish"
+  },
+  "dependencies": {
+    "react": "19.2.0",
+    "react-native": "0.83.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.3",
+    "@babel/runtime": "^7.25.0",
+    "@changesets/changelog-github": "^0.7.0",
+    "@changesets/cli": "^2.31.0",
+    "@react-native-community/cli": "20.0.0",
+    "@react-native-community/cli-platform-android": "20.0.0",
+    "@react-native-community/cli-platform-ios": "20.0.0",
+    "@react-native/babel-preset": "0.83.1",
+    "@react-native/eslint-config": "0.83.1",
+    "@react-native/metro-config": "0.83.1",
+    "@react-native/typescript-config": "0.83.1",
+    "@types/jest": "^29.5.13",
+    "@types/react": "^19.2.0",
+    "@types/react-test-renderer": "^19.1.0",
+    "enhanced-resolve": "^5.24.1",
+    "eslint": "^8.19.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "jest": "^29.6.3",
+    "nx": "22.5.4",
+    "patch-package": "^8.0.1",
+    "postinstall-postinstall": "^2.1.0",
+    "prettier": "^3.8.1",
+    "react-test-renderer": "19.2.0",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "nx": {}
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@nebula-rn/cli",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "root": "packages/cli",
+  "sourceRoot": "packages/cli/src",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:cli"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/cli",
+        "command": "npm run build"
+      }
+    }
+  }
+}

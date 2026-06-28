@@ -1,0 +1,8 @@
+{
+  "title": "Base Library",
+  "pages": [
+    "overview",
+    "developing-apis",
+    "capability-detection"
+  ]
+}

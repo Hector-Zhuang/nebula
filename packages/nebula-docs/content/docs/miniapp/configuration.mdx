@@ -1,0 +1,146 @@
+---
+title: Miniapp Configuration
+description: Detailed reference for Nebula miniapp global configuration and page configuration.
+---
+
+Nebula miniapps control app behavior and styling through `app.json` (global config) and `page.config.ts` (page config).
+
+## Global configuration (`app.json`)
+
+`app.json` is located at the project root and acts as the miniapp manifest file.
+
+### Full fields
+
+| Field            | Type                 | Required | Default               | Example                                | Description               |
+| ---------------- | -------------------- | -------- | --------------------- | -------------------------------------- | ------------------------- |
+| `appId`          | `string`             | Yes      | —                     | `'my-miniapp'`                         | Unique miniapp identifier |
+| `pages`          | `string[]`           | Yes      | —                     | `['home', 'detail']`                   | Declared page paths       |
+| `entryPagePath`  | `string`             | No       | First page in `pages` | `'/home'`                              | Initial page              |
+| `updateStrategy` | `'auto' \| 'manual'` | No       | `'manual'`            | `'auto'`                               | Update behavior           |
+| `window`         | `WindowConfig`       | No       | —                     | `{ navigationBarTitleText: 'My App' }` | Global window style       |
+
+### Example
+
+```json
+{
+  "appId": "my-miniapp",
+  "updateStrategy": "auto",
+  "pages": ["home", "detail", "settings"],
+  "entryPagePath": "/home",
+  "window": {
+    "backgroundColor": "#f8fafc",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextColor": "#0f172a",
+    "navigationBarTitleText": "My Miniapp",
+    "navigationStyle": "default",
+    "visualEffectInBackground": "none"
+  }
+}
+```
+
+### appId
+
+The unique identifier for the miniapp across the platform. Used for installation, open, preloading, and other operations.
+
+### pages
+
+Declares all page paths contained in the miniapp. Paths are relative to `src/pages/` and should not include file extensions.
+
+```json
+{
+  "pages": ["home", "detail", "components/media", "components/swiper"]
+}
+```
+
+### updateStrategy
+
+Controls update behavior. See [Miniapp Versioning and Release](/docs/miniapp/versioning).
+
+- `auto`: check and apply updates automatically on open
+- `manual`: let developer code control update timing
+
+## Window configuration (`WindowConfig`)
+
+Window config can be set globally in the `window` field of `app.json`, and overridden per page in `page.config.ts`.
+
+| Field                          | Type                    | Required | Default     | Example        | Description                                                    |
+| ------------------------------ | ----------------------- | -------- | ----------- | -------------- | -------------------------------------------------------------- |
+| `backgroundColor`              | `string`                | No       | —           | `'#f8fafc'`    | Page background color (hex)                                    |
+| `navigationBarBackgroundColor` | `string`                | No       | —           | `'#ffffff'`    | Navigation bar background                                      |
+| `navigationBarTextColor`       | `string`                | No       | —           | `'#0f172a'`    | Navigation bar text color                                      |
+| `navigationBarTitleText`       | `string`                | No       | —           | `'My Miniapp'` | Navigation bar title                                           |
+| `navigationStyle`              | `'default' \| 'custom'` | No       | `'default'` | `'custom'`     | Navigation bar style                                           |
+| `visualEffectInBackground`     | `'blur' \| 'none'`      | No       | `'none'`    | `'blur'`       | Background visual effect when app goes to background, iOS only |
+
+### navigationStyle
+
+- `default`: show system navigation bar with back button and title
+- `custom`: hide system navigation bar and implement your own navigation UI
+
+## Page configuration (`page.config.ts`)
+
+Each page can override global window config via `page.config.ts`.
+
+```ts
+import { definePageConfig } from '@nebula-rn/sdk';
+
+export default definePageConfig({
+  route: '/detail',
+  backgroundColor: '#ffffff',
+  navigationBarBackgroundColor: '#1e40af',
+  navigationBarTextColor: '#ffffff',
+  navigationBarTitleText: 'Detail',
+  navigationStyle: 'default',
+  visualEffectInBackground: 'blur', // iOS only
+});
+```
+
+### definePageConfig fields
+
+| Field                          | Type                    | Required | Default     | Example     | Description                                                                                 |
+| ------------------------------ | ----------------------- | -------- | ----------- | ----------- | ------------------------------------------------------------------------------------------- |
+| `route`                        | `string`                | No       | —           | `'/detail'` | Route path. Recommended to match directory structure, e.g. `src/pages/detail` -> `/detail`. |
+| `backgroundColor`              | `string`                | No       | —           | `'#ffffff'` | Page content background                                                                     |
+| `navigationBarBackgroundColor` | `string`                | No       | —           | `'#1e40af'` | Navigation bar background                                                                   |
+| `navigationBarTextColor`       | `string`                | No       | —           | `'#0f172a'` | Navigation bar title and foreground color                                                   |
+| `navigationBarTitleText`       | `string`                | No       | —           | `'Detail'`  | Navigation bar title                                                                        |
+| `navigationStyle`              | `'default' \| 'custom'` | No       | `'default'` | `'custom'`  | `default` uses Host nav bar, `custom` hides it for your own UI                              |
+| `visualEffectInBackground`     | `'blur' \| 'none'`      | No       | `'none'`    | `'blur'`    | Visual effect when app goes to background, iOS only                                         |
+
+### Example parameters
+
+#### Title only
+
+```ts
+export default definePageConfig({
+  navigationBarTitleText: 'Order Detail',
+});
+```
+
+#### Brand color navigation bar
+
+```ts
+export default definePageConfig({
+  navigationBarBackgroundColor: '#1d4ed8',
+  navigationBarTextColor: '#ffffff',
+  navigationBarTitleText: 'Membership Center',
+});
+```
+
+#### Hide the default navigation bar
+
+```ts
+export default definePageConfig({
+  navigationStyle: 'custom',
+});
+```
+
+## Configuration priority
+
+Configuration priority from high to low:
+
+1. Page-level config in `page.config.ts`
+2. Global `window` config in `app.json`
+3. System defaults
+
+When rendering a page, the Host uses the global config as the base and merges the page-level config on top.

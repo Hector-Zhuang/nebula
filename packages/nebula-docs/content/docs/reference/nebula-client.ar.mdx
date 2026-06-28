@@ -1,0 +1,1050 @@
+---
+title: "@nebula-rn/client"
+description: "مرجع API لتطبيقات miniapp في Nebula، يوفّر توثيقًا مفصلًا لقدرات الجهاز والوسائط والتخزين والشبكة والمستشعرات وغيرها."
+---
+
+`@nebula-rn/client` هي الحزمة الرئيسية لمطوري miniapp وتوفّر واجهات مستقرة لاستدعاء قدرات المضيف. جميع الـ APIs تتواصل مع المضيف عبر طبقة بروتوكول Nebula.
+
+---
+
+## المسح
+
+### scanCode(options?)
+
+فتح واجهة المسح المُدارة من المضيف وإرجاع نتيجة المسح. عند النجاح تُغلق الواجهة تلقائيًا ويُعاد الناتج؛ وعند الفشل يُرمى استثناء.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function scanCode(options?: ScanCodeOptions): Promise<ScanCodeData>
+```
+
+**المعاملات `ScanCodeOptions`:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `scanType` | `string[]` | لا | `['qr', 'ean-13', 'code-128']` | قائمة أنواع الأكواد المراد التعرف عليها. |
+| `onlyFromCamera` | `boolean` | لا | `false` | عند `true` يستخدم الكاميرا فقط ولا يسمح بالاختيار من الألبوم. |
+
+**الإرجاع `ScanCodeData`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `result` | `string \| undefined` | نص نتيجة المسح. |
+| `scanType` | `string` | نوع الكود المُعرّف مثل `'QR_CODE'`، وعند عدم التعرف تكون `'unknown'`. |
+| `rawData` | `unknown` | بيانات المسح الخام. |
+
+**المهلة:** 120000ms
+
+**رموز الخطأ:**
+
+| رمز الخطأ | الوصف |
+|--------|------|
+| `PERMISSION_DENIED` | إذن الكاميرا غير مُصرّح به. |
+| `USER_CANCELLED` | أغلق المستخدم واجهة المسح. |
+| `UNSUPPORTED_SOURCE` | مصدر المسح غير مدعوم. |
+| `SCAN_FAILED` | حدث خطأ أثناء المسح. |
+
+### scanCodeSafe(options?)
+
+نفس وظيفة `scanCode` لكنها لا ترمي استثناء، بل تعيد نوع Result. مناسبة للحالات التي تُدار فيها الأخطاء في مكان واحد.
+
+```ts
+function scanCodeSafe(options?: ScanCodeOptions): Promise<ScanCodeResult>
+```
+
+**الإرجاع `ScanCodeResult`:**
+
+```ts
+// نجاح
+{ ok: true, data: ScanCodeData }
+
+// فشل
+{ ok: false, error: { code: ScanCodeErrorCode, message: string } }
+```
+
+---
+
+## الوسائط
+
+### chooseMedia(options?)
+
+اختيار صور/فيديو من الألبوم أو الكاميرا.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function chooseMedia(options?: ChooseMediaOption): Promise<ChooseMediaResult>
+```
+
+**المعاملات `ChooseMediaOption`:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `count` | `number` | لا | `9` | العدد الأقصى للملفات. |
+| `mediaType` | `('image' \| 'video' \| 'mix')[]` | لا | `['image', 'video']` | أنواع الوسائط المسموحة. |
+| `sourceType` | `('album' \| 'camera')[]` | لا | `['album', 'camera']` | مصدر الملفات. إذا كان `'camera'` فقط تُفتح الكاميرا مباشرة. |
+| `maxDuration` | `number` | لا | `10` | مدة تسجيل الفيديو القصوى (ثوان). |
+| `sizeType` | `('original' \| 'compressed')[]` | لا | `['original', 'compressed']` | نوع حجم الصورة. عند وجود `'compressed'` تكون الجودة 0.8. |
+| `camera` | `'back' \| 'front'` | لا | `'back'` | اتجاه الكاميرا الافتراضي. |
+
+**الإرجاع `ChooseMediaResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `tempFiles` | `ChooseMediaFile[]` | قائمة الملفات المختارة. |
+| `type` | `'image' \| 'video' \| 'mix'` | نوع الوسائط الفعلي المختار. |
+
+**بنية `ChooseMediaFile`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `tempFilePath` | `string` | مسار الملف المؤقت. |
+| `size` | `number` | حجم الملف (بايت). |
+| `fileType` | `'image' \| 'video'` | نوع الملف. |
+| `duration` | `number` | (اختياري) مدة الفيديو (ثوان). |
+| `width` | `number` | (اختياري) العرض (px). |
+| `height` | `number` | (اختياري) الارتفاع (px). |
+| `thumbTempFilePath` | `string` | (اختياري) مسار المصغّرة للفيديو. |
+
+**المهلة:** 120000ms
+
+### previewImages(options)
+
+فتح واجهة معاينة صور بملء الشاشة مع دعم التصفح والحفظ.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function previewImages(options: PreviewImageOptions): Promise<void>
+```
+
+**المعاملات `PreviewImageOptions`:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `urls` | `string[]` | نعم | - | قائمة روابط الصور. |
+| `current` | `string` | لا | `urls[0]` | رابط الصورة المعروضة حاليًا. |
+| `showMenu` | `boolean` | لا | `false` | إظهار قائمة الحفظ/المشاركة. |
+| `saveMediaText` | `string` | لا | - | نص زر الحفظ المخصص. |
+| `cancelText` | `string` | لا | - | نص زر الإلغاء المخصص. |
+
+**المهلة:** 120000ms
+
+### getImageInfo(option)
+
+الحصول على معلومات أبعاد الصورة ونوعها.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getImageInfo(option: GetImageInfoOption): Promise<GetImageInfoSuccessResult>
+```
+
+**المعاملات `GetImageInfoOption`:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `src` | `string` | نعم | مسار الصورة أو URL. |
+
+**الإرجاع `GetImageInfoSuccessResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `width` | `number` | عرض الصورة (px). |
+| `height` | `number` | ارتفاع الصورة (px). |
+| `path` | `string` | مسار الصورة المحلي. |
+| `orientation` | `string` | اتجاه الصورة. |
+| `type` | `string` | صيغة الصورة. |
+
+### compressImage(options)
+
+ضغط الصورة وتغيير حجمها، والإخراج بصيغة JPEG.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function compressImage(options: CompressImageOption): Promise<string>
+```
+
+**المعاملات `CompressImageOption`:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `src` | `string` | نعم | - | مسار الصورة المصدر. |
+| `quality` | `number` | لا | `80` | جودة الضغط (0-100). |
+| `compressedWidth` | `number` | لا | `0` | العرض الهدف. `0` يعني التحجيم النسبي. |
+| `compressedHeight` | `number` | لا | `0` | الارتفاع الهدف. `0` يعني التحجيم النسبي. |
+
+**الإرجاع:** `Promise<string>` — مسار الصورة المضغوطة.
+
+### saveMedia(url, type, options?)
+
+حفظ الصور أو الفيديو في ألبوم النظام.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function saveMedia(url: string, type: MediaType, options?: SaveMediaOptions): Promise<string>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `url` | `string` | نعم | مسار ملف الوسائط المراد حفظه. |
+| `type` | `'photo' \| 'video'` | نعم | نوع الوسائط. |
+| `options.album` | `string` | لا | اسم الألبوم الهدف. |
+
+**الإرجاع:** `Promise<string>` — URI المورد في ألبوم النظام.
+
+---
+
+## الموقع
+
+### getLocation(options?)
+
+الحصول على الموقع الجغرافي الحالي.
+
+| المنصة | الدعم | ملاحظات |
+|------|------|------|
+| iOS | ✅ | يلزم ضبط أذونات الموقع في Info.plist. |
+| Android | ✅ | يتم طلب `ACCESS_FINE_LOCATION` أو `ACCESS_COARSE_LOCATION` عند أول استدعاء. |
+
+```ts
+function getLocation(options?: GetLocationOption): Promise<GetLocationResult>
+```
+
+**المعاملات `GetLocationOption`:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `altitude` | `boolean` | لا | `false` | هل يتم طلب بيانات الارتفاع. |
+| `isHighAccuracy` | `boolean` | لا | `false` | هل يتم استخدام دقة عالية. |
+| `highAccuracyExpireTime` | `number` | لا | `10000` | مهلة الدقة العالية (ms). |
+
+**الإرجاع `GetLocationResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `latitude` | `number` | خط العرض (-90 ~ 90). |
+| `longitude` | `number` | خط الطول (-180 ~ 180). |
+| `speed` | `number` | السرعة (م/ث). |
+| `accuracy` | `number` | الدقة (متر). |
+| `altitude` | `number` | الارتفاع (متر). |
+| `verticalAccuracy` | `number` | الدقة العمودية (متر). |
+| `horizontalAccuracy` | `number` | الدقة الأفقية (متر). |
+
+### onLocationChange(enableHighAccuracy, onSuccess, onError?)
+
+الاشتراك بتغيّر الموقع واستقبال التحديثات المستمرة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function onLocationChange(
+	enableHighAccuracy: boolean,
+	onSuccess: (data: LocationData) => void,
+	onError?: (error: unknown) => void,
+): () => void
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `enableHighAccuracy` | `boolean` | لا | `true` | تفعيل الدقة العالية. |
+| `onSuccess` | `(data: LocationData) => void` | نعم | - | رد اتصال عند كل تحديث، يستقبل `LocationData`. |
+| `onError` | `(error: unknown) => void` | لا | - | رد اتصال عند فشل الحصول على الموقع. |
+
+**معاملات `LocationData`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `latitude` | `number` | خط العرض. |
+| `longitude` | `number` | خط الطول. |
+| `accuracy` | `number` | الدقة (متر). |
+| `altitude` | `number \| null` | الارتفاع (متر)، أو `null` إذا غير متاح. |
+| `speed` | `number \| null` | السرعة (م/ث)، أو `null` إذا غير متاح. |
+| `timestamp` | `number` | الطابع الزمني. |
+
+**الإرجاع:** `() => void` — استدعها لإلغاء الاشتراك.
+
+---
+
+## التخزين
+
+### setStorage(options)
+
+كتابة البيانات في التخزين المحلي (مفتاح/قيمة). يتم تسلسل القيمة إلى JSON. يعتمد على محرك MMKV.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function setStorage(options: SetStorageOption): Promise<void>
+```
+
+**المعاملات `SetStorageOption`:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `key` | `string` | نعم | اسم المفتاح. |
+| `data` | `unknown` | نعم | البيانات المراد تخزينها، أي قيمة قابلة للتسلسل JSON. |
+
+### getStorage\<T\>(key)
+
+قراءة البيانات من التخزين المحلي وإلغاء تسلسل JSON.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getStorage<T>(key: string): Promise<T>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `key` | `string` | نعم | اسم المفتاح. |
+
+**الإرجاع:** `Promise<T>` — البيانات بعد فك التسلسل.
+
+**الاستثناء:** عند عدم وجود المفتاح يتم رمي `Error` برسالة `'getStorage:fail data not found'`.
+
+### getStorageInfo()
+
+الحصول على معلومات استخدام التخزين الحالي.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getStorageInfo(): Promise<GetStorageInfoResult>
+```
+
+**الإرجاع `GetStorageInfoResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `keys` | `string[]` | جميع أسماء المفاتيح. |
+| `currentSize` | `number` | حجم التخزين المستخدم (KB). |
+| `limitSize` | `number` | الحد الأقصى للتخزين، ثابت `10240` (10MB). |
+
+---
+
+## الجهاز
+
+### getSystemInfo()
+
+الحصول على معلومات الجهاز والشاشة ومنطقة الأمان.
+
+| المنصة | الدعم | ملاحظات |
+|------|------|------|
+| iOS | ✅ | ارتفاع شريط الحالة عبر safe-area insets. |
+| Android | ✅ | ارتفاع شريط الحالة عبر `StatusBar.currentHeight`. |
+
+```ts
+function getSystemInfo(): Promise<SystemInfo>
+```
+
+**الإرجاع `SystemInfo`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `brand` | `string` | علامة الجهاز. |
+| `model` | `string` | طراز الجهاز. |
+| `pixelRatio` | `number` | كثافة البكسل. |
+| `screenWidth` | `number` | عرض الشاشة (px). |
+| `screenHeight` | `number` | ارتفاع الشاشة (px). |
+| `windowWidth` | `number` | عرض النافذة المتاح. |
+| `windowHeight` | `number` | ارتفاع النافذة المتاح. |
+| `statusBarHeight` | `number` | ارتفاع شريط الحالة. |
+| `safeArea` | `SafeArea` | معلومات منطقة الأمان. |
+| `system` | `string` | النظام وإصداره مثل `'ios 17.0'` أو `'android 14'`. |
+| `platform` | `string` | معرف المنصة: `'ios'` أو `'android'`. |
+| `fontSizeSetting` | `number` | نسبة تحجيم الخط. |
+| `deviceOrientation` | `'portrait' \| 'landscape'` | اتجاه الجهاز الحالي. |
+
+**بنية `SafeArea`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `left` | `number` | هامش الأمان الأيسر. |
+| `right` | `number` | هامش الأمان الأيمن. |
+| `top` | `number` | هامش الأمان العلوي. |
+| `bottom` | `number` | هامش الأمان السفلي. |
+| `width` | `number` | عرض منطقة الأمان. |
+| `height` | `number` | ارتفاع منطقة الأمان. |
+
+### getAppBaseInfo()
+
+الحصول على معلومات التطبيق الأساسية.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getAppBaseInfo(): Promise<AppBaseInfo>
+```
+
+**الإرجاع `AppBaseInfo`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `version` | `string` | إصدار نظام الجهاز. |
+| `language` | `string` | إعداد اللغة. |
+| `enableDebug` | `boolean` | هل وضع التصحيح مفعّل (`__DEV__`). |
+| `theme` | `string` | الثيم الحالي (ثابت على `'light'`). |
+
+### getScreenBrightness()
+
+الحصول على سطوع الشاشة الحالي.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getScreenBrightness(): Promise<number>
+```
+
+**الإرجاع:** `Promise<number>` — قيمة السطوع بين 0 و1.
+
+### makePhoneCall(phoneNumber)
+
+فتح واجهة الاتصال.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function makePhoneCall(phoneNumber: string): Promise<boolean>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `phoneNumber` | `string` | نعم | رقم الهاتف المطلوب. |
+
+**الإرجاع:** `Promise<boolean>` — هل تم فتح واجهة الاتصال بنجاح.
+
+---
+
+## الحافظة
+
+### getClipboardData()
+
+قراءة النص من حافظة النظام.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getClipboardData(): Promise<string>
+```
+
+**الإرجاع:** `Promise<string>` — نص الحافظة.
+
+### setClipboardData(data)
+
+كتابة نص في حافظة النظام.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function setClipboardData(data: string): Promise<void>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `data` | `string` | نعم | النص المراد نسخه. |
+
+---
+
+## نقل الملفات
+
+### downloadFile(options)
+
+تنزيل ملف إلى مسار مؤقت محلي. يعيد كائن Task يدعم الإيقاف والمتابعة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function downloadFile(options: DownloadFileOption): DownloadTask
+```
+
+**المعاملات `DownloadFileOption`:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `url` | `string` | نعم | - | عنوان التنزيل. |
+| `header` | `Record<string, string>` | لا | - | ترويسات HTTP مخصّصة. |
+| `timeout` | `number` | لا | `60000` | المهلة (ms). |
+| `filePath` | `string` | لا | - | مسار الحفظ. إذا لم يُقدّم يُحفظ في المسار المؤقت. |
+
+**الإرجاع `DownloadTask`:**
+
+`DownloadTask` هو Promise وكائن Task معًا، يمكن `await` للحصول على النتيجة أو التحكم عبر الدوال.
+
+| الطريقة | الوصف |
+|------|------|
+| `abort()` | إلغاء التنزيل. يعيد `Promise<void>`. |
+| `onProgressUpdate(callback)` | تسجيل رد تقدم التنزيل. |
+| `offProgressUpdate(callback)` | إلغاء رد التقدم. |
+| `onHeadersReceived(callback)` | تسجيل رد استقبال الترويسات. |
+| `offHeadersReceived(callback)` | إلغاء رد الترويسات. |
+
+**معاملات رد التقدم `DownloadProgressRes`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `progress` | `number` | نسبة التقدم (0-100). |
+| `totalBytesWritten` | `number` | البايتات المنزلة. |
+| `totalBytesExpectedToWrite` | `number` | إجمالي البايتات المتوقعة. |
+
+**الإرجاع النهائي `DownloadFileResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `tempFilePath` | `string` | مسار الملف بعد التنزيل. |
+| `statusCode` | `number` | رمز حالة HTTP. |
+
+### uploadFile(options)
+
+رفع ملف محلي إلى خادم. يعيد كائن Task يدعم الإيقاف والمتابعة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function uploadFile(options: UploadFileOption): UploadTask
+```
+
+**المعاملات `UploadFileOption`:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `url` | `string` | نعم | عنوان الرفع. |
+| `filePath` | `string` | نعم | مسار الملف المحلي. |
+| `name` | `string` | نعم | اسم الحقل في النموذج. |
+| `header` | `Record<string, string>` | لا | ترويسات HTTP مخصّصة. |
+| `formData` | `Record<string, string>` | لا | بيانات نموذج إضافية. |
+
+**الإرجاع `UploadTask`:**
+
+مماثل لـ `DownloadTask` ويعتمد الدوال `abort()` و`onProgressUpdate()` و`onHeadersReceived()`.
+
+**معاملات رد التقدم `UploadProgressRes`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `progress` | `number` | نسبة التقدم (0-100). |
+| `totalBytesSent` | `number` | البايتات المرسلة. |
+| `totalBytesExpectedToSend` | `number` | إجمالي البايتات المتوقعة للإرسال. |
+
+**الإرجاع النهائي `UploadFileResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `data` | `string` | جسم استجابة الخادم. |
+| `statusCode` | `number` | رمز حالة HTTP. |
+
+### removeFile(options)
+
+حذف ملف داخل الصندوق.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function removeFile(options: { filePath: string }): Promise<void>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `filePath` | `string` | نعم | مسار الملف المراد حذفه. |
+
+**الاستثناء:** عند عدم وجود الملف يتم رمي خطأ `FILE_NOT_FOUND`.
+
+---
+
+## نظام الملفات
+
+### getFileSystemManager()
+
+الحصول على مدير نظام الملفات. يتم تحليل جميع المسارات نسبةً إلى صندوق miniapp.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getFileSystemManager(): FileSystemManager
+```
+
+#### FileSystemManager.access(options)
+
+التحقق من وجود ملف أو مجلد. عند وجوده يتم resolve، وعند عدمه يتم reject بخطأ `FILE_NOT_FOUND`.
+
+```ts
+access(options: { path: string }): Promise<void>
+```
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `path` | `string` | نعم | مسار الملف أو المجلد. |
+
+#### FileSystemManager.readFile(options)
+
+قراءة محتوى الملف.
+
+```ts
+readFile(options: FileReadOption): Promise<{ data: string }>
+```
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `filePath` | `string` | نعم | - | مسار الملف. |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | لا | `'utf8'` | ترميز الملف. |
+| `position` | `number` | لا | - | موضع القراءة (بايت). |
+| `length` | `number` | لا | - | طول القراءة (بايت). |
+
+#### FileSystemManager.writeFile(options)
+
+كتابة ملف. سيتم استبدال الملف إذا كان موجودًا.
+
+```ts
+writeFile(options: FileWriteOption): Promise<void>
+```
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `filePath` | `string` | نعم | - | مسار الملف. |
+| `data` | `string` | نعم | - | المحتوى المراد كتابته. |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | لا | `'utf8'` | ترميز الملف. |
+
+#### FileSystemManager.appendFile(options)
+
+إلحاق محتوى بنهاية الملف.
+
+```ts
+appendFile(options: { filePath: string; data: string; encoding?: string }): Promise<void>
+```
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `filePath` | `string` | نعم | - | مسار الملف. |
+| `data` | `string` | نعم | - | المحتوى المراد إلحاقه. |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | لا | `'utf8'` | ترميز الملف. |
+
+#### FileSystemManager.copyFile(options)
+
+نسخ ملف.
+
+```ts
+copyFile(options: { srcPath: string; destPath: string }): Promise<void>
+```
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `srcPath` | `string` | نعم | مسار المصدر. |
+| `destPath` | `string` | نعم | مسار الوجهة. |
+
+#### FileSystemManager.rename(options)
+
+إعادة تسمية أو نقل ملف/مجلد.
+
+```ts
+rename(options: { oldPath: string; newPath: string }): Promise<void>
+```
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `oldPath` | `string` | نعم | المسار القديم. |
+| `newPath` | `string` | نعم | المسار الجديد. |
+
+#### FileSystemManager.unlink(options)
+
+حذف ملف.
+
+```ts
+unlink(options: { filePath: string }): Promise<void>
+```
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `filePath` | `string` | نعم | مسار الملف المراد حذفه. |
+
+#### FileSystemManager.mkdir(options)
+
+إنشاء مجلد.
+
+```ts
+mkdir(options: { dirPath: string; recursive?: boolean }): Promise<void>
+```
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `dirPath` | `string` | نعم | - | مسار المجلد. |
+| `recursive` | `boolean` | لا | `false` | إنشاء المجلدات الأب بشكل تكراري. |
+
+#### FileSystemManager.rmdir(options)
+
+حذف مجلد.
+
+```ts
+rmdir(options: { dirPath: string; recursive?: boolean }): Promise<void>
+```
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `dirPath` | `string` | نعم | - | مسار المجلد. |
+| `recursive` | `boolean` | لا | `false` | حذف المحتوى بشكل تكراري. |
+
+#### FileSystemManager.readdir(options)
+
+عرض الملفات والمجلدات داخل مسار.
+
+```ts
+readdir(options: { dirPath: string }): Promise<{ files: string[] }>
+```
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `dirPath` | `string` | نعم | مسار المجلد. |
+
+#### FileSystemManager.saveFile(options)
+
+حفظ ملف مؤقت في الصندوق. إذا لم يُحدد `filePath` يتم استخدام طابع زمني تلقائيًا.
+
+```ts
+saveFile(options: { tempFilePath: string; filePath?: string }): Promise<{ savedFilePath: string }>
+```
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `tempFilePath` | `string` | نعم | مسار الملف المؤقت. |
+| `filePath` | `string` | لا | مسار الحفظ الهدف، وإلا يتم توليده تلقائيًا. |
+
+#### FileSystemManager.getFileInfo(options)
+
+الحصول على حجم الملف والملخص.
+
+```ts
+getFileInfo(options: GetFileInfoOption): Promise<GetFileInfoResult>
+```
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `filePath` | `string` | نعم | - | مسار الملف. |
+| `digestAlgorithm` | `'md5' \| 'sha1' \| 'sha256'` | لا | `'md5'` | خوارزمية الملخص. |
+
+**الإرجاع `GetFileInfoResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `size` | `number` | حجم الملف (بايت). |
+| `digest` | `string` | ملخص الملف. |
+
+---
+
+## الشبكة
+
+### getNetworkType()
+
+الحصول على نوع الاتصال الحالي.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getNetworkType(): Promise<string>
+```
+
+**الإرجاع:** `Promise<string>` — نوع الشبكة مثل `'wifi'` أو `'cellular'` أو `'none'` أو `'unknown'`.
+
+### onNetworkStatusChange(callback)
+
+الاشتراك في تغيّر حالة الشبكة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function onNetworkStatusChange(
+	callback: (res: NetworkStatusChangeResult) => void,
+): () => void
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `callback` | `(res: NetworkStatusChangeResult) => void` | نعم | رد يُستدعى عند تغيّر حالة الشبكة ويتضمن `isConnected` و`networkType`. |
+
+**حقول `NetworkStatusChangeResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `isConnected` | `boolean` | هل يوجد اتصال بالشبكة. |
+| `networkType` | `string` | نوع الشبكة (مثل `'wifi'` و`'cellular'` و`'none'`). |
+
+**الإرجاع:** `() => void` — استدعها لإلغاء الاشتراك.
+
+---
+
+## المستشعرات
+
+جميع واجهات المستشعرات تعيد دالة لإلغاء الاشتراك. بعد الاشتراك يتم استقبال التحديثات باستمرار حتى الإلغاء.
+
+### onAccelerometerChange(callback, interval?)
+
+الاشتراك في تغيّر بيانات مقياس التسارع.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function onAccelerometerChange(
+	callback: (data: SensorData) => void,
+	interval?: number,
+): () => void
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `callback` | `(data: SensorData) => void` | نعم | - | رد يُستدعى عند كل تحديث ويستقبل `x` و`y` و`z`. |
+| `interval` | `number` | لا | `100` | فترة أخذ العينات (ms). |
+
+**حقول `SensorData`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `x` | `number` | قيمة محور X. |
+| `y` | `number` | قيمة محور Y. |
+| `z` | `number` | قيمة محور Z. |
+| `timestamp` | `number` | (اختياري) الطابع الزمني. |
+
+**الإرجاع:** `() => void` — استدعها لإلغاء الاشتراك.
+
+### onGyroscopeChange(callback, interval?)
+
+الاشتراك في تغيّر بيانات الجيروسكوب. نفس بنية المعاملات والإرجاع لـ `onAccelerometerChange`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function onGyroscopeChange(
+	callback: (data: SensorData) => void,
+	interval?: number,
+): () => void
+```
+
+### onMagnetometerChange(callback, interval?)
+
+الاشتراك في تغيّر بيانات مقياس المغناطيس. نفس بنية المعاملات والإرجاع لـ `onAccelerometerChange`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function onMagnetometerChange(
+	callback: (data: SensorData) => void,
+	interval?: number,
+): () => void
+```
+
+### onBarometerChange(callback)
+
+الاشتراك في تغيّر بيانات مقياس الضغط الجوي.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function onBarometerChange(
+	callback: (data: BarometerData) => void,
+): () => void
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `callback` | `(data: BarometerData) => void` | نعم | رد يُستدعى عند كل تحديث ويستقبل `pressure`. |
+
+**حقول `BarometerData`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `pressure` | `number` | ضغط الهواء. |
+
+**الإرجاع:** `() => void` — استدعها لإلغاء الاشتراك.
+
+---
+
+## مراقبة لقطات الشاشة
+
+### onUserCaptureScreen(callback)
+
+الاستماع لحدث التقاط الشاشة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function onUserCaptureScreen(callback: () => void): () => void
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `callback` | `() => void` | نعم | رد يُستدعى عند التقاط الشاشة. |
+
+**الإرجاع:** `() => void` — استدعها لإلغاء الاشتراك.
+
+---
+
+## تحديث miniapp
+
+### getMiniAppUpdateInfo()
+
+التحقق من وجود تحديث لـ miniapp الحالية. لا يحتاج معاملات ويستخدم `appId` الحالية تلقائيًا.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getMiniAppUpdateInfo(): Promise<MiniAppUpdateInfo>
+```
+
+**الإرجاع `MiniAppUpdateInfo`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `hasUpdate` | `boolean` | هل يوجد تحديث متاح. |
+| `latestVersion` | `string \| undefined` | أحدث إصدار. |
+| `sourceUrl` | `string \| undefined` | رابط تنزيل bundle الجديد. |
+| `mode` | `'development' \| 'production' \| undefined` | وضع التثبيت الحالي. |
+
+**المهلة:** 15000ms
+
+### applyMiniAppUpdate()
+
+تنزيل وتثبيت أحدث إصدار من bundle. عادةً بعد تأكيد وجود تحديث عبر `getMiniAppUpdateInfo()`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function applyMiniAppUpdate(): Promise<MiniAppUpdateInfo>
+```
+
+**الإرجاع:** نفس `MiniAppUpdateInfo` ويعكس حالة التحديث الجديدة.
+
+**المهلة:** 120000ms
+
+---
+
+## اتفاقيات عامة
+
+### المهل
+
+| الفئة | المهلة الافتراضية |
+|------|---------|
+| APIs العامة | 15000ms |
+| الوسائط/المسح | 120000ms |
+| نقل الملفات | 60000ms |
+
+### مسارات الملفات
+
+- تُحل جميع المسارات نسبةً إلى صندوق miniapp تلقائيًا.
+- مسار `/Documents/` يُطابق `DocumentDirectoryPath`.
+- يتم إزالة بادئة بروتوكول `file://` تلقائيًا.
+- مسار miniapp هو `/Documents/MiniApps/{appId}`.
+
+### نمط الاشتراك
+
+جميع واجهات الاشتراك (المستشعرات، الشبكة، الموقع، لقطات الشاشة) تتبع نفس النمط:
+
+```ts
+// الاشتراك
+const unsubscribe = onXxxChange(callback);
+
+// إلغاء الاشتراك
+unsubscribe();
+```

@@ -1,0 +1,125 @@
+---
+title: 宿主与小程序通信
+description: 从宿主侧理解如何接收小程序消息、向小程序推送消息，以及何时应改用 Host API。
+---
+
+本页从**宿主开发者**视角介绍消息通信。
+
+<Info title="针对小程序开发者">
+  如果你是小程序开发者，更适合先阅读：[宿主通信](../miniapp/host-communication.mdx)
+</Info>
+
+Nebula 提供一套轻量的双向消息机制，用于宿主与小程序之间传递事件、状态变化或临时协调信息。  
+它适合处理“通知型”通信，不适合承载需要严格治理的结构化能力。
+
+## 宿主侧要关心的两件事
+
+宿主侧通常只需要处理两类动作：
+
+1. 接收来自小程序的消息
+2. 主动向小程序推送消息
+
+## 接收小程序消息
+
+使用 `NebulaAPI.addMiniAppMessageListener(...)` 监听小程序发送给宿主的消息：
+
+```ts
+import { NebulaAPI } from '@nebula-rn/sdk';
+
+const unsubscribe = NebulaAPI.addMiniAppMessageListener(event => {
+  console.log(`收到来自 ${event.appId} 的消息:`, event.message);
+
+  if (event.message?.type === 'miniapp.checkout') {
+    handleCheckout(event.message.orderId, event.message.amount);
+  }
+});
+```
+
+回调参数类型：
+
+```ts
+type BridgeMessage = {
+  appId: string;
+  message: Record<string, unknown>;
+  timestamp?: number;
+};
+```
+
+宿主在这里需要做的事情通常包括：
+
+- 根据 `appId` 区分消息来源
+- 根据 `message.type` 分发业务逻辑
+- 对消息内容做必要校验
+- 决定是直接处理，还是交给更高层业务模块
+
+## 向小程序推送消息
+
+使用 `NebulaAPI.postMessageToMiniApp(appId, message)`：
+
+```ts
+import { NebulaAPI } from '@nebula-rn/sdk';
+
+await NebulaAPI.postMessageToMiniApp('com.example.weather', {
+  type: 'host.themeChanged',
+  theme: 'dark',
+  ts: Date.now(),
+});
+```
+
+这类消息通常用于：
+
+- 宿主登录态变化
+- 宿主主题变化
+- 宿主网络状态变化
+- 宿主触发某个业务事件，需要通知当前小程序
+
+## 推荐的消息模型
+
+消息通信更适合“事件通知”，而不是“能力调用”。
+
+推荐的心智是：
+
+- **消息通信**
+  用于通知、同步、广播、临时协调
+- **Host API**
+  用于稳定的、可复用的、需要返回结果的能力调用
+
+例如：
+
+- “登录状态变了”
+  适合消息
+- “请给我当前位置”
+  适合 Host API
+- “宿主主题切换为 dark”
+  适合消息
+- “请调起扫码并返回结果”
+  适合 Host API
+
+## 典型宿主场景
+
+### 宿主接收小程序事件
+
+```ts
+NebulaAPI.addMiniAppMessageListener(event => {
+  if (event.message?.type === 'miniapp.openNativePage') {
+    navigation.navigate(event.message.page);
+  }
+});
+```
+
+### 宿主主动推送状态变化
+
+```ts
+await NebulaAPI.postMessageToMiniApp('com.example.app', {
+  type: 'host.authChanged',
+  isLoggedIn: true,
+  userId: 'user-123',
+});
+```
+
+## 注意事项
+
+- 消息内容必须是 JSON 可序列化对象
+- 宿主不应直接信任小程序消息内容，应做必要校验
+- 如果需要请求-响应语义，优先使用 Host API
+- 监听器在不再需要时应及时取消，避免重复注册

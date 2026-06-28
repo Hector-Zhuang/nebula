@@ -1,0 +1,43 @@
+---
+title: 能力探测
+description: 在使用某项 Nebula API 之前，先判断当前宿主是否支持它以及对应版本。
+---
+
+小程序不能假设每个宿主都实现了每一项 API。
+
+Nebula 通过以下方式支持能力探测：
+
+- `Miniapp.getCapabilities()`
+- `Miniapp.isSupported(...)`
+
+<Info title="相关文档">
+  本页只讨论能力探测机制本身。如果你想理解它背后的版本兼容心智，请继续阅读
+  [基础库与版本兼容](../miniapp/base-library-versioning.zh.mdx)。
+</Info>
+
+## 为什么重要
+
+- 宿主与小程序版本可能独立演进
+- 某些 API 可能只存在于部分宿主版本
+- 某些能力可能被宿主主动关闭
+
+## 示例
+
+```ts
+const capabilities = await Miniapp.getCapabilities();
+const supportsScanCode = await Miniapp.isSupported('scanCode', '1.0');
+```
+
+## 最佳实践
+
+- 在渲染可选入口前先做能力探测
+- 即使探测通过，也仍要处理运行时失败
+- 对“不支持”的行为保持明确、结构化的反馈
+
+## 不支持时的行为
+
+宿主应返回带有 `UNSUPPORTED_API` 的结构化结果，而不是静默失败。
+
+## 相关文档
+
+- [基础库与版本兼容](../miniapp/base-library-versioning.zh.mdx)

@@ -1,0 +1,174 @@
+---
+title: Native-side APIs
+description: Understand the native bridge surface exposed by Nebula, what it is responsible for, and where it should sit in the overall host stack.
+---
+
+Nebula exposes a native bridge through `NebulaNativeModule`.
+
+This bridge is the low-level transport layer between the JavaScript runtime and the host-native implementation. Its responsibility is to expose platform primitives and host-owned runtime operations, not to define business behavior.
+
+In practice, this layer sits below:
+
+- host feature registration
+- business Host APIs
+- miniapp developer-facing SDKs
+
+## What belongs in the native bridge
+
+The native bridge is the right place for capabilities that are fundamentally owned by the host runtime, such as:
+
+- opening, preloading, installing, and uninstalling miniapps
+- page navigation and page style updates
+- modal presentation primitives
+- message transport between host and miniapp
+- runtime capability discovery
+- host-level configuration such as `serverBaseURL`
+
+These are host-runtime responsibilities, not business feature definitions.
+
+## What does not belong here
+
+The native bridge should not become the place where business logic is implemented directly.
+
+Avoid putting the following into `NebulaNativeModule` itself:
+
+- business rules
+- product workflows
+- moderation policies
+- custom API semantics that should instead live in Host API features
+
+Those concerns should stay in higher layers such as:
+
+- `@nebula-rn/sdk` host feature model
+- `@nebula-rn/host-apis`
+- custom host-side API features
+
+## Public native bridge surface
+
+The current bridge surface exposed to JavaScript includes the following groups.
+
+### 1. Miniapp lifecycle and installation
+
+These APIs manage miniapp containers, bundle installation, and local runtime state.
+
+| API                                                                                 | Responsibility                                                 |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `openMiniApp(appId, initialProps)`                                                  | Open an installed miniapp                                      |
+| `openMiniAppWithBundleURL(appId, bundleURL, initialProps, connectToURLMetroServer)` | Open a miniapp from a specified bundle URL                     |
+| `preloadMiniApp(appId)`                                                             | Preload an installed miniapp                                   |
+| `preloadMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer)`            | Preload a miniapp from a specified bundle URL                  |
+| `installMiniApp(appId, bundleURL)`                                                  | Install a miniapp bundle                                       |
+| `installMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer)`            | Install a bundle while distinguishing development/runtime mode |
+| `installMiniAppFromURLs(appId, bundleURL, manifestURL, connectToURLMetroServer)`    | Install from explicit bundle and manifest URLs                 |
+| `closeMiniApp(appId)`                                                               | Close a running miniapp                                        |
+| `uninstallMiniApp(appId)`                                                           | Remove a locally installed miniapp                             |
+| `getInstalledMiniApps()`                                                            | List installed miniapps                                        |
+| `getInstalledMiniAppInfo(appId)`                                                    | Query one installed miniapp                                    |
+
+These APIs are about runtime state management, not business routing.
+
+### 2. Host runtime configuration
+
+These APIs expose host-owned runtime defaults to the bridge layer.
+
+| API                                           | Responsibility                          |
+| --------------------------------------------- | --------------------------------------- |
+| `getServerBaseURL()`                          | Read the current host base URL          |
+| `setServerBaseURL(serverBaseURL)`             | Update the host base URL                |
+| `setMiniappLoadingDelay(delayMs)`             | Configure loading dismissal delay       |
+| `setMiniappLoadingEnterContentDelay(delayMs)` | Configure content enter delay           |
+| `getCapabilities()`                           | Return bridge-level capability metadata |
+
+These values are typically configured through `NebulaAPI.wrap(...)` and only adjusted at runtime when the host has a clear reason to do so.
+
+### 3. Navigation and page presentation
+
+These APIs drive host-owned page transitions and page-level visual updates.
+
+| API                          | Responsibility                    |
+| ---------------------------- | --------------------------------- |
+| `navigateTo(appId, url)`     | Push a new page                   |
+| `redirectTo(appId, url)`     | Replace the current page          |
+| `reLaunch(appId, url)`       | Reset the page stack and relaunch |
+| `navigateBack(appId, delta)` | Pop one or more pages             |
+| `setPageStyle(appId, style)` | Update page-level visual style    |
+| `showToast(title)`           | Show a host-owned transient toast |
+
+These APIs define presentation primitives and routing behavior. They do not define business semantics.
+
+### 4. Message transport
+
+These APIs carry structured messages across the host / miniapp boundary.
+
+| API                                    | Responsibility                      |
+| -------------------------------------- | ----------------------------------- |
+| `postMessageToHost(appId, message)`    | Send a message from miniapp to host |
+| `postMessageToMiniApp(appId, message)` | Send a message from host to miniapp |
+
+Use these APIs when you need message transport.  
+Use Host API features when you need a governed, reusable capability surface.
+
+### 5. Host modal primitives
+
+These APIs provide modal presentation infrastructure.
+
+| API                                   | Responsibility                     |
+| ------------------------------------- | ---------------------------------- |
+| `presentHostModal(moduleName, props)` | Present a host-owned modal surface |
+| `dismissHostModal()`                  | Dismiss the current host modal     |
+
+These APIs are intentionally low-level. They do not define what a modal means for a business scenario; they only expose the presentation primitive that higher-level Host APIs can use.
+
+### 6. Host visibility and restoration
+
+These APIs coordinate transitions between the host and miniapps.
+
+| API                     | Responsibility                            |
+| ----------------------- | ----------------------------------------- |
+| `bringHostToFront()`    | Return focus to the host                  |
+| `restoreMiniApp(token)` | Restore a previously backgrounded miniapp |
+
+They are runtime coordination APIs, not end-user business APIs.
+
+### 7. Manifest and route registration
+
+These APIs let the runtime register routing and manifest information into the native side.
+
+| API                                 | Responsibility                         |
+| ----------------------------------- | -------------------------------------- |
+| `registerRoutes(appId, routes)`     | Register route-to-component mappings   |
+| `registerManifest(appId, manifest)` | Register manifest data for runtime use |
+
+These are infrastructure-facing APIs and are mainly relevant to the runtime itself rather than ordinary miniapp business code.
+
+## Layering model
+
+The recommended layering is:
+
+1. `NebulaNativeModule`
+   Native presentation, transport, routing, installation, and runtime control
+2. `@nebula-rn/sdk`
+   JavaScript-side runtime abstraction and host feature model
+3. `@nebula-rn/host-apis`
+   Reusable official host feature implementations
+4. custom host feature layer
+   Business-specific host APIs and governance rules
+5. `@nebula-rn/client`
+   Miniapp developer-facing APIs
+
+This layering helps keep the native bridge stable even when business APIs evolve.
+
+## Practical guidance
+
+- Keep the native bridge small and runtime-focused
+- Prefer adding business semantics in Host API features, not in native bridge methods
+- Treat modal APIs as presentation primitives
+- Treat navigation and install APIs as runtime control surfaces
+- Keep policy, permissions, and business validation above the native bridge whenever possible
+
+## Related pages
+
+- [Host Configuration](./configuration.mdx)
+- [Host and Miniapp Messaging](./host-miniapp-messaging.mdx)
+- [Miniapp Management](./miniapp-management.mdx)
+- [Custom APIs](../miniapp/custom-apis.mdx)

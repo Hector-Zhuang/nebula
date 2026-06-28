@@ -1,0 +1,225 @@
+---
+title: 合规
+description: 平台商店政策，以及 Nebula 如何帮助你满足小程序分发的合规要求。
+---
+
+Nebula 允许宿主应用动态加载并运行小程序，也就是未直接嵌入到宿主二进制中的 JavaScript bundle。Apple 和 Google 都会将这类软件纳入特定审核政策之下，**而宿主应用开发者对通过自己应用分发的每一个小程序负有完全责任**。
+
+本页主要覆盖三类合规维度：
+
+1. **Apple App Store** — Guideline 4.7 及相关规则
+2. **Google Play Store** — 动态代码与开发者政策
+
+<Warning title="Nebla 不是热更新开发框架">
+  从平台合规角度看，Nebula 更适合被理解为一套由宿主严格治理的小程序分发与运行机制，而不是一个面向业务团队随意热更新、随意下发代码的开发框架。
+
+宿主开发者应当对可分发的小程序、可暴露的能力边界、发布渠道等保持明确控制，并对每一个即将上线的小程序版本进行严格把关。
+
+</Warning>
+
+---
+
+## Apple App Store — Guideline 4.7
+
+### 概述
+
+> Apps may offer certain software that is not embedded in the binary, specifically HTML5 and JavaScript mini apps and mini games, streaming games, chatbots, and plug-ins. Additionally, retro game console and PC emulator apps can offer to download games. You are responsible for all such software offered in your app, including ensuring that such software complies with these Guidelines and all applicable laws. Software that does not comply with one or more guidelines will lead to the rejection of your app.
+
+Nebula 小程序正属于这类软件。如果不满足相关子条款，**被拒的是你的宿主应用**。
+
+### 4.7.1 — 隐私、内容治理与支付
+
+这类软件必须：
+
+- 遵守所有隐私规范，包括但不限于 Guideline 5.1 中关于数据收集、使用、共享以及敏感数据的要求
+- 提供过滤不当内容、举报内容、及时处理举报以及屏蔽骚扰用户的机制
+- 在向终端用户提供数字商品或服务时遵守 Guideline 3.1
+
+### 4.7.2 — 原生 API 限制（ASR & NR）
+
+未经 Apple 事先许可，你的应用不得向这类软件扩展或暴露原生平台 API 或技术。
+
+### 4.7.3 — 数据共享需单次同意（ASR & NR）
+
+未经用户在每次场景中的明确同意，你的应用不得向某个软件共享数据或隐私权限。
+
+### 4.7.4 — 索引与 Universal Links
+
+你必须为应用内提供的软件建立索引和元数据清单，并且需要提供能够指向所有软件的 universal links。
+
+### 4.7.5 — 年龄分级（ASR & NR）
+
+你必须提供方式让用户识别超出宿主年龄分级的软件，并基于已验证或已声明的年龄来限制未成年人的访问。
+
+---
+
+## Google Play Store 政策
+
+Google Play 没有像 Apple 4.7 那样单一的条款编号，但会通过多项政策对动态加载代码施加类似要求。
+
+### 动态代码与可信来源
+
+Google Play 要求分发给用户的可执行代码必须来自可信来源。Nebula 使用的动态 JavaScript bundle 应当：
+
+- 来自经过验证、由开发者控制的服务器
+- 不以违反 Play 政策的方式改变应用核心行为
+- 不被用来绕过 Play 审核
+
+只要配置得当，Nebula Cloud 可作为集中、可审计的分发渠道，满足“可信来源”的要求。
+
+### 用户数据与隐私
+
+Google Play 的 [User Data policy](https://support.google.com/googleplay/android-developer/answer/10144311) 要求：
+
+- **Disclosure：** 清楚披露每个小程序收集哪些数据、如何使用、与谁共享
+- **Consent：** 在收集敏感数据（定位、通讯录、摄像头、麦克风等）前获得明确同意
+- **Data safety section：** 如果小程序会收集或共享数据，这些行为必须反映在宿主应用的 Data Safety 表单中
+- **Deletion requests：** 提供用户请求删除数据的机制
+
+### 家庭与未成年人
+
+如果你的宿主应用面向家庭用户或可能被儿童使用，则 [Families Policy](https://support.google.com/googleplay/android-developer/answer/9893335) 还要求：
+
+- 遵守适用的儿童隐私法规
+- 不向儿童投放行为定向广告
+- 儿童可访问的所有小程序都必须内容适龄
+- 如适用，需要满足 Teacher Approved 等额外要求
+
+### 内容政策
+
+所有小程序内容都必须符合 Google Play 的 [content policies](https://support.google.com/googleplay/android-developer/topic/9877467)，包括但不限于：
+
+- 仇恨、暴力、色情等内容限制
+- 赌博和真钱游戏的辖区要求
+- 欺骗性行为和误导性内容
+- 知识产权与冒充
+
+---
+
+## Nebula 如何保持合规
+
+Nebula 的架构在设计之初就考虑了合规性。下表将合规要求与解决这些要求的具体 Nebula 特性进行映射：
+
+### 沙箱隔离
+
+**解决：** 4.7.3（数据共享同意）、GDPR 数据最小化、通用数据保护
+
+每个小程序在完全隔离的沙箱中运行，在 `/Documents/MiniApps/{appId}/` 下拥有自己的文件系统和存储。小程序无法访问彼此的数据，也无法访问宿主应用的私有存储。
+
+```
+Documents/MiniApps/
+├── app-a/           # 小程序 A 的沙箱（已隔离）
+│   ├── index.bundle
+│   ├── app.json
+│   └── storage/
+├── app-b/           # 小程序 B 的沙箱（已隔离）
+│   ├── index.bundle
+│   ├── app.json
+│   └── storage/
+```
+
+这种强制隔离意味着一个被入侵或恶意的小程序无法从其他小程序中窃取数据 —— 这几乎是所有数据保护制度的要求。
+
+### 受控的 API 接口
+
+**解决：** 4.7.2（原生 API 限制）、4.7.3（每次数据共享的同意）、平台权限策略
+
+Host API 系统让你可以显式控制向小程序暴露哪些原生能力。只有通过 `NebulaAPI.wrap()` 注册的 API 才能被访问：
+
+```ts
+import { NebulaAPI } from '@nebula-rn/sdk';
+
+export default NebulaAPI.wrap({
+  hostApis: [
+    // 仅注册已审核的 API
+    storageApi, // 沙箱存储 —— 低风险
+    networkApi, // 网络请求 —— 审核目标域名
+    locationApi, // 地理位置 —— 敏感，需要用户同意
+    // cameraApi,     // 相机 —— 尚未审核，请勿注册
+  ],
+  serverBaseURL: 'https://api.example.com',
+})(App);
+```
+
+小程序可以在运行时通过 `Miniapp.getCapabilities()` 和 `Miniapp.isSupported()` 发现可用能力，因此在 API 受限时能够优雅降级。
+
+### 小程序索引与深度链接
+
+**解决：** 4.7.4（索引和通用链接）
+
+Nebula Cloud API 提供了所有已注册小程序的可查询索引：
+
+```
+GET /api/v1/miniapps
+```
+
+使用它来生成你的通用链接（Universal Links，iOS）和应用链接（App Links，Android）索引：
+
+```ts
+// 在宿主应用中处理深度链接
+const appId = extractAppIdFromURL(incomingLink);
+await NebulaAPI.openMiniApp(appId);
+```
+
+配置你的 Apple App Site Association（AASA）文件和 Android `assetlinks.json`，将 `https://yourdomain.com/miniapp/{appId}` 映射到你的宿主应用。
+
+### 内容举报基础设施
+
+**解决：** 4.7.1（内容审核）、DSA 通知与行动、印度 IT 规则
+
+注册一个举报用的 Host API，让小程序能够触发举报，并在小程序容器中注入全局举报按钮：
+
+```ts
+const reportApi = createHostApiFeature({
+  name: 'report',
+  methods: {
+    reportContent: async (params: {
+      contentType: 'text' | 'image' | 'video';
+      contentId: string;
+      reason: string;
+    }) => {
+      await submitReport(params);
+      return { success: true };
+    },
+    reportUser: async (params: { userId: string; reason: string }) => {
+      await submitUserReport(params);
+      return { success: true };
+    },
+  },
+});
+```
+
+### 年龄评级元数据
+
+**解决：** 4.7.5（年龄限制）、Google Play 家庭政策、区域儿童保护法律
+
+在小程序 manifest（`app.json`）中包含年龄评级字段：
+
+```json
+{
+  "appId": "com.example.game",
+  "name": "示例游戏",
+  "version": "1.0.0",
+  "ageRating": "17+",
+  "contentDescriptors": [
+    "InfrequentMildViolence",
+    "InfrequentSimulatedGambling"
+  ]
+}
+```
+
+在运行时，将声明的年龄评级与用户验证或声明的年龄进行比较，并相应限制访问。
+
+---
+
+## 合规基础设施总结
+
+| 要求 | Nebula 提供 | 你必须实现 |
+| ---- | ----------- | ----------- |
+| 数据隔离 | [沙箱隔离](./host/sandbox-isolation.mdx) —— 每个应用独立的文件系统和存储 | 审核小程序是否存在沙箱逃逸尝试 |
+| API 治理 | [Host API 系统](./host/host-miniapp-messaging.mdx) —— 仅注册已批准的 API | 评估每个 API 的隐私影响 |
+| 发布控制 | [版本管理](./nebula-cloud/version-and-channels.mdx) —— 草稿/发布流程 | 自行实现发布前的审核与审批机制 |
+| 小程序索引 | [Nebula Cloud API](./reference/nebula-cloud-api.mdx) —— 注册表和元数据 | 通用链接（Universal Links，iOS）和应用链接（App Links，Android） |
+| 内容审核 | 用于举报的 Host API（见上例） | 过滤管道、审核团队、响应 SLA |
+| 年龄限制 | Manifest 元数据字段 | 验证机制、运行时强制执行 |
+| 隐私披露 | 每个应用的隔离数据边界 | 隐私政策、同意流程、数据安全表单 |

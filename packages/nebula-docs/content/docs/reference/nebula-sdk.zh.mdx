@@ -1,0 +1,1662 @@
+---
+title: '@nebula-rn/sdk'
+description: 'Nebula SDK 核心包 API 参考，包含宿主初始化、小程序运行时、生命周期 Hooks 和类型定义。'
+---
+
+`@nebula-rn/sdk` 是 Nebula 的核心运行时包，同时提供宿主初始化 API（`NebulaAPI`）和小程序客户端 API（`MiniAppAPI`，是 `NebulaAPI` 的别名导出）。
+
+**版本：** 0.1.0
+
+**Peer Dependencies：** `react >= 19`，`react-native >= 0.83`
+
+---
+
+## 宿主初始化
+
+### NebulaAPI.wrap(options)
+
+包裹宿主 App 根组件的高阶组件（HOC），初始化 Nebula 运行时。在组件挂载时自动调用 `startApiServer()`，如果 `serverBaseURL` 非空则同时调用 `setServerBaseURL()`。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function wrap(
+  options: NebulaHostOptions,
+): <P>(Component: React.ComponentType<P>) => React.ComponentType<P>;
+```
+
+**参数 `NebulaHostOptions`：**
+
+| 参数            | 类型                  | 必填 | 默认值 | 描述                                |
+| --------------- | --------------------- | ---- | ------ | ----------------------------------- |
+| `hostApis`      | `NebulaHostFeature[]` | 否   | `[]`   | 要注册到运行时的宿主 API 特性列表。 |
+| `serverBaseURL` | `string \| null`      | 否   | `null` | 小程序资源服务的基础 URL。          |
+
+**示例：**
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+export default NebulaAPI.wrap({
+  serverBaseURL: 'https://api.example.com',
+  hostApis: defaultHostApis,
+})(App);
+```
+
+---
+
+### NebulaAPI.startApiServer()
+
+启动宿主侧 API 消息处理服务，监听小程序发来的协议请求。通常由 `wrap()` 自动调用，手动调用时幂等执行。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function startApiServer(): void;
+```
+
+**处理的请求类型：**
+
+| 请求 kind            | 描述                                  |
+| -------------------- | ------------------------------------- |
+| `getCapabilities`    | 返回已注册宿主 API 的版本和支持状态。 |
+| `getApiDescriptions` | 返回已注册宿主 API 的文档描述。       |
+| `invoke`             | 路由到对应的 API handler 执行。       |
+
+**内部错误码：**
+
+| 错误码            | 描述                        |
+| ----------------- | --------------------------- |
+| `UNSUPPORTED_API` | 请求的 API 未注册或不支持。 |
+| `INTERNAL_ERROR`  | Handler 执行时抛出异常。    |
+
+---
+
+### NebulaAPI.stopApiServer()
+
+停止宿主侧 API 消息监听，取消 bridge 事件订阅。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function stopApiServer(): void;
+```
+
+---
+
+### NebulaAPI.setServerBaseURL(serverBaseURL)
+
+设置宿主服务的基础 URL，持久化到原生存储。小程序安装和更新时使用此 URL 解析相对路径。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function setServerBaseURL(
+  serverBaseURL?: string | null,
+): Promise<ServerBaseURLResult>;
+```
+
+**参数：**
+
+| 参数            | 类型             | 必填 | 默认值 | 描述                                           |
+| --------------- | ---------------- | ---- | ------ | ---------------------------------------------- |
+| `serverBaseURL` | `string \| null` | 否   | —      | 合法的 http(s) URL，传 `null` 或空字符串清除。 |
+
+**返回值 `ServerBaseURLResult`：**
+
+| 字段            | 类型             | 描述           |
+| --------------- | ---------------- | -------------- |
+| `serverBaseURL` | `string \| null` | 已设置的 URL。 |
+
+**错误码：**
+
+| 错误码               | 平台          | 描述               |
+| -------------------- | ------------- | ------------------ |
+| `INVALID_SERVER_URL` | iOS / Android | URL 格式校验失败。 |
+
+---
+
+### NebulaAPI.getServerBaseURL()
+
+获取当前已配置的服务基础 URL。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getServerBaseURL(): Promise<ServerBaseURLResult>;
+```
+
+**返回值 `ServerBaseURLResult`：**
+
+| 字段            | 类型             | 描述                          |
+| --------------- | ---------------- | ----------------------------- |
+| `serverBaseURL` | `string \| null` | 当前 URL，未设置时为 `null`。 |
+
+---
+
+## 小程序安装
+
+### NebulaAPI.installMiniApp(appId, bundleURL)
+
+从远程 URL 下载并安装小程序 bundle（production 模式）。自动获取并存储 `app.json` 清单。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function installMiniApp(
+  appId: string,
+  bundleURL: string,
+): Promise<MiniAppResult>;
+```
+
+**参数：**
+
+| 参数        | 类型     | 必填 | 描述                              |
+| ----------- | -------- | ---- | --------------------------------- |
+| `appId`     | `string` | 是   | 小程序唯一标识。                  |
+| `bundleURL` | `string` | 是   | bundle 的远程 URL（http/https）。 |
+
+**返回值 `MiniAppResult`：**
+
+| 字段      | 类型      | 描述           |
+| --------- | --------- | -------------- |
+| `success` | `boolean` | 安装是否成功。 |
+| `appId`   | `string`  | 小程序 ID。    |
+
+**平台差异：**
+
+|             | Android                                     | iOS                                       |
+| ----------- | ------------------------------------------- | ----------------------------------------- |
+| bundle 路径 | `Files/nebula/{appId}/index.android.bundle` | `Documents/MiniApps/{appId}/index.bundle` |
+| 网络超时    | 连接 15s + 读取 15s                         | URLSession 默认                           |
+| 清单获取    | 自动替换文件名为 `app.json`                 | 同 Android                                |
+
+**错误码：**
+
+| 错误码          | 描述             |
+| --------------- | ---------------- |
+| `INSTALL_ERROR` | 下载或解析失败。 |
+
+---
+
+### NebulaAPI.installMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer?)
+
+以指定 bundle URL 安装小程序，并用 `connectToURLMetroServer` 决定是否把它当作连接该 URL 的 Metro 开发运行时。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function installMiniAppWithBundleURL(
+  appId: string,
+  bundleURL: string,
+  connectToURLMetroServer?: boolean,
+): Promise<MiniAppResult>;
+```
+
+**参数：**
+
+| 参数                      | 类型      | 必填 | 描述                                                                      |
+| ------------------------- | --------- | ---- | ------------------------------------------------------------------------- |
+| `appId`                   | `string`  | 是   | 小程序唯一标识。                                                          |
+| `bundleURL`               | `string`  | 是   | bundle 远程 URL。                                                         |
+| `connectToURLMetroServer` | `boolean` | 否   | `false` 表示按 production 安装；`true` 表示把该 URL 作为 Metro 开发入口。 |
+
+**返回值 `MiniAppResult`：**
+
+| 字段      | 类型      | 描述                                        |
+| --------- | --------- | ------------------------------------------- |
+| `success` | `boolean` | 安装是否成功。                              |
+| `appId`   | `string`  | 小程序 ID。                                 |
+| `mode`    | `string`  | 最终安装态：`development` 或 `production`。 |
+
+**行为差异：**
+
+|                  | `connectToURLMetroServer = true` | `connectToURLMetroServer = false` |
+| ---------------- | -------------------------------- | --------------------------------- |
+| 安装态           | `development`                    | `production`                      |
+| `version`        | `null`（不追踪版本）             | 从清单读取                        |
+| `updateStrategy` | 强制 `'manual'`                  | 从清单读取，默认 `'manual'`       |
+| Dev URL          | 保存热重载 URL                   | 不保存                            |
+
+**错误码：**
+
+| 错误码          | 描述                       |
+| --------------- | -------------------------- |
+| `INSTALL_ERROR` | 下载或解析失败。           |
+| `INVALID_MODE`  | 模式字符串无效（仅 iOS）。 |
+
+---
+
+## 小程序打开与预加载
+
+### NebulaAPI.openMiniApp(appId, initialProps?, versionType?)
+
+打开一个已安装的小程序并显示给用户。如果本地尚未安装，会先自动安装指定版本类型，默认安装 `release` 版。如果小程序为 production 模式且 `updateStrategy` 为 `'auto'`，会在打开前自动检查并应用更新（更新失败不阻塞打开）。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function openMiniApp(
+  appId: string,
+  initialProps?: Record<string, unknown>,
+  versionType?: 'release' | 'experience',
+): Promise<MiniAppResult>;
+```
+
+**参数：**
+
+| 参数           | 类型                        | 必填 | 默认值      | 描述                             |
+| -------------- | --------------------------- | ---- | ----------- | -------------------------------- |
+| `appId`        | `string`                    | 是   | —           | 已安装的小程序 ID。              |
+| `initialProps` | `Record<string, unknown>`   | 否   | `{}`        | 传递给小程序根组件的初始属性。   |
+| `versionType`  | `'release' \| 'experience'` | 否   | `'release'` | 未安装时自动安装哪一类云端版本。 |
+
+**返回值 `MiniAppResult`：**
+
+| 字段      | 类型      | 描述           |
+| --------- | --------- | -------------- |
+| `success` | `boolean` | 打开是否成功。 |
+| `appId`   | `string`  | 小程序 ID。    |
+
+**平台差异：**
+
+|                | Android                    | iOS                        |
+| -------------- | -------------------------- | -------------------------- |
+| 线程模型       | `activity.runOnUiThread()` | `DispatchQueue.main.async` |
+| 无 UI 容器错误 | `NO_ACTIVITY`              | `NO_ROOT_VC`               |
+
+**错误码：**
+
+| 错误码        | 平台    | 描述                          |
+| ------------- | ------- | ----------------------------- |
+| `NO_ACTIVITY` | Android | 找不到当前 Activity。         |
+| `NO_ROOT_VC`  | iOS     | 找不到 root view controller。 |
+| `OPEN_ERROR`  | 全平台  | 运行时错误。                  |
+
+---
+
+### NebulaAPI.openMiniAppWithBundleURL(appId, bundleURL, initialProps?, connectToURLMetroServer?)
+
+安装并立即打开小程序。等同于依次调用 `installMiniAppWithBundleURL()` 和 `openMiniApp()`。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function openMiniAppWithBundleURL(
+  appId: string,
+  bundleURL: string,
+  initialProps?: Record<string, unknown>,
+  connectToURLMetroServer?: boolean,
+): Promise<MiniAppResult>;
+```
+
+**参数：**
+
+| 参数                      | 类型                      | 必填 | 默认值  | 描述                                                                 |
+| ------------------------- | ------------------------- | ---- | ------- | -------------------------------------------------------------------- |
+| `appId`                   | `string`                  | 是   | —       | 小程序唯一标识。                                                     |
+| `bundleURL`               | `string`                  | 是   | —       | bundle 远程 URL。                                                    |
+| `initialProps`            | `Record<string, unknown>` | 否   | `{}`    | 传递给根组件的初始属性。                                             |
+| `connectToURLMetroServer` | `boolean`                 | 否   | `false` | `true` 时按开发态连接该 URL 的 Metro；否则按 production 安装并打开。 |
+
+---
+
+### NebulaAPI.preloadMiniApp(appId)
+
+在后台预加载已安装的小程序，提前创建运行时和根视图以缩短后续打开时间。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function preloadMiniApp(appId: string): Promise<MiniAppResult>;
+```
+
+**参数：**
+
+| 参数    | 类型     | 必填 | 描述                |
+| ------- | -------- | ---- | ------------------- |
+| `appId` | `string` | 是   | 已安装的小程序 ID。 |
+
+**返回值 `MiniAppResult`：**
+
+| 字段      | 类型      | 描述             |
+| --------- | --------- | ---------------- |
+| `success` | `boolean` | 预加载是否成功。 |
+| `appId`   | `string`  | 小程序 ID。      |
+
+**平台实现差异：**
+
+|          | iOS                            | Android                               |
+| -------- | ------------------------------ | ------------------------------------- |
+| 缓存策略 | 单槽位缓存 + generation 计数器 | ReactHost 缓存池（ConcurrentHashMap） |
+| 容器方式 | 隐藏在底层的 ViewController    | 后台 ReactHost 实例                   |
+
+**错误码：**
+
+| 错误码          | 描述                       |
+| --------------- | -------------------------- |
+| `PRELOAD_ERROR` | 预加载过程发生运行时错误。 |
+
+---
+
+### NebulaAPI.preloadMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer?)
+
+先安装再预加载小程序，等同于依次调用 `installMiniAppWithBundleURL()` 和 `preloadMiniApp()`。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function preloadMiniAppWithBundleURL(
+  appId: string,
+  bundleURL: string,
+  connectToURLMetroServer?: boolean,
+): Promise<MiniAppResult>;
+```
+
+**参数：**
+
+| 参数                      | 类型      | 必填 | 描述                                                           |
+| ------------------------- | --------- | ---- | -------------------------------------------------------------- |
+| `appId`                   | `string`  | 是   | 小程序唯一标识。                                               |
+| `bundleURL`               | `string`  | 是   | bundle 远程 URL。                                              |
+| `connectToURLMetroServer` | `boolean` | 否   | `false` 时按 production 预加载；`true` 时连接该 URL 的 Metro。 |
+
+**错误码：**
+
+| 错误码          | 描述                       |
+| --------------- | -------------------------- |
+| `PRELOAD_ERROR` | 预加载过程发生运行时错误。 |
+
+---
+
+## 版本与更新
+
+### NebulaAPI.checkMiniAppUpdate(appId)
+
+检查小程序是否有可用更新。通过获取远程 `app.json` 清单，使用 semver 数值段比较版本号。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function checkMiniAppUpdate(appId: string): Promise<MiniAppUpdateInfo>;
+```
+
+**参数：**
+
+| 参数    | 类型     | 必填 | 描述                |
+| ------- | -------- | ---- | ------------------- |
+| `appId` | `string` | 是   | 已安装的小程序 ID。 |
+
+**返回值 `MiniAppUpdateInfo`：**
+
+| 字段             | 类型                 | 描述              |
+| ---------------- | -------------------- | ----------------- |
+| `appId`          | `string`             | 小程序 ID。       |
+| `currentVersion` | `string \| null`     | 当前安装版本。    |
+| `latestVersion`  | `string \| null`     | 远程最新版本。    |
+| `hasUpdate`      | `boolean`            | 是否有可用更新。  |
+| `updateStrategy` | `'auto' \| 'manual'` | 更新策略。        |
+| `mode`           | `string \| null`     | 运行时模式。      |
+| `sourceUrl`      | `string \| null`     | bundle 来源 URL。 |
+
+**返回 `hasUpdate: false` 的情况：**
+
+- 小程序未安装
+- 处于 development 模式
+- 没有 `sourceUrl`（非远程应用）
+- 无法推导清单 URL
+
+**版本比较逻辑：** 按 `.` 分割为数值段逐段比较，缺失段默认为 0。
+
+---
+
+### NebulaAPI.applyMiniAppUpdate(appId)
+
+检查并应用小程序更新。内部先调用 `checkMiniAppUpdate()`，如果有更新则调用 `installMiniAppWithBundleURL()` 下载安装。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function applyMiniAppUpdate(appId: string): Promise<MiniAppUpdateInfo>;
+```
+
+**参数：**
+
+| 参数    | 类型     | 必填 | 描述                |
+| ------- | -------- | ---- | ------------------- |
+| `appId` | `string` | 是   | 已安装的小程序 ID。 |
+
+**返回值：** 同 `MiniAppUpdateInfo`。
+
+---
+
+## 小程序信息
+
+### NebulaAPI.getInstalledMiniAppInfo(appId)
+
+获取小程序的本地安装信息。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getInstalledMiniAppInfo(
+  appId: string,
+): Promise<InstalledMiniAppInfoResult>;
+```
+
+**参数：**
+
+| 参数    | 类型     | 必填 | 描述        |
+| ------- | -------- | ---- | ----------- |
+| `appId` | `string` | 是   | 小程序 ID。 |
+
+**返回值 `InstalledMiniAppInfoResult`：**
+
+| 字段        | 类型                                | 描述                                   |
+| ----------- | ----------------------------------- | -------------------------------------- |
+| `installed` | `boolean`                           | 是否已安装。                           |
+| `app`       | `InstalledMiniAppInfo \| undefined` | 安装信息对象，未安装时为 `undefined`。 |
+
+**`InstalledMiniAppInfo` 字段：**
+
+| 字段             | 类型                         | 描述                   |
+| ---------------- | ---------------------------- | ---------------------- |
+| `appId`          | `string`                     | 小程序 ID。            |
+| `mode`           | `string \| null`             | 运行时模式。           |
+| `bundlePath`     | `string \| null`             | 本地 bundle 文件路径。 |
+| `sourceUrl`      | `string \| null`             | 远程 bundle 来源 URL。 |
+| `version`        | `string \| null`             | 清单中的版本号。       |
+| `updateStrategy` | `'auto' \| 'manual' \| null` | 更新策略。             |
+
+---
+
+### NebulaAPI.getInstalledMiniApps()
+
+获取所有已安装小程序的 ID 列表。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getInstalledMiniApps(): Promise<InstalledMiniAppsResult>;
+```
+
+**返回值 `InstalledMiniAppsResult`：**
+
+| 字段   | 类型       | 描述                     |
+| ------ | ---------- | ------------------------ |
+| `apps` | `string[]` | 已安装的小程序 ID 数组。 |
+
+---
+
+## 导航
+
+### MiniAppAPI.navigateTo(url)
+
+导航到新页面，保留当前页面在页面栈中（push）。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function navigateTo(url: string): Promise<NavigationResult>;
+```
+
+**参数：**
+
+| 参数  | 类型     | 必填 | 描述                                  |
+| ----- | -------- | ---- | ------------------------------------- |
+| `url` | `string` | 是   | 目标页面 URL，如 `"/detail?id=123"`。 |
+
+**返回值 `NavigationResult`：**
+
+| 字段     | 类型     | 描述                                                       |
+| -------- | -------- | ---------------------------------------------------------- |
+| `errMsg` | `string` | 格式为 `"navigateTo:ok"` 或 `"navigateTo:fail 错误原因"`。 |
+
+**平台差异：**
+
+|      | Android                    | iOS                        |
+| ---- | -------------------------- | -------------------------- |
+| 线程 | `activity.runOnUiThread()` | `DispatchQueue.main.async` |
+
+---
+
+### MiniAppAPI.redirectTo(url)
+
+导航到新页面，替换当前页面（不可返回）。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function redirectTo(url: string): Promise<NavigationResult>;
+```
+
+**参数：**
+
+| 参数  | 类型     | 必填 | 描述           |
+| ----- | -------- | ---- | -------------- |
+| `url` | `string` | 是   | 目标页面 URL。 |
+
+---
+
+### MiniAppAPI.reLaunch(url)
+
+清空所有页面栈并打开目标页面。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function reLaunch(url: string): Promise<NavigationResult>;
+```
+
+**参数：**
+
+| 参数  | 类型     | 必填 | 描述           |
+| ----- | -------- | ---- | -------------- |
+| `url` | `string` | 是   | 目标页面 URL。 |
+
+---
+
+### MiniAppAPI.navigateBack(delta?)
+
+从页面栈中弹出页面。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function navigateBack(delta?: number): Promise<NavigationResult>;
+```
+
+**参数：**
+
+| 参数    | 类型     | 必填 | 默认值 | 描述               |
+| ------- | -------- | ---- | ------ | ------------------ |
+| `delta` | `number` | 否   | `1`    | 要弹出的页面层数。 |
+
+---
+
+## 页面样式
+
+### MiniAppAPI.setPageStyle(style)
+
+设置当前页面的外观样式。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function setPageStyle(style: NebulaPageStyle): Promise<NavigationResult>;
+```
+
+**参数 `NebulaPageStyle`：**
+
+| 参数                           | 类型                    | 必填 | 描述                                    |
+| ------------------------------ | ----------------------- | ---- | --------------------------------------- |
+| `backgroundColor`              | `string`                | 否   | 页面背景色。                            |
+| `navigationBarBackgroundColor` | `string`                | 否   | 导航栏背景色。                          |
+| `navigationBarTextColor`       | `string`                | 否   | 导航栏文字颜色。                        |
+| `navigationBarTitleText`       | `string`                | 否   | 导航栏标题。                            |
+| `navigationStyle`              | `'default' \| 'custom'` | 否   | 导航栏样式，`'custom'` 隐藏默认导航栏。 |
+| `visualEffectInBackground`     | `'blur' \| 'none'`      | 否   | 应用进入后台时的视觉效果。**仅 iOS。**  |
+
+---
+
+### MiniAppAPI.setNavigationBarTitle(title)
+
+设置导航栏标题的便捷方法。内部调用 `setPageStyle({ navigationBarTitleText: title })`。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function setNavigationBarTitle(title: string): Promise<NavigationResult>;
+```
+
+---
+
+### MiniAppAPI.setNavigationBarColor(options)
+
+设置导航栏颜色的便捷方法。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function setNavigationBarColor(options: {
+  backgroundColor?: string;
+  frontColor?: string;
+}): Promise<NavigationResult>;
+```
+
+**参数：**
+
+| 参数              | 类型     | 必填 | 描述                        |
+| ----------------- | -------- | ---- | --------------------------- |
+| `backgroundColor` | `string` | 否   | 导航栏背景色。              |
+| `frontColor`      | `string` | 否   | 导航栏前景色（文字/图标）。 |
+
+---
+
+## 设备与应用
+
+### MiniAppAPI.getAppId()
+
+获取当前小程序 ID。同步方法。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getAppId(): string | null;
+```
+
+**返回值：** 当前小程序 ID，未初始化时返回 `null`。
+
+---
+
+### MiniAppAPI.getSandboxPath()
+
+获取小程序的文件沙箱路径。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getSandboxPath(): string;
+```
+
+**返回值：** 沙箱路径字符串，如 `/Documents/MiniApps/{appId}`。
+
+---
+
+### MiniAppAPI.getDeviceInfo()
+
+获取设备信息。同步阻塞调用。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getDeviceInfo(): DeviceInfo;
+```
+
+**返回值 `DeviceInfo`：**
+
+| 字段            | 类型                 | 描述         |
+| --------------- | -------------------- | ------------ |
+| `platform`      | `'iOS' \| 'Android'` | 当前平台。   |
+| `systemVersion` | `string`             | 系统版本号。 |
+| `model`         | `string`             | 设备型号。   |
+
+**平台差异：**
+
+|                 | Android                 | iOS                              |
+| --------------- | ----------------------- | -------------------------------- |
+| `systemVersion` | `Build.VERSION.RELEASE` | `UIDevice.current.systemVersion` |
+| `model`         | `Build.MODEL`           | `UIDevice.current.model`         |
+
+---
+
+### MiniAppAPI.showToast(title)
+
+显示短暂的 toast 提示。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function showToast(title: string): Promise<NavigationResult>;
+```
+
+**参数：**
+
+| 参数    | 类型     | 必填 | 描述       |
+| ------- | -------- | ---- | ---------- |
+| `title` | `string` | 是   | 提示文本。 |
+
+**平台差异：**
+
+|          | Android              | iOS                 |
+| -------- | -------------------- | ------------------- |
+| 实现方式 | `Toast.LENGTH_SHORT` | `UIAlertController` |
+| 持续时间 | 约 2 秒              | 1.5 秒              |
+
+---
+
+## 宿主通信
+
+### MiniAppAPI.invokeHostApi(apiName, payload?, version?, timeoutMs?)
+
+从小程序调用宿主注册的 API。通过 Nebula 协议层（`api.v1`）发送请求并等待响应。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function invokeHostApi<TData = unknown>(
+  apiName: string,
+  payload?: Record<string, unknown>,
+  version?: string,
+  timeoutMs?: number,
+): Promise<NebulaApiInvokeResult<TData>>;
+```
+
+**参数：**
+
+| 参数        | 类型                      | 必填 | 默认值    | 描述                               |
+| ----------- | ------------------------- | ---- | --------- | ---------------------------------- |
+| `apiName`   | `string`                  | 是   | —         | 要调用的宿主 API 名称。            |
+| `payload`   | `Record<string, unknown>` | 否   | `{}`      | 传递给 API handler 的数据。        |
+| `version`   | `string`                  | 否   | `'1.0.0'` | 请求的 API 版本。                  |
+| `timeoutMs` | `number`                  | 否   | `15000`   | 请求超时（毫秒）。`0` 表示不超时。 |
+
+**返回值 `NebulaApiInvokeResult<TData>`：**
+
+```ts
+// 成功
+{ ok: true, data: TData }
+
+// 失败
+{ ok: false, error: { code: string, message: string, details?: Record<string, unknown> } }
+```
+
+**错误码：**
+
+| 错误码            | 描述                 |
+| ----------------- | -------------------- |
+| `UNSUPPORTED_API` | API 未注册或不支持。 |
+| `INTERNAL_ERROR`  | Handler 执行异常。   |
+
+**超时：** 15000ms。超时后请求被清理，Promise 以 `"Timed out waiting for host API: {apiName}"` 拒绝。
+
+---
+
+### MiniAppAPI.postMessageToHost(message)
+
+向宿主发送消息。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function postMessageToHost(
+  message: Record<string, unknown>,
+): Promise<NavigationResult>;
+```
+
+**参数：**
+
+| 参数      | 类型                      | 必填 | 描述                     |
+| --------- | ------------------------- | ---- | ------------------------ |
+| `message` | `Record<string, unknown>` | 是   | 任意 JSON 可序列化对象。 |
+
+---
+
+### MiniAppAPI.onHostMessage(listener)
+
+订阅来自宿主的消息。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function onHostMessage(listener: (event: BridgeMessage) => void): () => void;
+```
+
+**`BridgeMessage` 字段：**
+
+| 字段        | 类型     | 描述                |
+| ----------- | -------- | ------------------- |
+| `appId`     | `string` | 发送消息的应用 ID。 |
+| `message`   | `object` | 消息内容。          |
+| `timestamp` | `number` | 消息时间戳。        |
+
+**返回值：** 取消订阅函数。
+
+---
+
+### NebulaAPI.postMessageToMiniApp(appId, message)
+
+从宿主向指定小程序发送消息。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function postMessageToMiniApp(
+  appId: string,
+  message: Record<string, unknown>,
+): Promise<NavigationResult>;
+```
+
+**参数：**
+
+| 参数      | 类型                      | 必填 | 描述                     |
+| --------- | ------------------------- | ---- | ------------------------ |
+| `appId`   | `string`                  | 是   | 目标小程序 ID。          |
+| `message` | `Record<string, unknown>` | 是   | 任意 JSON 可序列化对象。 |
+
+---
+
+### NebulaAPI.addMiniAppMessageListener(listener)
+
+订阅来自小程序的消息（宿主端使用）。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function addMiniAppMessageListener(
+  listener: (event: BridgeMessage) => void,
+): () => void;
+```
+
+**返回值：** 取消订阅函数。
+
+---
+
+## 能力检测
+
+### MiniAppAPI.getCapabilities()
+
+获取宿主已注册的所有 API 能力清单。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getCapabilities(): Promise<{
+  bridgeVersion: string;
+  capabilities: NebulaHostCapabilityMap;
+}>;
+```
+
+**返回值：**
+
+| 字段            | 类型                      | 描述                             |
+| --------------- | ------------------------- | -------------------------------- |
+| `bridgeVersion` | `string`                  | 协议版本，当前固定为 `'1.0.0'`。 |
+| `capabilities`  | `NebulaHostCapabilityMap` | API 名称到能力描述的映射。       |
+
+**`NebulaHostCapabilityDescriptor` 字段：**
+
+| 字段        | 类型      | 描述         |
+| ----------- | --------- | ------------ |
+| `supported` | `boolean` | 是否支持。   |
+| `version`   | `string`  | API 版本号。 |
+
+**超时：** 15000ms（固定）。
+
+---
+
+### MiniAppAPI.isSupported(apiName, minimumVersion?)
+
+检查指定 API 是否被宿主支持，并可选校验最低版本。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function isSupported(
+  apiName: string,
+  minimumVersion?: string,
+): Promise<boolean>;
+```
+
+**参数：**
+
+| 参数             | 类型     | 必填 | 描述                           |
+| ---------------- | -------- | ---- | ------------------------------ |
+| `apiName`        | `string` | 是   | API 名称。                     |
+| `minimumVersion` | `string` | 否   | 要求的最低版本，如 `"1.0.0"`。 |
+
+**返回值：** `true` 表示支持且满足版本要求。
+
+---
+
+### MiniAppAPI.getHostApiDescriptions(timeoutMs?)
+
+获取宿主已注册 API 的详细文档描述。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getHostApiDescriptions(
+  timeoutMs?: number,
+): Promise<NebulaHostApiDescriptionMap>;
+```
+
+**参数：**
+
+| 参数        | 类型     | 必填 | 默认值  | 描述               |
+| ----------- | -------- | ---- | ------- | ------------------ |
+| `timeoutMs` | `number` | 否   | `15000` | 请求超时（毫秒）。 |
+
+**返回值 `NebulaHostApiDescriptionMap`：**
+
+```ts
+Record<string, NebulaHostApiDescription>;
+```
+
+**`NebulaHostApiDescription` 字段：**
+
+| 字段          | 类型                                    | 描述         |
+| ------------- | --------------------------------------- | ------------ |
+| `summary`     | `string`                                | API 简介。   |
+| `description` | `string \| undefined`                   | 详细描述。   |
+| `params`      | `NebulaApiFieldDescriptor[]`            | 参数列表。   |
+| `returns`     | `{ type: string; description: string }` | 返回值描述。 |
+| `tags`        | `string[]`                              | 标签列表。   |
+| `examples`    | `NebulaApiExampleDescriptor[]`          | 示例代码。   |
+
+---
+
+## 宿主可见性与 Modal
+
+### MiniAppAPI.bringHostToFront()
+
+将宿主 App 置于前台，同时隐藏小程序（保存状态以便恢复）。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function bringHostToFront(): Promise<HostVisibilityResult>;
+```
+
+**返回值 `HostVisibilityResult`：**
+
+| 字段      | 类型                  | 描述                                  |
+| --------- | --------------------- | ------------------------------------- |
+| `success` | `boolean`             | 操作是否成功。                        |
+| `token`   | `string \| undefined` | 恢复令牌，可传给 `restoreMiniApp()`。 |
+
+---
+
+### MiniAppAPI.restoreMiniApp(token?)
+
+恢复之前通过 `bringHostToFront()` 隐藏的小程序。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function restoreMiniApp(token?: string | null): Promise<HostVisibilityResult>;
+```
+
+**参数：**
+
+| 参数    | 类型             | 必填 | 默认值 | 描述                            |
+| ------- | ---------------- | ---- | ------ | ------------------------------- |
+| `token` | `string \| null` | 否   | `null` | 恢复令牌，`null` 恢复最近一次。 |
+
+---
+
+### MiniAppAPI.presentHostModal(moduleName, props?)
+
+弹出宿主端的 React Native 模块作为 Modal。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function presentHostModal(
+  moduleName: string,
+  props?: Record<string, unknown>,
+): Promise<NavigationResult>;
+```
+
+**参数：**
+
+| 参数         | 类型                      | 必填 | 默认值 | 描述                    |
+| ------------ | ------------------------- | ---- | ------ | ----------------------- |
+| `moduleName` | `string`                  | 是   | —      | 已注册的 RN 组件名称。  |
+| `props`      | `Record<string, unknown>` | 否   | `{}`   | 传给 Modal 组件的属性。 |
+
+**平台差异：**
+
+|          | Android                                     | iOS                                     |
+| -------- | ------------------------------------------- | --------------------------------------- |
+| 展示方式 | 新 Activity（`FLAG_ACTIVITY_NO_ANIMATION`） | `overFullScreen` + `crossDissolve` 转场 |
+
+**错误码：**
+
+| 错误码                     | 平台    | 描述                  |
+| -------------------------- | ------- | --------------------- |
+| `NO_ACTIVITY`              | Android | 找不到当前 Activity。 |
+| `PRESENT_HOST_MODAL_ERROR` | Android | 弹出 Modal 失败。     |
+
+---
+
+### MiniAppAPI.dismissHostModal()
+
+关闭当前弹出的宿主 Modal。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function dismissHostModal(): Promise<NavigationResult>;
+```
+
+---
+
+## 页面生命周期
+
+### MiniAppAPI.onPageLifecycle(listener)
+
+订阅页面生命周期事件。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function onPageLifecycle(
+  listener: (event: PageLifecycleEvent) => void,
+): () => void;
+```
+
+**`PageLifecycleEvent` 字段：**
+
+| 字段         | 类型                           | 描述           |
+| ------------ | ------------------------------ | -------------- |
+| `appId`      | `string`                       | 小程序 ID。    |
+| `instanceId` | `string`                       | 页面实例 ID。  |
+| `routePath`  | `string \| undefined`          | 当前页面路径。 |
+| `type`       | `'show' \| 'hide' \| 'unload'` | 事件类型。     |
+
+**返回值：** 取消订阅函数。
+
+---
+
+## 生命周期 Hooks
+
+### usePageOnLoad(callback)
+
+页面首次加载时执行，接收路由参数。在组件挂载时触发一次。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function usePageOnLoad(
+  callback: (params: Record<string, unknown>) => void,
+): void;
+```
+
+**参数：**
+
+| 参数       | 类型               | 描述                     |
+| ---------- | ------------------ | ------------------------ |
+| `callback` | `(params) => void` | 接收路由查询参数的回调。 |
+
+---
+
+### usePageOnShow(callback)
+
+页面每次可见时执行。首次在组件挂载时触发，之后在每个 `'show'` 生命周期事件时触发。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function usePageOnShow(callback: () => void): void;
+```
+
+---
+
+### usePageOnReady(callback)
+
+页面渲染完成后执行（首次动画帧之后）。内部使用 `requestAnimationFrame()`。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function usePageOnReady(callback: () => void): void;
+```
+
+---
+
+### usePageOnHide(callback)
+
+页面不可见时执行。在 `'hide'` 生命周期事件时触发。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function usePageOnHide(callback: () => void): void;
+```
+
+---
+
+### usePageOnUnload(callback)
+
+页面卸载时执行。在组件卸载时触发（cleanup function）。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function usePageOnUnload(callback: () => void): void;
+```
+
+---
+
+## 路由注册
+
+### NebulaAPI.registerRoutes(appId, routes)
+
+注册小程序的路由表，通常在小程序启动时调用。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function registerRoutes(
+  appId: string,
+  routes: Record<string, string>,
+): Promise<void>;
+```
+
+**参数：**
+
+| 参数     | 类型                     | 必填 | 描述                                                            |
+| -------- | ------------------------ | ---- | --------------------------------------------------------------- |
+| `appId`  | `string`                 | 是   | 当前小程序 ID。                                                 |
+| `routes` | `Record<string, string>` | 是   | 路径到组件名的映射，如 `{ "/": "Home", "/detail": "Detail" }`。 |
+
+---
+
+### NebulaAPI.registerManifest(appId, manifest)
+
+注册完整的小程序清单（扩展的路由表，包含页面配置）。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function registerManifest(
+  appId: string,
+  manifest: RegisteredMiniAppManifest,
+): Promise<void>;
+```
+
+**参数 `RegisteredMiniAppManifest`：**
+
+| 参数             | 类型                              | 必填 | 描述                     |
+| ---------------- | --------------------------------- | ---- | ------------------------ |
+| `pages`          | `Record<string, string>`          | 是   | 路径到组件名的映射。     |
+| `entryPagePath`  | `string`                          | 否   | 入口页面路径，如 `"/"`。 |
+| `pageConfigs`    | `Record<string, NebulaPageStyle>` | 否   | 页面级样式覆盖。         |
+| `window`         | `NebulaPageStyle`                 | 否   | 全局窗口样式。           |
+| `updateStrategy` | `'auto' \| 'manual'`              | 否   | 更新策略。               |
+| `version`        | `string`                          | 否   | 版本号。                 |
+
+**错误码：**
+
+| 错误码             | 描述                 |
+| ------------------ | -------------------- |
+| `INVALID_MANIFEST` | 清单 JSON 解析失败。 |
+
+---
+
+## 宿主 API 注册
+
+### NebulaAPI.registerApiHandler(apiName, handler)
+
+手动注册宿主 API handler。如果 API Server 尚未启动会自动调用 `startApiServer()`。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function registerApiHandler(
+  apiName: string,
+  handler: NebulaHostApiHandler,
+): void;
+```
+
+**参数 `NebulaHostApiHandler`：**
+
+| 参数          | 类型                                                   | 必填 | 默认值 | 描述                       |
+| ------------- | ------------------------------------------------------ | ---- | ------ | -------------------------- |
+| `version`     | `string`                                               | 是   | —      | API 版本号，如 `"1.0.0"`。 |
+| `supported`   | `boolean \| () => Promise<boolean>`                    | 否   | `true` | 是否支持，可以是异步函数。 |
+| `description` | `NebulaHostApiDescription`                             | 否   | —      | API 文档描述。             |
+| `handle`      | `(payload, context) => Promise<NebulaApiInvokeResult>` | 是   | —      | 请求处理函数。             |
+
+---
+
+### NebulaAPI.unregisterApiHandler(apiName)
+
+取消注册宿主 API handler。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function unregisterApiHandler(apiName: string): void;
+```
+
+---
+
+### NebulaAPI.getRegisteredCapabilities()
+
+获取所有已注册 API 的版本和支持状态（异步解析 `supported` 函数）。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getRegisteredCapabilities(): Promise<NebulaHostCapabilityMap>;
+```
+
+---
+
+### NebulaAPI.getRegisteredApiDescriptions()
+
+同步获取所有已注册 API 的文档描述。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getRegisteredApiDescriptions(): NebulaHostApiDescriptionMap;
+```
+
+---
+
+## 宿主特性工厂
+
+### createHostApiFeature(options)
+
+创建无 UI 的宿主 API 特性，用于注册到 `NebulaAPI.wrap()` 的 `hostApis`。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function createHostApiFeature(
+  options: RegisterHostApiOptions,
+): NebulaHostFeature;
+```
+
+**参数 `RegisterHostApiOptions`：**
+
+| 参数          | 类型                                                   | 必填 | 默认值  | 描述             |
+| ------------- | ------------------------------------------------------ | ---- | ------- | ---------------- |
+| `apiName`     | `string`                                               | 是   | —       | API 名称标识。   |
+| `version`     | `string`                                               | 否   | `'1.0'` | API 版本号。     |
+| `supported`   | `boolean \| () => Promise<boolean>`                    | 否   | `true`  | 是否支持此 API。 |
+| `description` | `NebulaHostApiDescription`                             | 否   | —       | API 文档描述。   |
+| `handle`      | `(payload, context) => Promise<NebulaApiInvokeResult>` | 是   | —       | 请求处理函数。   |
+
+**返回值 `NebulaHostFeature`：** 包含 `name`、`description` 和 `register()` 方法的特性对象。
+
+---
+
+### createHostModalApiFeature(options)
+
+创建需要 Modal UI 的宿主 API 特性。调用时自动弹出 Modal，Modal 关闭后返回结果。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function createHostModalApiFeature<TPayload, TRequest>(
+  options: RegisterHostModalApiOptions<TPayload, TRequest>,
+): NebulaHostFeature;
+```
+
+**参数 `RegisterHostModalApiOptions`：**
+
+| 参数                    | 类型                                                  | 必填 | 描述                                                           |
+| ----------------------- | ----------------------------------------------------- | ---- | -------------------------------------------------------------- |
+| `apiName`               | `string`                                              | 是   | API 名称标识。                                                 |
+| `component`             | `React.ComponentType`                                 | 是   | Modal 中渲染的 React 组件。                                    |
+| `channel`               | `HostModalChannel<TRequest>`                          | 是   | Modal 请求通道。                                               |
+| `createRequest`         | `(payload: TPayload) => TRequest`                     | 是   | 从 API payload 创建 Modal 请求。                               |
+| `modalProps`            | `Record \| (payload, request) => Record`              | 否   | 传递给 Modal 组件的附加属性。                                  |
+| `onBeforeOpen`          | `(payload) => Promise<NebulaApiInvokeResult \| null>` | 否   | Modal 打开前的预处理（如权限检查），返回非 null 则跳过 Modal。 |
+| `onUnmountErrorMessage` | `string`                                              | 否   | Modal 异常卸载时的错误消息。                                   |
+| `version`               | `string`                                              | 否   | API 版本号。                                                   |
+| `description`           | `NebulaHostApiDescription`                            | 否   | API 文档描述。                                                 |
+
+---
+
+### createHostModalChannel()
+
+创建 Modal 双向请求-响应通道，用于宿主组件与 API 调用之间的通信。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function createHostModalChannel<
+  TRequest extends object,
+>(): HostModalChannel<TRequest>;
+```
+
+**返回值 `HostModalChannel<TRequest>`：**
+
+| 方法         | 签名                                                            | 描述                  |
+| ------------ | --------------------------------------------------------------- | --------------------- |
+| `open`       | `(request: TRequest) => Promise<NebulaApiInvokeResult>`         | 打开通道并等待结果。  |
+| `settle`     | `(result: NebulaApiInvokeResult) => void`                       | 从 Modal 端提交结果。 |
+| `getCurrent` | `() => TRequest \| null`                                        | 获取当前请求。        |
+| `clear`      | `() => void`                                                    | 清除当前请求。        |
+| `subscribe`  | `(listener: (request: TRequest \| null) => void) => () => void` | 监听请求变化。        |
+
+---
+
+## 辅助函数
+
+### createHostApiSuccess(data)
+
+创建成功的 API 返回结果。
+
+```ts
+function createHostApiSuccess<TData>(data: TData): NebulaApiInvokeResult<TData>;
+// 返回 { ok: true, data }
+```
+
+---
+
+### createHostApiFailure(code, message)
+
+创建失败的 API 返回结果。
+
+```ts
+function createHostApiFailure(
+  code: string,
+  message: string,
+): NebulaApiInvokeResult;
+// 返回 { ok: false, error: { code, message } }
+```
+
+---
+
+### definePageConfig(config)
+
+页面配置的 TypeScript 辅助函数（pass-through，仅提供类型约束）。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function definePageConfig<T extends MiniAppPageConfig>(config: T): T;
+```
+
+**参数 `MiniAppPageConfig`：**
+
+| 参数                           | 类型                    | 必填 | 描述                       |
+| ------------------------------ | ----------------------- | ---- | -------------------------- |
+| `route`                        | `string`                | 否   | 页面路由路径。             |
+| `backgroundColor`              | `string`                | 否   | 页面背景色。               |
+| `navigationBarBackgroundColor` | `string`                | 否   | 导航栏背景色。             |
+| `navigationBarTextColor`       | `string`                | 否   | 导航栏文字颜色。           |
+| `navigationBarTitleText`       | `string`                | 否   | 导航栏标题。               |
+| `navigationStyle`              | `'default' \| 'custom'` | 否   | 导航栏样式。               |
+| `visualEffectInBackground`     | `'blur' \| 'none'`      | 否   | 后台视觉效果。**仅 iOS。** |
+
+---
+
+### createMiniAppPage(Component)
+
+包裹小程序页面组件的高阶组件，提供 Nebula 上下文。自动调用 `MiniAppAPI.bootstrap()`，提供 `MiniAppPageContext`。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function createMiniAppPage<P extends Record<string, unknown>>(
+  Component: React.ComponentType<P>,
+): React.ComponentType<P>;
+```
+
+**保留 Props（不传递给子组件）：** `appId`、`instanceId`、`sandboxPath`、`title`、`__pageConfig`、`__routePath`、`__routeUrl`。
+
+---
+
+## 类型定义
+
+```ts
+type MiniAppUpdateStrategy = 'auto' | 'manual';
+
+type MiniAppResult = {
+  success: boolean;
+  appId: string;
+  mode?: string;
+};
+
+type MiniAppUpdateInfo = {
+  appId: string;
+  currentVersion?: string | null;
+  latestVersion?: string | null;
+  hasUpdate: boolean;
+  updateStrategy: 'auto' | 'manual';
+  mode?: string | null;
+  sourceUrl?: string | null;
+};
+
+type NebulaApiInvokeResult<T = unknown> =
+  | { ok: true; data: T }
+  | { ok: false; error: NebulaApiError };
+
+type NebulaApiError = {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+};
+
+type NebulaHostCapabilityDescriptor = {
+  supported: boolean;
+  version: string;
+};
+
+type NebulaHostCapabilityMap = Record<string, NebulaHostCapabilityDescriptor>;
+
+type PageLifecycleEvent = {
+  appId: string;
+  instanceId: string;
+  routePath?: string;
+  type: 'show' | 'hide' | 'unload';
+};
+
+type NebulaPageStyle = {
+  backgroundColor?: string;
+  navigationBarBackgroundColor?: string;
+  navigationBarTextColor?: string;
+  navigationBarTitleText?: string;
+  navigationStyle?: 'default' | 'custom';
+  visualEffectInBackground?: 'blur' | 'none';
+};
+
+type NavigationResult = {
+  errMsg: string;
+};
+
+type HostVisibilityResult = {
+  success: boolean;
+  token?: string | null;
+};
+
+type ServerBaseURLResult = {
+  serverBaseURL?: string | null;
+};
+```
+
+---
+
+## 原生模块
+
+`@nebula-rn/sdk` 通过 `NebulaNativeModule` 与原生层通信。
+
+**同步方法：** `getDeviceInfo()`
+
+**异步方法：** 所有其他原生调用均返回 Promise。
+
+**平台配置常量：**
+
+| 配置             | iOS 默认值 | 描述                           |
+| ---------------- | ---------- | ------------------------------ |
+| 最大并发小程序数 | `3`        | 内存中同时存在的最大小程序数。 |
+| 最大页面栈深度   | `10`       | 单个小程序的最大页面层数。     |
+
+**超时默认值：**
+
+| 操作                       | 超时                |
+| -------------------------- | ------------------- |
+| `invokeHostApi()`          | 15000ms             |
+| `getCapabilities()`        | 15000ms（固定）     |
+| `getHostApiDescriptions()` | 15000ms（可配置）   |
+| 网络下载（Android）        | 连接 15s + 读取 15s |
+| 网络下载（iOS）            | URLSession 默认     |
+
+**错误码总览：**
+
+| 错误码                     | 平台    | 上下文                            |
+| -------------------------- | ------- | --------------------------------- |
+| `NO_ACTIVITY`              | Android | 打开/弹出 Modal 时找不到 Activity |
+| `NO_ROOT_VC`               | iOS     | 打开时找不到 root view controller |
+| `OPEN_ERROR`               | 全平台  | 运行时打开小程序错误              |
+| `PRELOAD_ERROR`            | 全平台  | 运行时预加载错误                  |
+| `INSTALL_ERROR`            | 全平台  | 下载或解析失败                    |
+| `INVALID_SERVER_URL`       | 全平台  | URL 格式校验失败                  |
+| `INVALID_MANIFEST`         | 全平台  | 清单 JSON 解析失败                |
+| `INVALID_MODE`             | iOS     | 运行时模式字符串无效              |
+| `UNSUPPORTED_API`          | 全平台  | API 未注册或不支持                |
+| `INTERNAL_ERROR`           | 全平台  | Handler 执行异常                  |
+| `PRESENT_HOST_MODAL_ERROR` | Android | 弹出 Modal 失败                   |

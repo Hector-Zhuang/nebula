@@ -1,0 +1,182 @@
+---
+title: 预加载
+description: 使用 Nebula 预加载机制减少小程序的冷启动延迟，提升高频小程序的打开速度。
+---
+
+预加载是 Nebula 运行时提供的启动优化手段。通过在用户实际打开小程序前，提前初始化 JavaScript 运行时和创建根视图，可以显著减少冷启动延迟。
+
+## 工作原理
+
+### 无预加载的打开流程
+
+```
+用户点击打开
+    │
+    ├── 创建容器控制器
+    ├── 查找 bundle 文件
+    ├── 创建 React Native Factory
+    ├── 初始化 JS 运行时
+    ├── 加载 JS bundle
+    ├── 创建根视图
+    └── 挂载并渲染
+    │
+    ▼
+用户看到内容
+```
+
+这些步骤全部串行执行，在低端设备上可能需要数百毫秒。
+
+### 有预加载的打开流程
+
+```
+宿主提前调用 preloadMiniApp()          用户点击打开
+    │                                     │
+    ├── 创建 React Native Factory         ├── 创建容器控制器
+    ├── 初始化 JS 运行时                  ├── 取出预加载的根视图
+    ├── 加载 JS bundle                    └── 挂载到容器
+    ├── 创建根视图                         │
+    └── 挂载到隐藏容器（底层）              ▼
+                                       用户看到内容
+```
+
+预加载将耗时的初始化工作提前完成，打开时只需将已就绪的视图移入容器，实现近乎即时的渲染。
+
+## API
+
+### NebulaAPI.preloadMiniApp(appId)
+
+预加载一个**已安装**的小程序。宿主会根据 `appId` 查找本地已安装的 bundle，提前创建 React Native 运行时和根视图。
+
+```ts
+import { NebulaAPI } from '@nebula-rn/sdk';
+
+await NebulaAPI.preloadMiniApp('frequently-used-app');
+```
+
+**参数：**
+
+| 参数    | 类型     | 说明                   |
+| ------- | -------- | ---------------------- |
+| `appId` | `string` | 已安装小程序的唯一标识 |
+
+**返回值：** `Promise<MiniAppResult>`
+
+```ts
+{ success: true, appId: 'frequently-used-app' }
+```
+
+**前置条件：** 小程序必须已经通过 `installMiniApp` 安装到本地。如果 bundle 文件不存在，预加载会被跳过。
+
+### NebulaAPI.preloadMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer?)
+
+先安装再预加载小程序。适用于小程序尚未安装、需要从远程下载 bundle 并立即预加载的场景。
+
+```ts
+await NebulaAPI.preloadMiniAppWithBundleURL(
+  'new-app',
+  'https://api.example.com/bundles/new-app/main.jsbundle',
+  false,
+);
+```
+
+**参数：**
+
+| 参数                      | 类型      | 说明                                                         |
+| ------------------------- | --------- | ------------------------------------------------------------ |
+| `appId`                   | `string`  | 小程序唯一标识                                               |
+| `bundleURL`               | `string`  | Bundle 下载地址                                              |
+| `connectToURLMetroServer` | `boolean` | `true` 时连接该 URL 的 Metro；`false` 时按 production 预加载 |
+
+**返回值：** `Promise<MiniAppResult>`
+
+**执行流程：**
+
+1. 下载 bundle 到本地沙箱目录
+2. 下载 manifest（app.json）
+3. 注册安装信息
+4. 调用预加载创建根视图
+
+## 平台实现
+
+### iOS 实现
+
+iOS 采用 **单槽位预加载缓存**（single-slot cache），同一时间只缓存一个小程序的预加载视图。
+
+**核心机制：**
+
+1. **隐藏容器**：在 `keyWindow` 的最底层（`index: 0`）插入一个不可交互的透明 `UIView` 作为预加载容器
+2. **创建根视图**：创建 `RCTReactNativeFactory` 和 React Native 根视图
+3. **底层挂载**：将根视图挂载到隐藏容器中，触发布局计算，但用户不可见
+4. **消费视图**：打开小程序时，将根视图从隐藏容器移出，转移到实际的容器控制器中
+
+**单槽位设计：** 每次预加载新的小程序前，会清除之前缓存的预加载视图。这意味着同时只能有一个小程序处于预加载状态。
+
+**并发安全：** 使用 `DispatchSemaphore` 和 generation 计数器防止过期的预加载任务覆盖新的缓存。
+
+**工厂引用计数：** `RCTReactNativeFactory` 通过引用计数管理生命周期，在所有消费者释放后才回收。
+
+### Android 实现
+
+Android 采用 **ReactHost 缓存池**，支持同时缓存多个小程序的运行时。
+
+**核心机制：**
+
+1. **创建 ReactHost**：为小程序创建独立的 `ReactHostImpl` 实例
+2. **初始化运行时**：加载 Hermes JS 引擎、解析 bundle、注册 Native Module
+3. **缓存复用**：将 ReactHost 存储在 `ConcurrentHashMap` 中，后续打开时直接复用
+4. **创建 Surface**：打开小程序时，从缓存的 ReactHost 创建 `ReactSurface`
+
+**多槽位设计：** Android 可以同时预加载多个小程序，每个小程序持有独立的 ReactHost 实例。
+
+## 缓存失效
+
+当小程序的 bundle 更新或运行模式切换后，已缓存的预加载视图可能已过期，需要失效处理。
+
+### iOS
+
+```swift
+// 失效特定小程序的预加载缓存
+NebulaAppManager.shared.invalidate(appId: "my-app")
+
+// 失效所有预加载缓存
+NebulaAppManager.shared.invalidateAll()
+```
+
+失效操作会：
+
+- 移除缓存的根视图和 Factory
+- 取消正在进行的预加载任务（通过递增 generation 计数器）
+- 清理引用计数
+
+### Android
+
+Android 的 ReactHost 在 `hosts` Map 中缓存，在小程序重新安装或模式切换时自动重建。
+
+## 预加载状态检查
+
+iOS 端可以检查某个小程序是否已完成预加载：
+
+```swift
+let isReady = NebulaAppManager.shared.hasPreloadedRootView(appId: "my-app")
+```
+
+## 使用场景
+
+### 适合预加载的小程序
+
+- 首页入口的核心小程序
+- 用户高频访问的小程序
+- 对首屏渲染时间敏感的关键流程
+
+### 不适合预加载的小程序
+
+- 低频使用的小程序
+- 开发模式下的小程序（bundle 频繁变化）
+- 内存敏感场景下的非核心小程序
+
+## 注意事项
+
+- **内存开销**：预加载会提前占用内存。iOS 的单槽位设计控制了内存上限，Android 需要注意预加载数量
+- **bundle 一致性**：预加载后如果更新了 bundle，需要先失效缓存再重新预加载
+- **开发模式**：开发模式下 bundle 来自 dev server，预加载的意义较小（bundle 内容可能随时变化）
+- **系统内存警告**：iOS 端 `NebulaHost` 监听了 `didReceiveMemoryWarningNotification`，在内存紧张时可能需要释放预加载资源

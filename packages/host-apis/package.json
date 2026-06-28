@@ -1,0 +1,51 @@
+{
+  "name": "@nebula-rn/host-apis",
+  "version": "0.0.1",
+  "description": "Official Nebula host API feature bundle",
+  "author": "Hector Zhuang",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hector-Zhuang/nebula.git",
+    "directory": "packages/host-apis"
+  },
+  "bugs": {
+    "url": "https://github.com/Hector-Zhuang/nebula/issues"
+  },
+  "homepage": "https://github.com/Hector-Zhuang/nebula/tree/main/packages/host-apis#readme",
+  "keywords": ["nebula", "superapp", "miniapp", "react-native"],
+  "main": "./dist/index.js",
+  "react-native": "./src/index.ts",
+  "source": "./src/index.ts",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "src", "README.md"],
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "build": "tsc",
+    "prepack": "npm run build",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "@bam.tech/react-native-image-resizer": "^3.0.11",
+    "@dr.pogodin/react-native-fs": "^2.37.0",
+    "@nebula-rn/sdk": "^0.0.1",
+    "@react-native-camera-roll/camera-roll": "^7.10.2",
+    "@react-native-clipboard/clipboard": "^1.16.3",
+    "@react-native-community/geolocation": "^3.4.0",
+    "@react-native-community/netinfo": "^12.0.1",
+    "react": ">=19",
+    "react-native": ">=0.83",
+    "react-native-device-info": "^15.0.2",
+    "react-native-image-picker": "^8.2.1",
+    "react-native-image-zoom-viewer": "^3.0.1",
+    "react-native-mmkv": "^4.2.0",
+    "react-native-safe-area-context": "^5.5.2",
+    "react-native-screenshot-aware": "^2.0.0",
+    "react-native-sensors": "^7.3.6",
+    "react-native-vision-camera": "^4.7.3"
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-native": ">=0.83"
+  }
+}

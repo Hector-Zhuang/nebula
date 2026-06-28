@@ -1,0 +1,117 @@
+---
+title: التواصل مع المضيف
+description: تعرّف إلى آلية الاتصال ثنائية الاتجاه بين miniapp وتطبيق المضيف.
+---
+
+تدعم Nebula رسائل مخصصة ثنائية الاتجاه بين miniapp وتطبيق المضيف، وهي مناسبة لإشعارات أحداث الأعمال ومزامنة الحالة وغيرها من السيناريوهات.
+
+<Info title="لمطوري المضيف">
+  تشرح هذه الصفحة كيفية إرسال الرسائل واستقبالها من منظور **مطوري miniapp**.
+  إذا كنت مطورًا للمضيف، راجع: [التواصل بين المضيف وminiapp](../host/host-miniapp-messaging.mdx)
+</Info>
+
+## مسار الاتصال
+
+```text
+miniapp                         Host
+  │                                │
+  │ postMessageToHost(message) ──► │
+  │                                │
+  │ ◄──── onHostMessage(listener)  │
+  │                                │
+```
+
+## miniapp → Host
+
+استخدم `Miniapp.postMessageToHost()` لإرسال رسالة مخصصة إلى المضيف:
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+await Miniapp.postMessageToHost({
+  type: 'miniapp.event',
+  action: 'purchase_complete',
+  orderId: '12345',
+  timestamp: Date.now(),
+});
+```
+
+الرسالة عبارة عن كائن JSON بأي بنية، ويحدد المضيف التنسيق وآلية المعالجة.
+
+## Host → miniapp
+
+استخدم `Miniapp.onHostMessage()` للاستماع إلى الرسائل التي يدفعها المضيف:
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+const unsubscribe = Miniapp.onHostMessage(event => {
+  console.log('رسالة من المضيف:', event.message);
+  // event.message هو كائن JSON مرسل من المضيف
+});
+
+// إيقاف الاستماع
+unsubscribe();
+```
+
+## الحالات المناسبة لاستخدام الرسائل
+
+### إخطار المضيف بتنفيذ إجراء
+
+```ts
+// طلب فتح شاشة الدفع الأصلية من المضيف
+Miniapp.postMessageToHost({
+  type: 'request',
+  action: 'open_native_payment',
+  amount: 99.9,
+  currency: 'CNY',
+});
+```
+
+### استقبال تغييرات الحالة من المضيف
+
+```tsx
+import React, { useState, useEffect } from 'react';
+import { Text, View } from 'react-native';
+import { Miniapp } from '@nebula-rn/sdk';
+
+export default function StatusPage() {
+  const [loginStatus, setLoginStatus] = useState('unknown');
+
+  useEffect(() => {
+    const unsubscribe = Miniapp.onHostMessage(event => {
+      if (event.message?.type === 'login_status_changed') {
+        setLoginStatus(event.message.isLoggedIn ? 'تم تسجيل الدخول' : 'غير مسجل');
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  return (
+    <View>
+      <Text>حالة تسجيل الدخول: {loginStatus}</Text>
+    </View>
+  );
+}
+```
+
+## الفرق عن Host API
+
+|              | الرسائل المخصصة                         | Host API                                           |
+| ------------ | --------------------------------------- | -------------------------------------------------- |
+| **السيناريو** | إشعارات أعمال واتصال مرن               | استدعاءات قدرات منظمة (مثل الموقع أو المسح)        |
+| **الطريقة**   | `postMessageToHost` / `onHostMessage`   | `Miniapp.invokeHostApi()` أو `@nebula-rn/client` APIs |
+| **النتيجة**   | بدون قيمة إرجاع مباشرة (fire-and-forget) | Promise بنتيجة منظمة                               |
+| **التسجيل**  | المضيف يستمع بنفسه                      | المضيف يسجّل عبر `createHostApiFeature`            |
+| **الأنواع**  | العقد متفق عليها بين الطرفين            | توجد بيانات `NebulaHostApiDescription`             |
+
+إذا كنت ترغب في توسيع Host API المهيكلة بدل الاستمرار بالرسائل المخصصة، راجع [واجهات API والمكوّنات المخصصة](./custom-apis.mdx).
+
+إذا أردت فهم كيفية استماع المضيف لرسائل miniapp أو دفع الرسائل بشكل استباقي، راجع [التواصل بين المضيف وminiapp](../host/host-miniapp-messaging.mdx).
+
+## ملاحظات
+
+- يجب أن تكون محتويات الرسائل قابلة للتسلسل إلى JSON
+- `postMessageToHost` إرسال أحادي الاتجاه ولا يعيد نتيجة معالجة المضيف
+- إذا كنت تحتاج نمط الطلب/الاستجابة، يُنصح باستخدام Host API (`createHostApiFeature`)
+- يجب استدعاء دالة الإلغاء التي يعيدها `onHostMessage` عند إزالة المكوّن لتجنب تسرب الذاكرة

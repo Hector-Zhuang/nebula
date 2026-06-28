@@ -1,0 +1,117 @@
+---
+title: Miniapp Components
+description: Learn how to use @nebula-rn/components in Nebula miniapps, and how it complements the base component layer.
+---
+
+`@nebula-rn/components` is Nebula's cross-platform component library for miniapps. It builds on top of the base component layer and provides higher-level components such as swipers, rich text, video, maps, and camera experiences that better fit miniapp scenarios.
+
+In practice, this library should be treated as a complement to the base component layer, not a replacement:
+
+- keep base components as the primary layer for page structure and core interaction
+- reach for `@nebula-rn/components` when you need higher-level UI capabilities or Host-related components
+
+`@nebula-rn/components` currently includes:
+
+| Component  | Description                                   |
+| ---------- | --------------------------------------------- |
+| `Camera`   | Camera component with photo and video capture |
+| `Map`      | Map display and interaction                   |
+| `Progress` | Progress bar                                  |
+| `RichText` | Rich text (HTML content) rendering            |
+| `Slider`   | Slider input                                  |
+| `Swiper`   | Image carousel with pagination indicators     |
+| `Video`    | Video player                                  |
+| `WebView`  | Embedded web content                          |
+
+These components are already adapted to Nebula's runtime model, which reduces the cost of re-wrapping similar capabilities in the miniapp.
+
+## Installation and imports
+
+Install the component library in your miniapp project:
+
+```bash
+npm install @nebula-rn/components
+```
+
+Import components as needed inside a page:
+
+```tsx
+import { Progress, Swiper, Video } from '@nebula-rn/components';
+```
+
+If the page only needs basic layout and typography, continue using base components:
+
+```tsx
+import { View, Text, ScrollView, Image } from 'react-native';
+```
+
+## Minimal page example
+
+The following example shows a typical home page composition:
+
+- use `Swiper` at the top to display banners
+- use base components in the middle for layout and copy
+- use `Progress` at the bottom to show task progress
+
+```tsx
+import { Image, ScrollView, Text, View } from 'react-native';
+import { Progress, Swiper } from '@nebula-rn/components';
+
+const banners = [
+  'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200',
+  'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1200',
+];
+
+export default function HomePage() {
+  return (
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+      <View style={{ height: 180, borderRadius: 12, overflow: 'hidden' }}>
+        <Swiper autoplay circular indicatorDots>
+          {banners.map(uri => (
+            <Image
+              key={uri}
+              source={{ uri }}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
+          ))}
+        </Swiper>
+      </View>
+
+      <View style={{ gap: 8 }}>
+        <Text style={{ fontSize: 22, fontWeight: '700' }}>
+          Welcome to Nebula
+        </Text>
+        <Text style={{ color: '#475569', lineHeight: 22 }}>
+          Use base components for page structure, and use @nebula-rn/components for
+          feature components that feel closer to miniapp experiences.
+        </Text>
+      </View>
+
+      <Progress percent={68} showInfo active />
+    </ScrollView>
+  );
+}
+```
+
+## Host-side prerequisites
+
+Some components assume that the host has already integrated the required native modules, for example:
+
+- `Camera`
+- `Video`
+- `Map`
+- `WebView`
+
+If the Host has not integrated these native modules and a miniapp uses the related components directly, runtime failures may occur.
+Therefore, Host developers should clearly communicate which component capabilities are supported, and miniapp developers should choose components based on the actual Host environment.
+
+## Next steps
+
+If you want the complete props, events, and platform notes for each component, continue to:
+
+- [@nebula-rn/components Reference](/docs/reference/nebula-components)
+
+If you want to better understand the boundary between component capabilities and the host environment, continue to:
+
+- [Miniapp Host Environment](/docs/miniapp/host-environment)

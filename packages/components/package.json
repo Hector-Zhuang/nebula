@@ -1,0 +1,58 @@
+{
+  "name": "@nebula-rn/components",
+  "version": "0.0.1",
+  "description": "Nebula UI Components for React Native",
+  "author": "Hector Zhuang",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hector-Zhuang/nebula.git",
+    "directory": "packages/components"
+  },
+  "bugs": {
+    "url": "https://github.com/Hector-Zhuang/nebula/issues"
+  },
+  "homepage": "https://github.com/Hector-Zhuang/nebula/tree/main/packages/components#readme",
+  "keywords": ["nebula", "superapp", "miniapp", "react-native", "components"],
+  "main": "./dist/index.js",
+  "react-native": "./src/index.ts",
+  "source": "./src/index.ts",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "src", "README.md"],
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "build": "tsc && npm run assets",
+    "assets": "cpy 'src/**/*.png' '!src/__tests__/*' dist",
+    "clean": "rimraf ./dist",
+    "prebuild": "npm run clean",
+    "prepack": "npm run build",
+    "dev": "npm run assets && tsc --watch",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
+    "test": "jest --silent",
+    "test:ci": "jest --ci -i --coverage --silent",
+    "test:dev": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "engines": {
+    "node": ">= 18"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.4",
+    "@babel/preset-env": "^7.24.4",
+    "@react-native/babel-preset": "^0.73.18",
+    "cpy-cli": "^5.0.0",
+    "dpdm": "^3.14.0"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-native": ">=0.83"
+  },
+  "dependencies": {
+    "react-native-gesture-handler": "^2.30.0",
+    "react-native-nitro-modules": "^0.35.2",
+    "react-native-reanimated": "~4.2.3",
+    "react-native-reanimated-carousel": "^4.0.3",
+    "react-native-video": "^6.19.1",
+    "react-native-vision-camera": "^4.7.3"
+  }
+}

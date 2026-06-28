@@ -1,0 +1,582 @@
+---
+title: Quick Start Demo
+description: Use Nebula CLI to create a Miniapp project and transform it into a weather demo.
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+This tutorial uses a **weather query mini program demo** to help you quickly grasp the core development path of Nebula Miniapp:
+
+- Create a Miniapp using the CLI
+- Implement a weather page in the generated Miniapp
+- Use the Dev Runner for standalone development
+- Finally, conduct additional integration testing with a real Host
+
+## What You Will Learn
+
+- How to create a Miniapp project using the CLI
+- Miniapp project structure (`app.json`, `page.config.ts`, page components)
+- Page lifecycle hooks (`usePageOnLoad`, `usePageOnShow`)
+- Host API calls (`getLocation`, `getStorageItem`, `setStorageItem`)
+- Page navigation and parameter passing (`navigateTo`, `navigateBack`, page paths and query parameters)
+- Nebula components (`Swiper`, `SwiperItem`)
+- How to integrate the same demo into a real Host for validation
+
+## Prerequisites
+
+- Node.js and npm installed
+- React Native iOS or Android development environment
+- Ability to use Nebula CLI via `npx`
+
+<Steps>
+<Step>
+
+## Step 1: Create a Miniapp Project
+
+First, create a Miniapp:
+
+```bash
+npx nebula create miniapp weather-miniapp
+cd weather-miniapp
+npm install
+```
+
+This generates a **pure mini program project**. You will see:
+
+- `app.json`
+- `src/pages/home/index.tsx`
+- `src/pages/home/page.config.ts`
+
+What you won't see:
+
+- `ios/`
+- `android/`
+
+This is the recommended form for Nebula Miniapp.
+
+</Step>
+<Step>
+
+## Step 2: Modify Miniapp Global Configuration
+
+Open `weather-miniapp/app.json` and change the default configuration to the weather demo's global style:
+
+```json
+{
+  "appId": "weather-app",
+  "pages": ["home"],
+  "entryPagePath": "/home",
+  "window": {
+    "backgroundColor": "#f0f9ff",
+    "navigationBarBackgroundColor": "#0ea5e9",
+    "navigationBarTextColor": "#ffffff",
+    "navigationBarTitleText": "Weather Query"
+  }
+}
+```
+
+Key fields:
+
+- `appId`: Unique identifier for the mini program
+- `pages`: Array of page paths
+- `entryPagePath`: Startup page
+- `window`: Global navigation bar and background color configuration
+
+</Step>
+<Step>
+
+## Step 3: Home Page — Weather Information + Host API Calls
+
+### Page Configuration
+
+Update `src/pages/home/page.config.ts`:
+
+```ts
+import { definePageConfig } from '@nebula-rn/sdk';
+
+export default definePageConfig({
+  route: '/home',
+  backgroundColor: '#f0f9ff',
+  navigationBarBackgroundColor: '#0ea5e9',
+  navigationBarTextColor: '#ffffff',
+  navigationBarTitleText: 'Weather Query',
+  navigationStyle: 'default',
+});
+```
+
+### Page Component
+
+Update `src/pages/home/index.tsx`:
+
+```tsx
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, View, Button } from 'react-native';
+import { Miniapp, usePageOnLoad, usePageOnShow } from '@nebula-rn/sdk';
+import { getLocation, getStorageItem } from '@nebula-rn/client';
+
+export default function HomePage(props) {
+  const [weather, setWeather] = useState(null);
+  const [city, setCity] = useState('Locating...');
+  const [loading, setLoading] = useState(true);
+
+  usePageOnLoad(() => {
+    loadWeather();
+  });
+
+  usePageOnShow(() => {
+    loadSavedCity();
+  });
+
+  const loadWeather = async () => {
+    try {
+      setLoading(true);
+      const location = await getLocation({ isHighAccuracy: false });
+      const savedCity = await getStorageItem('selectedCity');
+      setCity(
+        savedCity ||
+          `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`,
+      );
+      setWeather({
+        temp: 24,
+        condition: 'Clear',
+        humidity: 45,
+        wind: 'Southeast 3级',
+
+        forecast: [
+          { day: 'Today', high: 26, low: 18, condition: 'Clear' },
+          { day: 'Tomorrow', high: 28, low: 19, condition: 'Cloudy' },
+          { day: 'Day after', high: 22, low: 16, condition: 'Light Rain' },
+        ],
+      });
+    } catch (error) {
+      setCity('Location failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSavedCity = async () => {
+    const savedCity = await getStorageItem('selectedCity');
+    if (savedCity) setCity(savedCity);
+  };
+
+  const goToCityList = () => {
+    Miniapp.navigateTo(`/city-list?current=${encodeURIComponent(city)}`);
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.loading}>Loading...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.cityName}>{city}</Text>
+        <Button title="Switch City" onPress={goToCityList} color="#0284c7" />
+      </View>
+
+      <View style={styles.weatherCard}>
+        <Text style={styles.temp}>{weather.temp}°</Text>
+        <Text style={styles.condition}>{weather.condition}</Text>
+        <Text style={styles.detail}>
+          Humidity {weather.humidity}% · {weather.wind}
+        </Text>
+      </View>
+
+      <View style={styles.forecastCard}>
+        <Text style={styles.cardTitle}>Forecast</Text>
+        {weather.forecast.map((item, index) => (
+          <View key={index} style={styles.forecastRow}>
+            <Text style={styles.forecastDay}>{item.day}</Text>
+            <Text style={styles.forecastCondition}>{item.condition}</Text>
+            <Text style={styles.forecastTemp}>
+              {item.low}° / {item.high}°
+            </Text>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { padding: 20, backgroundColor: '#f0f9ff' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loading: { fontSize: 16, color: '#64748b' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  cityName: { fontSize: 24, fontWeight: '700', color: '#0f172a' },
+  weatherCard: {
+    padding: 24,
+    borderRadius: 16,
+    backgroundColor: '#0ea5e9',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  temp: { fontSize: 64, fontWeight: '700', color: '#ffffff' },
+  condition: { fontSize: 20, color: '#e0f2fe', marginTop: 4 },
+  detail: { fontSize: 14, color: '#bae6fd', marginTop: 8 },
+  forecastCard: {
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e0f2fe',
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 12,
+  },
+  forecastRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  forecastDay: { fontSize: 14, color: '#334155', width: 60 },
+  forecastCondition: { fontSize: 14, color: '#64748b', flex: 1 },
+  forecastTemp: { fontSize: 14, color: '#0f172a', fontWeight: '500' },
+});
+```
+
+### Key Points of This Step
+
+| Concept                | Description                                                                |
+| ---------------------- | -------------------------------------------------------------------------- |
+| `usePageOnLoad`        | Triggered when the page first loads, suitable for initializing data        |
+| `usePageOnShow`        | Triggered each time the page becomes visible, suitable for refreshing data |
+| `getLocation()`        | Imported from `@nebula-rn/client`, calls the host's geolocation capability    |
+| `getStorageItem()`     | Reads key-value storage provided by the host                               |
+| `Miniapp.navigateTo()` | Navigates to another page using the page path                              |
+
+</Step>
+<Step>
+
+## Step 4: City List Page — Navigation Parameters + Storage
+
+Add a second page to demonstrate parameter passing and data sharing between pages.
+
+### Create Page Files
+
+Create `src/pages/city-list/page.config.ts`:
+
+```ts
+import { definePageConfig } from '@nebula-rn/sdk';
+
+export default definePageConfig({
+  route: '/city-list',
+  navigationBarTitleText: 'Select City',
+});
+```
+
+Create `src/pages/city-list/index.tsx`:
+
+```tsx
+import React from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { Miniapp, usePageOnLoad } from '@nebula-rn/sdk';
+import { setStorageItem } from '@nebula-rn/client';
+
+const CITIES = [
+  'Beijing',
+  'Shanghai',
+  'Guangzhou',
+  'Shenzhen',
+  'Hangzhou',
+  'Chengdu',
+  'Wuhan',
+  "Xi'an",
+];
+
+export default function CityListPage(props) {
+  const currentCity = props?.current
+    ? decodeURIComponent(String(props.current))
+    : '';
+
+  usePageOnLoad(params => {
+    console.log('CityListPage loaded, params:', params);
+  });
+
+  const selectCity = async city => {
+    await setStorageItem('selectedCity', city);
+    Miniapp.navigateBack(1);
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>Select City</Text>
+      {CITIES.map(city => (
+        <TouchableOpacity
+          key={city}
+          style={[styles.cityRow, city === currentCity && styles.cityRowActive]}
+          onPress={() => selectCity(city)}
+        >
+          <Text
+            style={[
+              styles.cityText,
+              city === currentCity && styles.cityTextActive,
+            ]}
+          >
+            {city}
+          </Text>
+          {city === currentCity ? (
+            <Text style={styles.checkmark}>✓</Text>
+          ) : null}
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { padding: 20, backgroundColor: '#f8fafc' },
+  title: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 16,
+  },
+  cityRow: {
+    padding: 16,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  cityRowActive: { borderColor: '#0ea5e9', backgroundColor: '#f0f9ff' },
+  cityText: { fontSize: 16, color: '#334155' },
+  cityTextActive: { color: '#0284c7', fontWeight: '600' },
+  checkmark: { fontSize: 18, color: '#0ea5e9' },
+});
+```
+
+### Register the Page
+
+Add to the `pages` array in `app.json`:
+
+```json
+{
+  "appId": "weather-app",
+  "pages": ["home", "city-list"],
+  "entryPagePath": "/home",
+  "window": { "...": "..." }
+}
+```
+
+### Key Points of This Step
+
+| Concept                   | Description                                                     |
+| ------------------------- | --------------------------------------------------------------- |
+| Three steps to add a page | `index.tsx` + `page.config.ts` + register in `app.json`         |
+| Navigation params → props | `?current=Beijing` is automatically injected as `props.current` |
+| `Miniapp.navigateBack(1)` | Return to the previous page                                     |
+| `setStorageItem()`        | Write to key-value storage, sharing data across pages           |
+
+</Step>
+<Step>
+
+## Step 5: Using the Swiper Component
+
+Replace the forecast list on the home page with `Swiper` to demonstrate the usage of `@nebula-rn/components`.
+
+Add the import and replace the forecast area in `src/pages/home/index.tsx`:
+
+```tsx
+import { Swiper, SwiperItem } from '@nebula-rn/components';
+
+<View style={styles.forecastCard}>
+  <Text style={styles.cardTitle}>Forecast</Text>
+  <Swiper
+    style={{ height: 120 }}
+    indicatorDots
+    indicatorColor="#cbd5e1"
+    indicatorActiveColor="#0ea5e9"
+    autoplay={false}
+  >
+    {weather.forecast.map((item, index) => (
+      <SwiperItem key={index}>
+        <View style={styles.swiperCard}>
+          <Text style={styles.swiperDay}>{item.day}</Text>
+          <Text style={styles.swiperTemp}>{item.high}°</Text>
+          <Text style={styles.swiperCondition}>{item.condition}</Text>
+          <Text style={styles.swiperRange}>
+            {item.low}° ~ {item.high}°
+          </Text>
+        </View>
+      </SwiperItem>
+    ))}
+  </Swiper>
+</View>;
+```
+
+### Key Points of This Step
+
+| Concept                 | Description                                              |
+| ----------------------- | -------------------------------------------------------- |
+| `@nebula-rn/components`    | Extended component library provided by Nebula            |
+| `Swiper` / `SwiperItem` | Carousel component supporting indicators, autoplay, etc. |
+
+</Step>
+<Step>
+
+## Step 6: Start the Development Server
+
+Start the development server in the miniapp project:
+
+```bash
+npx nebula miniapp dev
+```
+
+Once the development server starts, the CLI will automatically open the Dev Runner and load the current mini program.
+
+</Step>
+</Steps>
+
+## Knowledge Summary
+
+| Knowledge Point          | Implementation in This Demo                                 |
+| ------------------------ | ----------------------------------------------------------- |
+| **CLI project creation** | `npx nebula create miniapp`                                 |
+| **Project structure**    | `app.json` + `src/pages/` + `page.config.ts`                |
+| **Page triple**          | `index.tsx` + `page.config.ts` + registration in `app.json` |
+| **Lifecycle hooks**      | `usePageOnLoad`, `usePageOnShow`                            |
+| **Host API**             | `getLocation`, `getStorageItem`, `setStorageItem`           |
+| **Page navigation**      | `navigateTo`, `navigateBack`, page paths                    |
+| **Component capability** | `Swiper` + `SwiperItem`                                     |
+| **Development method**   | Standalone development with Dev Runner                      |
+
+## Extra Steps: Open This Demo in a Real Host
+
+If you have completed the Miniapp Demo above and want to further verify its behavior in a real Host, you can continue with the following extra steps.
+
+<Steps>
+<Step>
+
+### Step 7: Create a Host Project
+
+Open another terminal and create a real Host:
+
+```bash
+npx nebula create host weather-host
+cd weather-host
+npm install
+```
+
+This Host will serve as the integration testing environment.
+
+</Step>
+<Step>
+
+### Step 8: Point the Host to This Demo Miniapp
+
+Open `weather-host/App.tsx` and modify the constants used to open the demo mini program to point to your weather mini program:
+
+```ts
+const SAMPLE_MINI_APP_ID = 'weather-app';
+const SAMPLE_MINI_APP_DEV_SERVER_URL = 'http://<your-machine-ip>:8082';
+```
+
+Where:
+
+- `SAMPLE_MINI_APP_ID` must match the `appId` in `weather-miniapp/app.json`
+- `SAMPLE_MINI_APP_DEV_SERVER_URL` should point to the current miniapp dev server
+
+If debugging on the iOS Simulator, you can typically use `localhost`.  
+If debugging on the Android Emulator or a real device, you typically need to change it to your machine's local network IP.
+
+This step means: let the Host know which mini program it should open and where to get the currently developing bundle.
+
+Then, ensure the Host uses `NebulaAPI.openMiniAppWithBundleURL(...)` to open this developing miniapp. You can directly use the following code:
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+
+const openWeatherMiniAppInDevMode = async () => {
+  await NebulaAPI.openMiniAppWithBundleURL(
+    SAMPLE_MINI_APP_ID,
+    SAMPLE_MINI_APP_DEV_SERVER_URL,
+    {},
+    true,
+  );
+};
+```
+
+These parameters represent:
+
+- `SAMPLE_MINI_APP_ID`: The ID of the mini program to open
+- `SAMPLE_MINI_APP_DEV_SERVER_URL`: The current development server address
+- `{}`: No additional initial business parameters to pass
+- `true`: Indicates this is a development-mode mini program connected to Metro; Nebula will automatically complete the actual bundle URL
+
+If you want to bind it to a button, you can write:
+
+```tsx
+<Button
+  title="Open Weather Mini Program (Dev Mode)"
+  onPress={openWeatherMiniAppInDevMode}
+/>
+```
+
+</Step>
+<Step>
+
+### Step 9: Start the Host
+
+Go back to the Host project and start it:
+
+```bash
+cd ../weather-host
+npm run ios
+# or npm run android
+```
+
+Now you have both:
+
+- Dev Runner for rapid iteration
+- Host for real integration testing
+
+</Step>
+<Step>
+
+### Step 10: Open the Weather Demo from the Host
+
+Once the Host starts, click the button you bound on the home page, for example:
+
+- `Open Weather Mini Program (Dev Mode)`
+
+This button calls `NebulaAPI.openMiniAppWithBundleURL(...)`, using the `SAMPLE_MINI_APP_ID` and `SAMPLE_MINI_APP_DEV_SERVER_URL` you configured, automatically synthesizing the development-mode bundle URL and opening the current weather demo mini program.
+
+If everything works normally, you will see:
+
+- You can independently develop the weather demo in Dev Runner
+- You can also open the same weather demo in the real Host
+
+This is one of the most important experiences Nebula offers:
+
+- Miniapp can be developed independently
+- While also being verifiable in a real Host for integration effects
+
+</Step>
+</Steps>
+
+## Next Steps
+
+- [Miniapp Development Guide](/docs/miniapp/development)
+- [Miniapp Directory Structure](/docs/miniapp/directory-structure)
+- [Miniapp Configuration](/docs/miniapp/configuration)
+- [Page Lifecycle](/docs/miniapp/page-lifecycle)

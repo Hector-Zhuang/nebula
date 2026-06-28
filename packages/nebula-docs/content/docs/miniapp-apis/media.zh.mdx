@@ -1,0 +1,157 @@
+---
+title: 媒体 API
+description: 使用 Nebula 媒体 API 进行扫描、选择媒体、预览图片以及压缩资源。
+---
+
+Nebula 提供了一套与媒体相关的宿主 API，涵盖扫描、媒体选择、预览、压缩和保存功能。所有媒体 API 均从 `@nebula-rn/client` 导入。
+
+## 扫描
+
+### scanCode
+
+打开由宿主管理的扫描界面，用于扫描二维码或条形码。如果用户取消操作，该 API 会抛出错误。
+
+```ts
+import { scanCode } from '@nebula-rn/client';
+
+try {
+  const result = await scanCode();
+  console.log('扫描结果：', result.result);
+} catch (error) {
+  console.log('用户取消了扫描');
+}
+```
+
+### scanCodeSafe
+
+一个安全版本，不会抛出错误，而是返回一个带有 `ok` 状态的对象：
+
+```ts
+import { scanCodeSafe } from '@nebula-rn/client';
+
+const result = await scanCodeSafe();
+if (result.ok) {
+  console.log('扫描结果：', result.data.result);
+} else {
+  console.log('扫描失败或已取消：', result.error);
+}
+```
+
+## 媒体选择
+
+### chooseMedia
+
+打开系统相册或相机，让用户选择图片或视频：
+
+```ts
+import { chooseMedia } from '@nebula-rn/client';
+
+const result = await chooseMedia();
+```
+
+## 图片信息
+
+### getImageInfo
+
+获取图片的元数据，例如宽度和高度：
+
+```ts
+import { getImageInfo } from '@nebula-rn/client';
+
+const info = await getImageInfo(imagePath);
+console.log(`${info.width} x ${info.height}`);
+```
+
+## 图片压缩
+
+### compressImage
+
+压缩或调整图片大小：
+
+```ts
+import { compressImage } from '@nebula-rn/client';
+
+const result = await compressImage(imagePath, 80);
+console.log('压缩后的路径：', result.tempFilePath);
+```
+
+## 图片预览
+
+### previewImage
+
+打开全屏图片预览，支持滑动切换：
+
+```ts
+import { previewImage } from '@nebula-rn/client';
+
+await previewImage([
+  'https://example.com/photo1.jpg',
+  'https://example.com/photo2.jpg',
+]);
+```
+
+## 保存到相册
+
+### saveMedia
+
+将图片或视频保存到系统相册中：
+
+```ts
+import { saveMedia } from '@nebula-rn/client';
+
+await saveMedia(filePath, 'image');
+```
+
+## 截图监听
+
+### onUserCaptureScreen
+
+监听用户截图事件：
+
+```ts
+import { onUserCaptureScreen } from '@nebula-rn/client';
+
+const unsubscribe = onUserCaptureScreen(() => {
+  console.log('用户截取了屏幕');
+});
+
+unsubscribe();
+```
+
+## 完整示例
+
+```tsx
+import React, { useState } from 'react';
+import { Button, ScrollView, StyleSheet, Text } from 'react-native';
+import { scanCode, chooseMedia } from '@nebula-rn/client';
+
+export default function MediaDemoPage() {
+  const [scanResult, setScanResult] = useState('');
+
+  const handleScan = async () => {
+    try {
+      const result = await scanCode();
+      setScanResult(result.result);
+    } catch {
+      setScanResult('已取消');
+    }
+  };
+
+  const handleChoosePhoto = async () => {
+    await chooseMedia();
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Button title="扫描二维码" onPress={handleScan} />
+      <Text>扫描结果：{scanResult}</Text>
+
+      <Button title="选择媒体" onPress={handleChoosePhoto} />
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { padding: 20 },
+});
+```

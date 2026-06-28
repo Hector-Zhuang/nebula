@@ -1,0 +1,35 @@
+---
+title: إعداد المضيف
+description: اضبط سلوك وقت تشغيل المضيف عبر NebulaAPI.wrap، بما في ذلك Host APIs وواجهة التحميل وserverBaseURL.
+---
+
+يتمحور إعداد المضيف حول `NebulaAPI.wrap(...)`، وهو نقطة الدخول الأساسية لتوصيل Nebula داخل تطبيق المضيف.
+
+## الحقول الرئيسية
+
+- `hostApis`
+- `miniappLoading`
+- `serverBaseURL`
+
+## مسار التهيئة
+
+```text
+Host App mounts
+  -> NebulaAPI.wrap() runs
+  -> startApiServer()
+  -> register hostApis
+  -> apply host configuration
+  -> host begins serving miniapps
+```
+
+## `hostApis`
+
+يحدد `hostApis` حدود القدرات التي يستطيع التطبيق المصغّر استدعاءها.
+
+## `miniappLoading`
+
+يحدد `miniappLoading` تجربة التحميل التي يملكها المضيف أثناء التثبيت والفتح.
+
+## `serverBaseURL`
+
+في النشر القياسي، يشير `serverBaseURL` عادة إلى خدمة Nebula Cloud.

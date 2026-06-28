@@ -1,0 +1,25 @@
+{
+  "name": "@nebula-rn/host",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "root": "packages/host",
+  "sourceRoot": "packages/host/src",
+  "projectType": "library",
+  "implicitDependencies": ["@nebula-rn/sdk"],
+  "tags": ["scope:shared", "type:host"],
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/host",
+        "command": "npm run typecheck"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/host",
+        "command": "npm run lint"
+      }
+    }
+  }
+}

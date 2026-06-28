@@ -1,0 +1,132 @@
+---
+title: Sensors
+description: Subscribe to accelerometer, gyroscope, magnetometer, and barometer data with Nebula sensor APIs.
+---
+
+Nebula provides four sensor subscription APIs: accelerometer, gyroscope, magnetometer, and barometer.
+
+## Accelerometer
+
+Listen for device acceleration changes:
+
+```ts
+import { onAccelerometerChange } from '@nebula-rn/client';
+
+const unsubscribe = onAccelerometerChange((data) => {
+  console.log(`x: ${data.x}, y: ${data.y}, z: ${data.z}`);
+}, 200); // sampling interval: 200ms
+
+// Stop listening
+unsubscribe();
+```
+
+## Gyroscope
+
+Listen for angular velocity changes:
+
+```ts
+import { onGyroscopeChange } from '@nebula-rn/client';
+
+const unsubscribe = onGyroscopeChange((data) => {
+  console.log(`x: ${data.x}, y: ${data.y}, z: ${data.z}`);
+}, 100);
+
+unsubscribe();
+```
+
+## Magnetometer
+
+Listen for magnetic field intensity:
+
+```ts
+import { onMagnetometerChange } from '@nebula-rn/client';
+
+const unsubscribe = onMagnetometerChange((data) => {
+  console.log(`x: ${data.x}, y: ${data.y}, z: ${data.z}`);
+}, 100);
+
+unsubscribe();
+```
+
+## Barometer
+
+Listen for atmospheric pressure changes:
+
+```ts
+import { onBarometerChange } from '@nebula-rn/client';
+
+const unsubscribe = onBarometerChange((data) => {
+  console.log(`Pressure: ${data.pressure} hPa`);
+});
+
+unsubscribe();
+```
+
+The barometer does not support a custom sampling interval.
+
+## Callback data types
+
+```ts
+// Accelerometer / gyroscope / magnetometer
+type SensorData = {
+  x: number;
+  y: number;
+  z: number;
+  timestamp?: number;
+};
+
+// Barometer
+type BarometerData = {
+  pressure: number;
+};
+```
+
+## Sampling intervals
+
+| Sensor | Default interval | Customizable |
+|--------|---------|---------|
+| Accelerometer | 100ms | Yes |
+| Gyroscope | 100ms | Yes |
+| Magnetometer | 100ms | Yes |
+| Barometer | System default | No |
+
+## Complete example
+
+```tsx
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { onAccelerometerChange } from '@nebula-rn/client';
+
+export default function SensorDemoPage() {
+  const [accel, setAccel] = useState({ x: 0, y: 0, z: 0 });
+
+  useEffect(() => {
+    const unsubscribe = onAccelerometerChange((data) => {
+      setAccel({ x: data.x, y: data.y, z: data.z });
+    }, 200);
+
+    return () => { unsubscribe(); };
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Accelerometer data</Text>
+      <Text>X: {accel.x.toFixed(4)}</Text>
+      <Text>Y: {accel.y.toFixed(4)}</Text>
+      <Text>Z: {accel.z.toFixed(4)}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { padding: 20 },
+  title: { fontSize: 18, fontWeight: '600', marginBottom: 12 },
+});
+```
+
+## Notes
+
+- Sensor subscriptions continuously consume battery, so unsubscribe when no longer needed.
+- Call `unsubscribe()` in the cleanup function of `useEffect` to avoid memory leaks.
+- High-frequency sampling increases CPU and battery cost, so choose intervals carefully.
+- Sensor availability depends on device hardware, and some devices may not support a barometer.

@@ -1,0 +1,133 @@
+---
+title: 基础库与版本兼容
+description: 了解 Nebula 基础库的版本机制和跨版本兼容性处理。
+---
+
+Nebula 基础库（`@nebula-rn/client` 和 `@nebula-rn/sdk`）是小程序开发者的主要 API 表面。由于宿主和小程序的版本可能独立迭代，基础库设计了能力检测和版本兼容机制。
+
+## 基础库包结构
+
+| 包名                 | 角色             | 使用者                        |
+| -------------------- | ---------------- | ----------------------------- |
+| `@nebula-rn/sdk`        | 运行时和协议层   | 宿主 App 开发者、小程序开发者 |
+| `@nebula-rn/client`     | 稳定的小程序 API | 小程序开发者                  |
+| `@nebula-rn/host-apis`  | 官方宿主特性实现 | 宿主 App 开发者               |
+| `@nebula-rn/components` | 跨平台 UI 组件   | 小程序开发者                  |
+
+## 版本兼容机制
+
+### 宿主能力注册
+
+每个宿主 API 在注册时声明版本号：
+
+```ts
+createHostApiFeature({
+  apiName: 'getLocation',
+  version: '1.0',          // API 版本
+  supported: true,
+  handle: async (payload) => { ... },
+});
+```
+
+### 小程序端版本检查
+
+小程序调用 API 时可以指定最低版本要求：
+
+```ts
+const result = await Miniapp.invokeHostApi(
+  'getLocation',
+  {},
+  '1.0', // 最低要求版本
+  5000,
+);
+```
+
+### 能力检测 API
+
+在调用 API 前，小程序可以先检测宿主支持的能力及版本：
+
+```ts
+// 获取宿主所有能力
+const { bridgeVersion, capabilities } = await Miniapp.getCapabilities();
+
+// capabilities 的结构：
+// {
+//   scanCode: { supported: true, version: '1.0' },
+//   getLocation: { supported: true, version: '1.0' },
+//   someNewApi: { supported: false, version: '0.0' },
+// }
+```
+
+```ts
+// 检测特定 API 是否支持指定版本
+const supported = await Miniapp.isSupported('scanCode', '1.0');
+
+if (supported) {
+  const result = await scanCode();
+} else {
+  // 降级处理
+  showUnsupportedTip();
+}
+```
+
+### 获取可用 API 描述
+
+```ts
+// 获取宿主注册的所有 API 及其描述信息
+const descriptions = await Miniapp.getHostApiDescriptions();
+
+// 返回格式:
+// [
+//   {
+//     name: 'scanCode',
+//     version: '1.0',
+//     description: { summary: '扫码', tags: ['camera'] }
+//   },
+//   ...
+// ]
+```
+
+## 版本兼容最佳实践
+
+### 在渲染前检测能力
+
+对于可选功能，在渲染入口按钮前先检测 API 是否可用：
+
+```tsx
+function ScanButton() {
+  const [supported, setSupported] = useState(false);
+
+  useEffect(() => {
+    Miniapp.isSupported('scanCode', '1.0').then(setSupported);
+  }, []);
+
+  if (!supported) return null;
+
+  return <Button onPress={() => scanCode()}>扫一扫</Button>;
+}
+```
+
+### 处理 UNSUPPORTED_API 响应
+
+即使通过了能力检测，仍然要处理运行时的不支持响应：
+
+```ts
+const result = await scanCode();
+
+if (!result.ok && result.error?.code === 'UNSUPPORTED') {
+  // 宿主不支持此 API
+  showFallbackUI();
+}
+```
+
+### 不要假设所有宿主实现所有 API
+
+不同的宿主 App 可能注册了不同的 API 集合。小程序应该：
+
+- 检测后再使用可选 API
+- 对不支持的 API 有明确的降级处理
+- 将核心流程和可选能力解耦
+
+### 版本号比较
+
+Nebula 使用语义化版本进行比较。`isSupported('api', '1.0')` 在宿主声明的版本 >= `1.0` 时返回 `true`。

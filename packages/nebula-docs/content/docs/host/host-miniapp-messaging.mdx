@@ -1,0 +1,126 @@
+---
+title: Host-Miniapp Communication
+description: Understand how to receive miniapp messages, push messages to miniapps from the host side, and when to use Host APIs instead.
+---
+
+This page introduces message communication from the **host developer** perspective.
+
+<Info title="For Miniapp Developers">
+  If you are a miniapp developer, we recommend reading first: [Host
+  Communication](../miniapp/host-communication.mdx)
+</Info>
+
+Nebula provides a lightweight bidirectional messaging mechanism for passing events, state changes, or temporary coordination information between the host and miniapps.  
+It is suitable for "notification-style" communication, not for structured capabilities that require strict governance.
+
+## Two Things the Host Side Cares About
+
+The host side typically only needs to handle two types of actions:
+
+1. Receiving messages from miniapps
+2. Actively pushing messages to miniapps
+
+## Receiving Miniapp Messages
+
+Use `NebulaAPI.addMiniAppMessageListener(...)` to listen for messages sent from miniapps to the host:
+
+```ts
+import { NebulaAPI } from '@nebula-rn/sdk';
+
+const unsubscribe = NebulaAPI.addMiniAppMessageListener(event => {
+  console.log(`Received message from ${event.appId}:`, event.message);
+
+  if (event.message?.type === 'miniapp.checkout') {
+    handleCheckout(event.message.orderId, event.message.amount);
+  }
+});
+```
+
+Callback parameter type:
+
+```ts
+type BridgeMessage = {
+  appId: string;
+  message: Record<string, unknown>;
+  timestamp?: number;
+};
+```
+
+What the host typically needs to do here includes:
+
+- Distinguish the message source by `appId`
+- Dispatch business logic based on `message.type`
+- Perform necessary validation on message content
+- Decide whether to handle directly or delegate to higher-level business modules
+
+## Pushing Messages to Miniapps
+
+Use `NebulaAPI.postMessageToMiniApp(appId, message)`:
+
+```ts
+import { NebulaAPI } from '@nebula-rn/sdk';
+
+await NebulaAPI.postMessageToMiniApp('com.example.weather', {
+  type: 'host.themeChanged',
+  theme: 'dark',
+  ts: Date.now(),
+});
+```
+
+Such messages are typically used for:
+
+- Host login state changes
+- Host theme changes
+- Host network state changes
+- Host triggering a business event that needs to notify the current miniapp
+
+## Recommended Messaging Model
+
+Message communication is more suitable for "event notifications" than "capability invocations".
+
+The recommended mental model is:
+
+- **Message Communication**
+  For notifications, synchronization, broadcasting, and temporary coordination
+- **Host API**
+  For stable, reusable capability calls that require return results
+
+For example:
+
+- "Login state changed"
+  Suitable for messaging
+- "Give me the current location"
+  Suitable for Host API
+- "Host theme switched to dark"
+  Suitable for messaging
+- "Please invoke scan and return the result"
+  Suitable for Host API
+
+## Typical Host Scenarios
+
+### Host Receiving Miniapp Events
+
+```ts
+NebulaAPI.addMiniAppMessageListener(event => {
+  if (event.message?.type === 'miniapp.openNativePage') {
+    navigation.navigate(event.message.page);
+  }
+});
+```
+
+### Host Actively Pushing State Changes
+
+```ts
+await NebulaAPI.postMessageToMiniApp('com.example.app', {
+  type: 'host.authChanged',
+  isLoggedIn: true,
+  userId: 'user-123',
+});
+```
+
+## Important Notes
+
+- Message content must be JSON-serializable objects
+- The host should not directly trust miniapp message content; necessary validation is required
+- If request-response semantics are needed, prefer using Host APIs
+- Listeners should be unsubscribed when no longer needed to avoid duplicate registrations

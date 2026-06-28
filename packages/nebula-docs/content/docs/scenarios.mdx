@@ -1,0 +1,140 @@
+---
+title: Business Scenarios
+description: Understand the business scenarios where Nebula miniapps fit best, and why teams choose them over WebView or fully native delivery.
+---
+
+Nebula is a strong fit when one host app needs to run multiple independent business modules. Each module is developed, deployed, and updated as a separate miniapp without waiting for a host app release.
+
+## Scenario 1: Super app
+
+A useful comparison is a **Uber-style super app**:
+
+```
+Uber (host app)
+├── Uber Ride     ← miniapp
+├── Uber Eats     ← miniapp
+├── Uber Shops    ← miniapp
+├── Activities    ← miniapp
+├── Account       ← miniapp
+└── ...many service miniapps
+```
+
+**Core needs:**
+
+- The host provides a unified entry point and shared capabilities such as payments, location, and login
+- Each business team can develop and release independently without waiting for a host release
+- The host controls permissions and capability boundaries for safety
+- Users do not need to install multiple apps to complete different tasks
+
+**How Nebula helps:**
+
+| Need | Nebula approach |
+|------|-------------|
+| Unified capability surface | Host API registration lets the host define and expose standard APIs |
+| Independent release | Nebula Cloud manages versions so miniapps can upload and release independently |
+| Safety isolation | Sandboxed storage and filesystem isolation keep miniapps separated |
+| Fast startup | Preloading reduces cold-start latency |
+
+## Scenario 2: Enterprise internal platform
+
+Consider a large internal business app with multiple sub-systems:
+
+```
+Enterprise platform (host app)
+├── Warehouse         ← miniapp (built by warehouse team)
+├── Audit system      ← miniapp (built by audit team)
+├── Sales CRM         ← miniapp (built by sales team)
+├── HR                ← miniapp (built by HR team)
+├── Expense system    ← miniapp (built by finance team)
+└── Field inspection  ← miniapp (built by operations team)
+```
+
+**Core needs:**
+
+- Teams should be able to build independently without blocking each other
+- Employees should use one app as a unified entry point
+- The host should provide shared hardware capabilities such as scan, camera, location, and notifications
+- Modules should support staged rollout and fast fixes
+- Business data between modules should remain isolated
+
+**How Nebula helps:**
+
+| Need | Nebula approach |
+|------|-------------|
+| Independent development | Each module can live in its own repo, build, and upload flow |
+| Shared device capabilities | The host exposes scan, camera, and other native features through Host APIs |
+| Separation of test and release | Uploads can first become experience builds before final release |
+| Hotfix support | Update strategies can automatically detect and apply new versions |
+| Data isolation | Every miniapp gets its own sandboxed storage and filesystem |
+
+## Scenario 3: AI-generated apps
+
+A user describes an app in natural language, and an AI chatbot generates and deploys a miniapp:
+
+```
+User: "Build an inventory counting app with scan input and Excel export"
+
+Chatbot:
+  1. Generate React Native page code (scan, list, export)
+  2. Run `nebula miniapp build`
+  3. Run `nebula miniapp upload` to Nebula Cloud
+  4. Let the host discover and load the new miniapp
+
+User opens the host app → the new inventory app is ready
+```
+
+**Core needs:**
+
+- Generated code should compile directly into a runnable miniapp
+- The generate → build → deploy chain should be automated
+- The host should load new miniapps without recompiling or re-releasing
+- Generated apps should still be able to call native capabilities like scan or location
+- Iteration should stay conversational, with the chatbot updating the miniapp over time
+
+**How Nebula helps:**
+
+| Need | Nebula approach |
+|------|-------------|
+| Standard output | Miniapps use React + TypeScript, which is friendly to LLM code generation |
+| Automated deployment | The CLI exposes `build` and `upload` commands that scripts can call |
+| No host release required | The host can install bundles over the air without an app store release |
+| Native capabilities | Host APIs expose scan, filesystem, and similar features to generated apps |
+| Iterative updates | Nebula Cloud manages versions so new uploads can replace earlier ones |
+| Safety boundaries | Sandboxing keeps generated code isolated from the host and other miniapps |
+
+**Typical flow:**
+
+```
+┌──────────┐     ┌──────────┐     ┌─────────────────┐     ┌──────────┐
+│  User     │────▶│ Chatbot  │────▶│ Nebula Cloud │────▶│ Host App  │
+│ (prompt)  │     │ (codegen)│     │ (build/upload)   │     │ (OTA load)│
+└──────────┘     └──────────┘     └─────────────────┘     └──────────┘
+      │                                                         │
+      └────────────── Open the generated miniapp ◀──────────────┘
+```
+
+The key here is Nebula's **dynamic loading model**. The host acts as a reusable container, while business logic lives entirely inside the miniapp. As long as generated code follows the miniapp conventions such as `createMiniAppPage`, `definePageConfig`, and lifecycle hooks, the host can load and run it directly.
+
+## Why not use WebView
+
+Nebula is not a browser shell:
+
+| Dimension | WebView | Nebula |
+|--------|---------|--------|
+| Rendering | Web rendering | React Native rendering |
+| Performance | Limited by browser engine | Close to native performance |
+| Device capabilities | Requires ad-hoc JSBridge work | Unified Host API registration |
+| Page model | SPA or iframe model | Native page stack with preload support |
+| Lifecycle | Coarse events like `visibilitychange` | Fine-grained lifecycle such as `onShow`, `onHide`, and `onReady` |
+| Offline support | Limited | Local bundle cache with offline support |
+
+## Why not put everything in the host
+
+Putting all business logic directly into the host app creates several problems:
+
+- **Release coupling:** any change requires a host release and app store review
+- **Code growth:** every module increases the host binary size
+- **Team blocking:** multiple teams working in one repo create frequent coordination and merge pressure
+- **Rollback difficulty:** you cannot roll back one business module independently
+
+Nebula decouples business modules through a miniapp model: independent repos, independent builds, independent releases, and independent rollbacks, while the host focuses on the container and shared capabilities.

@@ -1,0 +1,39 @@
+{
+  "name": "@superapp/miniapp",
+  "private": true,
+  "version": "0.0.2",
+  "license": "MIT",
+  "description": "Superapp sample miniapp",
+  "author": "Hector Zhuang",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hector-Zhuang/nebula.git"
+  },
+  "dependencies": {
+    "@nebula-rn/client": "*",
+    "@nebula-rn/components": "*",
+    "@nebula-rn/sdk": "*",
+    "@react-native-community/slider": "5.1.2",
+    "@react-native-picker/picker": "2.11.4",
+    "react": "19.2.0",
+    "react-native": "0.83.1",
+    "react-native-maps": "1.26.1",
+    "react-native-safe-area-context": "^5.5.2",
+    "react-native-svg": "^15.3.0",
+    "react-native-webview": "13.16.1"
+  },
+  "scripts": {
+    "dev": "nebula miniapp dev",
+    "build": "nebula miniapp build",
+    "upload": "nebula miniapp upload"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "20.0.0",
+    "@react-native-community/cli-platform-android": "20.0.0",
+    "@react-native-community/cli-platform-ios": "20.0.0",
+    "@react-native/babel-preset": "0.83.1",
+    "@react-native/eslint-config": "0.83.1",
+    "@react-native/metro-config": "0.83.1",
+    "@react-native/typescript-config": "0.83.1"
+  }
+}

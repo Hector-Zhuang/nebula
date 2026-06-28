@@ -1,0 +1,101 @@
+---
+title: Create a Host Project
+description: Use the Nebula CLI to quickly create a new host project and get a runnable host app immediately.
+---
+
+If you are integrating Nebula from scratch, the fastest path is to create a host directly with the CLI.
+
+```bash
+npx nebula create host my-host
+cd my-host
+npm install
+npm run ios
+# or npm run android
+```
+
+This command generates a **runnable host starter** so you can quickly experience:
+
+- how a host opens miniapps
+- how Host APIs are registered
+- how Nebula is wired into a real product shell
+
+## What this host is
+
+This is a real host project. It is not a sample snippet and it is not the Dev Runner.
+
+It is a good starting point for:
+
+- a production business host
+- real integration testing outside the Dev Runner
+- custom Host APIs and native modules
+
+## Create command
+
+```bash
+npx nebula create host <name> [--directory <path>] [--display-name <name>] [--bundle-id <id>]
+```
+
+Examples:
+
+```bash
+npx nebula create host acme-host
+npx nebula create host acme-host --display-name "Acme Host"
+npx nebula create host acme-host --bundle-id com.acme.host
+```
+
+## What gets generated
+
+The host starter usually includes:
+
+- a React Native host shell
+- `@nebula-rn/sdk`
+- `@nebula-rn/host`
+- `@nebula-rn/host-apis`
+- a default `NebulaAPI.wrap(...)` integration
+- host-side entry points and example code
+
+You can think about it like this:
+
+- `@nebula-rn/host`
+  - the native host integration layer
+- the generated project
+  - the place where your team configures and owns the real app
+
+## Why start this way
+
+Using the CLI starter is usually better than copying code manually because it gives you:
+
+- a working baseline
+- the correct native integration shape
+- a clear place to register host capabilities
+- a project you can run immediately on iOS and Android
+
+## `serverBaseURL` and Nebula Cloud
+
+One of the first host settings you will see is `serverBaseURL`.
+
+This is the **Nebula Cloud API base URL** used by the host to:
+
+- resolve install metadata
+- fetch version information
+- check for updates
+- download miniapp bundles
+
+In local demos you may point it to a local or staging server. In production, it should point to your real Nebula Cloud service or your compatible self-hosted backend.
+
+## Typical next steps
+
+After creating the host, teams usually continue with these steps:
+
+1. Start the host and confirm the shell runs
+2. Register the default Host APIs from `@nebula-rn/host-apis`
+3. Create a miniapp with `npx nebula create miniapp`
+4. Open that miniapp from the host for local integration testing
+5. Connect the host to Nebula Cloud for install and update flows
+
+## Related pages
+
+- [Overview](./overview.mdx)
+- [Mini-app Development Guide](../miniapp/development.mdx)
+- [Integrate into an existing RN app](./integration.mdx)
+- [Quickstart Demo](./quickstart-demo.mdx)

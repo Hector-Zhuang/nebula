@@ -1,0 +1,1054 @@
+---
+title: '@nebula-rn/client'
+description: 'Nebula 小程序端 API 参考，提供设备、媒体、存储、网络、传感器等能力的详细接口文档。'
+---
+
+`@nebula-rn/client` 是小程序开发者的主要 API 包，提供对宿主能力的稳定调用接口。所有 API 通过 Nebula 协议层与宿主通信。
+
+---
+
+## 扫码
+
+### scanCode(options?)
+
+打开宿主管理的扫码界面，返回扫码结果。扫码成功后自动关闭界面并返回数据；如果失败则抛出异常。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function scanCode(options?: ScanCodeOptions): Promise<ScanCodeData>;
+```
+
+**参数 `ScanCodeOptions`：**
+
+| 参数             | 类型       | 必填 | 默认值                         | 描述                                             |
+| ---------------- | ---------- | ---- | ------------------------------ | ------------------------------------------------ |
+| `scanType`       | `string[]` | 否   | `['qr', 'ean-13', 'code-128']` | 要识别的码类型列表。                             |
+| `onlyFromCamera` | `boolean`  | 否   | `false`                        | 设为 `true` 时仅使用相机扫码，不允许从相册选取。 |
+
+**返回值 `ScanCodeData`：**
+
+| 字段       | 类型                  | 描述                                                     |
+| ---------- | --------------------- | -------------------------------------------------------- |
+| `result`   | `string \| undefined` | 扫码内容字符串。                                         |
+| `scanType` | `string`              | 识别到的码类型，如 `'QR_CODE'`。未识别时为 `'unknown'`。 |
+| `rawData`  | `unknown`             | 原始扫码数据。                                           |
+
+**超时：** 120000ms
+
+**错误码：**
+
+| 错误码               | 描述                     |
+| -------------------- | ------------------------ |
+| `PERMISSION_DENIED`  | 相机权限未授权。         |
+| `USER_CANCELLED`     | 用户主动关闭了扫码界面。 |
+| `UNSUPPORTED_SOURCE` | 请求的扫码来源不可用。   |
+| `SCAN_FAILED`        | 扫码过程发生错误。       |
+
+### scanCodeSafe(options?)
+
+与 `scanCode` 功能相同，但不会抛出异常，而是返回 Result 类型。适合需要在调用处统一处理成功和失败的场景。
+
+```ts
+function scanCodeSafe(options?: ScanCodeOptions): Promise<ScanCodeResult>;
+```
+
+**返回值 `ScanCodeResult`：**
+
+```ts
+// 成功
+{ ok: true, data: ScanCodeData }
+
+// 失败
+{ ok: false, error: { code: ScanCodeErrorCode, message: string } }
+```
+
+---
+
+## 媒体
+
+### chooseMedia(options?)
+
+从相册或相机选择图片/视频文件。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function chooseMedia(options?: ChooseMediaOption): Promise<ChooseMediaResult>;
+```
+
+**参数 `ChooseMediaOption`：**
+
+| 参数          | 类型                              | 必填 | 默认值                       | 描述                                                 |
+| ------------- | --------------------------------- | ---- | ---------------------------- | ---------------------------------------------------- |
+| `count`       | `number`                          | 否   | `9`                          | 最多可选择的文件数量。                               |
+| `mediaType`   | `('image' \| 'video' \| 'mix')[]` | 否   | `['image', 'video']`         | 允许的媒体类型。                                     |
+| `sourceType`  | `('album' \| 'camera')[]`         | 否   | `['album', 'camera']`        | 文件来源。仅包含 `'camera'` 时直接打开相机。         |
+| `maxDuration` | `number`                          | 否   | `10`                         | 录制视频的最大时长（秒）。                           |
+| `sizeType`    | `('original' \| 'compressed')[]`  | 否   | `['original', 'compressed']` | 图片尺寸类型。包含 `'compressed'` 时质量压缩为 0.8。 |
+| `camera`      | `'back' \| 'front'`               | 否   | `'back'`                     | 默认使用的摄像头方向。                               |
+
+**返回值 `ChooseMediaResult`：**
+
+| 字段        | 类型                          | 描述                 |
+| ----------- | ----------------------------- | -------------------- |
+| `tempFiles` | `ChooseMediaFile[]`           | 选择的文件列表。     |
+| `type`      | `'image' \| 'video' \| 'mix'` | 实际选择的媒体类型。 |
+
+**`ChooseMediaFile` 结构：**
+
+| 字段                | 类型                 | 描述                     |
+| ------------------- | -------------------- | ------------------------ |
+| `tempFilePath`      | `string`             | 文件的临时本地路径。     |
+| `size`              | `number`             | 文件大小（字节）。       |
+| `fileType`          | `'image' \| 'video'` | 文件类型。               |
+| `duration`          | `number`             | （可选）视频时长（秒）。 |
+| `width`             | `number`             | （可选）宽度（像素）。   |
+| `height`            | `number`             | （可选）高度（像素）。   |
+| `thumbTempFilePath` | `string`             | （可选）视频缩略图路径。 |
+
+**超时：** 120000ms
+
+### previewImages(options)
+
+打开全屏图片预览界面，支持多图浏览和保存。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function previewImages(options: PreviewImageOptions): Promise<void>;
+```
+
+**参数 `PreviewImageOptions`：**
+
+| 参数            | 类型       | 必填 | 默认值    | 描述                    |
+| --------------- | ---------- | ---- | --------- | ----------------------- |
+| `urls`          | `string[]` | 是   | -         | 要预览的图片 URL 列表。 |
+| `current`       | `string`   | 否   | `urls[0]` | 当前显示的图片 URL。    |
+| `showMenu`      | `boolean`  | 否   | `false`   | 是否显示保存/分享菜单。 |
+| `saveMediaText` | `string`   | 否   | -         | 自定义保存按钮文案。    |
+| `cancelText`    | `string`   | 否   | -         | 自定义取消按钮文案。    |
+
+**超时：** 120000ms
+
+### getImageInfo(option)
+
+获取图片尺寸、类型等信息。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getImageInfo(
+  option: GetImageInfoOption,
+): Promise<GetImageInfoSuccessResult>;
+```
+
+**参数 `GetImageInfoOption`：**
+
+| 参数  | 类型     | 必填 | 描述             |
+| ----- | -------- | ---- | ---------------- |
+| `src` | `string` | 是   | 图片路径或 URL。 |
+
+**返回值 `GetImageInfoSuccessResult`：**
+
+| 字段          | 类型     | 描述               |
+| ------------- | -------- | ------------------ |
+| `width`       | `number` | 图片宽度（像素）。 |
+| `height`      | `number` | 图片高度（像素）。 |
+| `path`        | `string` | 图片本地路径。     |
+| `orientation` | `string` | 图片方向。         |
+| `type`        | `string` | 图片格式。         |
+
+### compressImage(options)
+
+压缩和缩放图片，输出 JPEG 格式。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function compressImage(options: CompressImageOption): Promise<string>;
+```
+
+**参数 `CompressImageOption`：**
+
+| 参数               | 类型     | 必填 | 默认值 | 描述                           |
+| ------------------ | -------- | ---- | ------ | ------------------------------ |
+| `src`              | `string` | 是   | -      | 源图片路径。                   |
+| `quality`          | `number` | 否   | `80`   | 压缩质量（0-100）。            |
+| `compressedWidth`  | `number` | 否   | `0`    | 目标宽度。`0` 表示按比例缩放。 |
+| `compressedHeight` | `number` | 否   | `0`    | 目标高度。`0` 表示按比例缩放。 |
+
+**返回值：** `Promise<string>` — 压缩后的图片路径。
+
+### saveMedia(url, type, options?)
+
+保存图片或视频到系统相册。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function saveMedia(
+  url: string,
+  type: MediaType,
+  options?: SaveMediaOptions,
+): Promise<string>;
+```
+
+**参数：**
+
+| 参数            | 类型                 | 必填 | 描述                   |
+| --------------- | -------------------- | ---- | ---------------------- |
+| `url`           | `string`             | 是   | 要保存的媒体文件路径。 |
+| `type`          | `'photo' \| 'video'` | 是   | 媒体类型。             |
+| `options.album` | `string`             | 否   | 目标相册名称。         |
+
+**返回值：** `Promise<string>` — 保存后的系统资源 URI。
+
+---
+
+## 位置
+
+### getLocation(options?)
+
+获取当前设备地理位置。
+
+| 平台    | 支持 | 备注                                                                         |
+| ------- | ---- | ---------------------------------------------------------------------------- |
+| iOS     | ✅   | 需要在 Info.plist 中配置位置权限。                                           |
+| Android | ✅   | 首次调用时自动请求 `ACCESS_FINE_LOCATION` 或 `ACCESS_COARSE_LOCATION` 权限。 |
+
+```ts
+function getLocation(options?: GetLocationOption): Promise<GetLocationResult>;
+```
+
+**参数 `GetLocationOption`：**
+
+| 参数                     | 类型      | 必填 | 默认值  | 描述                         |
+| ------------------------ | --------- | ---- | ------- | ---------------------------- |
+| `altitude`               | `boolean` | 否   | `false` | 是否请求海拔数据。           |
+| `isHighAccuracy`         | `boolean` | 否   | `false` | 是否使用高精度定位。         |
+| `highAccuracyExpireTime` | `number`  | 否   | `10000` | 高精度定位超时时间（毫秒）。 |
+
+**返回值 `GetLocationResult`：**
+
+| 字段                 | 类型     | 描述                 |
+| -------------------- | -------- | -------------------- |
+| `latitude`           | `number` | 纬度（-90 ~ 90）。   |
+| `longitude`          | `number` | 经度（-180 ~ 180）。 |
+| `speed`              | `number` | 速度（米/秒）。      |
+| `accuracy`           | `number` | 精度（米）。         |
+| `altitude`           | `number` | 海拔（米）。         |
+| `verticalAccuracy`   | `number` | 垂直精度（米）。     |
+| `horizontalAccuracy` | `number` | 水平精度（米）。     |
+
+### onLocationChange(enableHighAccuracy, onSuccess, onError?)
+
+订阅位置变化事件，持续接收位置更新。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function onLocationChange(
+  enableHighAccuracy: boolean,
+  onSuccess: (data: LocationData) => void,
+  onError?: (error: unknown) => void,
+): () => void;
+```
+
+**参数：**
+
+| 参数                 | 类型                           | 必填 | 默认值 | 描述                                                         |
+| -------------------- | ------------------------------ | ---- | ------ | ------------------------------------------------------------ |
+| `enableHighAccuracy` | `boolean`                      | 否   | `true` | 是否启用高精度。                                             |
+| `onSuccess`          | `(data: LocationData) => void` | 是   | -      | 每次位置更新时调用的回调。接收 `LocationData` 对象作为参数。 |
+| `onError`            | `(error: unknown) => void`     | 否   | -      | 位置获取失败时调用的回调。                                   |
+
+**回调参数 `LocationData`：**
+
+| 字段        | 类型             | 描述                               |
+| ----------- | ---------------- | ---------------------------------- |
+| `latitude`  | `number`         | 纬度。                             |
+| `longitude` | `number`         | 经度。                             |
+| `accuracy`  | `number`         | 精度（米）。                       |
+| `altitude`  | `number \| null` | 海拔（米），不可用时为 `null`。    |
+| `speed`     | `number \| null` | 速度（米/秒），不可用时为 `null`。 |
+| `timestamp` | `number`         | 时间戳。                           |
+
+**返回值：** `() => void` — 调用此函数取消订阅。
+
+---
+
+## 存储
+
+### setStorage(options)
+
+将数据写入本地键值存储。值会被序列化为 JSON 字符串。底层使用 MMKV 存储引擎。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function setStorage(options: SetStorageOption): Promise<void>;
+```
+
+**参数 `SetStorageOption`：**
+
+| 参数   | 类型      | 必填 | 描述                                   |
+| ------ | --------- | ---- | -------------------------------------- |
+| `key`  | `string`  | 是   | 存储键名。                             |
+| `data` | `unknown` | 是   | 要存储的数据，任何可 JSON 序列化的值。 |
+
+### getStorage\<T\>(key)
+
+从本地存储读取数据。值会从 JSON 字符串反序列化为原始类型。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getStorage<T>(key: string): Promise<T>;
+```
+
+**参数：**
+
+| 参数  | 类型     | 必填 | 描述       |
+| ----- | -------- | ---- | ---------- |
+| `key` | `string` | 是   | 存储键名。 |
+
+**返回值：** `Promise<T>` — 反序列化后的数据。
+
+**异常：** 键不存在时抛出 `Error`，message 为 `'getStorage:fail data not found'`。
+
+### getStorageInfo()
+
+获取当前存储的使用信息。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getStorageInfo(): Promise<GetStorageInfoResult>;
+```
+
+**返回值 `GetStorageInfoResult`：**
+
+| 字段          | 类型       | 描述                                |
+| ------------- | ---------- | ----------------------------------- |
+| `keys`        | `string[]` | 当前存储中的所有键名。              |
+| `currentSize` | `number`   | 当前已用存储大小（KB）。            |
+| `limitSize`   | `number`   | 存储上限，固定为 `10240`（10 MB）。 |
+
+---
+
+## 设备
+
+### getSystemInfo()
+
+获取设备硬件、屏幕尺寸和安全区域等系统信息。
+
+| 平台    | 支持 | 备注                                            |
+| ------- | ---- | ----------------------------------------------- |
+| iOS     | ✅   | 状态栏高度通过 safe-area insets 计算。          |
+| Android | ✅   | 状态栏高度通过 `StatusBar.currentHeight` 获取。 |
+
+```ts
+function getSystemInfo(): Promise<SystemInfo>;
+```
+
+**返回值 `SystemInfo`：**
+
+| 字段                | 类型                        | 描述                                              |
+| ------------------- | --------------------------- | ------------------------------------------------- |
+| `brand`             | `string`                    | 设备品牌。                                        |
+| `model`             | `string`                    | 设备型号。                                        |
+| `pixelRatio`        | `number`                    | 屏幕像素密度。                                    |
+| `screenWidth`       | `number`                    | 屏幕宽度（像素）。                                |
+| `screenHeight`      | `number`                    | 屏幕高度（像素）。                                |
+| `windowWidth`       | `number`                    | 可用窗口宽度。                                    |
+| `windowHeight`      | `number`                    | 可用窗口高度。                                    |
+| `statusBarHeight`   | `number`                    | 状态栏高度。                                      |
+| `safeArea`          | `SafeArea`                  | 安全区域信息。                                    |
+| `system`            | `string`                    | 操作系统及版本，如 `'ios 17.0'`、`'android 14'`。 |
+| `platform`          | `string`                    | 平台标识：`'ios'` 或 `'android'`。                |
+| `fontSizeSetting`   | `number`                    | 系统字体缩放比例。                                |
+| `deviceOrientation` | `'portrait' \| 'landscape'` | 当前设备方向。                                    |
+
+**`SafeArea` 结构：**
+
+| 字段     | 类型     | 描述             |
+| -------- | -------- | ---------------- |
+| `left`   | `number` | 安全区域左边距。 |
+| `right`  | `number` | 安全区域右边距。 |
+| `top`    | `number` | 安全区域上边距。 |
+| `bottom` | `number` | 安全区域下边距。 |
+| `width`  | `number` | 安全区域宽度。   |
+| `height` | `number` | 安全区域高度。   |
+
+### getAppBaseInfo()
+
+获取宿主应用的基础信息。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getAppBaseInfo(): Promise<AppBaseInfo>;
+```
+
+**返回值 `AppBaseInfo`：**
+
+| 字段          | 类型      | 描述                               |
+| ------------- | --------- | ---------------------------------- |
+| `version`     | `string`  | 设备操作系统版本。                 |
+| `language`    | `string`  | 语言设置。                         |
+| `enableDebug` | `boolean` | 是否为调试模式（对应 `__DEV__`）。 |
+| `theme`       | `string`  | 当前主题，目前固定为 `'light'`。   |
+
+### getScreenBrightness()
+
+获取当前屏幕亮度。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getScreenBrightness(): Promise<number>;
+```
+
+**返回值：** `Promise<number>` — 亮度值，范围 0（最暗）到 1（最亮）。
+
+### makePhoneCall(phoneNumber)
+
+调起系统拨号界面。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function makePhoneCall(phoneNumber: string): Promise<boolean>;
+```
+
+**参数：**
+
+| 参数          | 类型     | 必填 | 描述               |
+| ------------- | -------- | ---- | ------------------ |
+| `phoneNumber` | `string` | 是   | 要拨打的电话号码。 |
+
+**返回值：** `Promise<boolean>` — 是否成功调起拨号界面。
+
+---
+
+## 剪贴板
+
+### getClipboardData()
+
+读取系统剪贴板中的文本内容。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getClipboardData(): Promise<string>;
+```
+
+**返回值：** `Promise<string>` — 剪贴板中的文本内容。
+
+### setClipboardData(data)
+
+将文本写入系统剪贴板。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function setClipboardData(data: string): Promise<void>;
+```
+
+**参数：**
+
+| 参数   | 类型     | 必填 | 描述                 |
+| ------ | -------- | ---- | -------------------- |
+| `data` | `string` | 是   | 要写入剪贴板的文本。 |
+
+---
+
+## 文件传输
+
+### downloadFile(options)
+
+下载文件到本地临时路径。返回一个 Task 对象，支持中止下载和监听进度。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function downloadFile(options: DownloadFileOption): DownloadTask;
+```
+
+**参数 `DownloadFileOption`：**
+
+| 参数       | 类型                     | 必填 | 默认值  | 描述                                   |
+| ---------- | ------------------------ | ---- | ------- | -------------------------------------- |
+| `url`      | `string`                 | 是   | -       | 下载地址。                             |
+| `header`   | `Record<string, string>` | 否   | -       | 自定义 HTTP 请求头。                   |
+| `timeout`  | `number`                 | 否   | `60000` | 超时时间（毫秒）。                     |
+| `filePath` | `string`                 | 否   | -       | 指定保存路径。不指定时保存到临时目录。 |
+
+**返回值 `DownloadTask`：**
+
+`DownloadTask` 同时是 Promise 和 Task 对象，可以 `await` 获取结果，也可以调用方法控制下载。
+
+| 方法                           | 描述                               |
+| ------------------------------ | ---------------------------------- |
+| `abort()`                      | 中止下载。返回 `Promise<void>`。   |
+| `onProgressUpdate(callback)`   | 注册下载进度回调。回调参数见下表。 |
+| `offProgressUpdate(callback)`  | 取消已注册的进度回调。             |
+| `onHeadersReceived(callback)`  | 注册响应头接收回调。               |
+| `offHeadersReceived(callback)` | 取消已注册的响应头回调。           |
+
+**进度回调参数 `DownloadProgressRes`：**
+
+| 字段                        | 类型     | 描述                |
+| --------------------------- | -------- | ------------------- |
+| `progress`                  | `number` | 下载进度（0-100）。 |
+| `totalBytesWritten`         | `number` | 已下载字节数。      |
+| `totalBytesExpectedToWrite` | `number` | 预期总字节数。      |
+
+**最终返回值 `DownloadFileResult`：**
+
+| 字段           | 类型     | 描述                 |
+| -------------- | -------- | -------------------- |
+| `tempFilePath` | `string` | 下载文件的本地路径。 |
+| `statusCode`   | `number` | HTTP 状态码。        |
+
+### uploadFile(options)
+
+上传本地文件到服务器。返回一个 Task 对象，支持中止上传和监听进度。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function uploadFile(options: UploadFileOption): UploadTask;
+```
+
+**参数 `UploadFileOption`：**
+
+| 参数       | 类型                     | 必填 | 描述                       |
+| ---------- | ------------------------ | ---- | -------------------------- |
+| `url`      | `string`                 | 是   | 上传目标 URL。             |
+| `filePath` | `string`                 | 是   | 要上传的本地文件路径。     |
+| `name`     | `string`                 | 是   | 文件对应的表单字段名。     |
+| `header`   | `Record<string, string>` | 否   | 自定义 HTTP 请求头。       |
+| `formData` | `Record<string, string>` | 否   | 随文件一起提交的表单数据。 |
+
+**返回值 `UploadTask`：**
+
+与 `DownloadTask` 结构一致，支持 `abort()`、`onProgressUpdate()`、`onHeadersReceived()` 等方法。
+
+**进度回调参数 `UploadProgressRes`：**
+
+| 字段                       | 类型     | 描述                |
+| -------------------------- | -------- | ------------------- |
+| `progress`                 | `number` | 上传进度（0-100）。 |
+| `totalBytesSent`           | `number` | 已上传字节数。      |
+| `totalBytesExpectedToSend` | `number` | 预期总字节数。      |
+
+**最终返回值 `UploadFileResult`：**
+
+| 字段         | 类型     | 描述           |
+| ------------ | -------- | -------------- |
+| `data`       | `string` | 服务器响应体。 |
+| `statusCode` | `number` | HTTP 状态码。  |
+
+### removeFile(options)
+
+删除沙箱中的文件。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function removeFile(options: { filePath: string }): Promise<void>;
+```
+
+**参数：**
+
+| 参数       | 类型     | 必填 | 描述               |
+| ---------- | -------- | ---- | ------------------ |
+| `filePath` | `string` | 是   | 要删除的文件路径。 |
+
+**异常：** 文件不存在时抛出 `FILE_NOT_FOUND` 错误。
+
+---
+
+## 文件系统
+
+### getFileSystemManager()
+
+获取文件系统管理器单例，提供完整的沙箱文件操作能力。所有文件路径均相对于小程序沙箱目录自动解析。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getFileSystemManager(): FileSystemManager;
+```
+
+#### FileSystemManager.access(options)
+
+检查文件或目录是否存在。存在时 resolve，不存在时 reject 并返回 `FILE_NOT_FOUND` 错误。
+
+```ts
+access(options: { path: string }): Promise<void>
+```
+
+| 参数   | 类型     | 必填 | 描述                     |
+| ------ | -------- | ---- | ------------------------ |
+| `path` | `string` | 是   | 要检查的文件或目录路径。 |
+
+#### FileSystemManager.readFile(options)
+
+读取文件内容。
+
+```ts
+readFile(options: FileReadOption): Promise<{ data: string }>
+```
+
+| 参数       | 类型                            | 必填 | 默认值   | 描述                   |
+| ---------- | ------------------------------- | ---- | -------- | ---------------------- |
+| `filePath` | `string`                        | 是   | -        | 文件路径。             |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | 否   | `'utf8'` | 文件编码。             |
+| `position` | `number`                        | 否   | -        | 读取起始位置（字节）。 |
+| `length`   | `number`                        | 否   | -        | 读取长度（字节）。     |
+
+#### FileSystemManager.writeFile(options)
+
+写入文件。如果文件已存在会被覆盖。
+
+```ts
+writeFile(options: FileWriteOption): Promise<void>
+```
+
+| 参数       | 类型                            | 必填 | 默认值   | 描述           |
+| ---------- | ------------------------------- | ---- | -------- | -------------- |
+| `filePath` | `string`                        | 是   | -        | 文件路径。     |
+| `data`     | `string`                        | 是   | -        | 要写入的内容。 |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | 否   | `'utf8'` | 文件编码。     |
+
+#### FileSystemManager.appendFile(options)
+
+追加内容到文件末尾。
+
+```ts
+appendFile(options: { filePath: string; data: string; encoding?: string }): Promise<void>
+```
+
+| 参数       | 类型                            | 必填 | 默认值   | 描述           |
+| ---------- | ------------------------------- | ---- | -------- | -------------- |
+| `filePath` | `string`                        | 是   | -        | 文件路径。     |
+| `data`     | `string`                        | 是   | -        | 要追加的内容。 |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | 否   | `'utf8'` | 文件编码。     |
+
+#### FileSystemManager.copyFile(options)
+
+复制文件。
+
+```ts
+copyFile(options: { srcPath: string; destPath: string }): Promise<void>
+```
+
+| 参数       | 类型     | 必填 | 描述           |
+| ---------- | -------- | ---- | -------------- |
+| `srcPath`  | `string` | 是   | 源文件路径。   |
+| `destPath` | `string` | 是   | 目标文件路径。 |
+
+#### FileSystemManager.rename(options)
+
+重命名或移动文件/目录。
+
+```ts
+rename(options: { oldPath: string; newPath: string }): Promise<void>
+```
+
+| 参数      | 类型     | 必填 | 描述     |
+| --------- | -------- | ---- | -------- |
+| `oldPath` | `string` | 是   | 原路径。 |
+| `newPath` | `string` | 是   | 新路径。 |
+
+#### FileSystemManager.unlink(options)
+
+删除文件。
+
+```ts
+unlink(options: { filePath: string }): Promise<void>
+```
+
+| 参数       | 类型     | 必填 | 描述               |
+| ---------- | -------- | ---- | ------------------ |
+| `filePath` | `string` | 是   | 要删除的文件路径。 |
+
+#### FileSystemManager.mkdir(options)
+
+创建目录。
+
+```ts
+mkdir(options: { dirPath: string; recursive?: boolean }): Promise<void>
+```
+
+| 参数        | 类型      | 必填 | 默认值  | 描述                 |
+| ----------- | --------- | ---- | ------- | -------------------- |
+| `dirPath`   | `string`  | 是   | -       | 目录路径。           |
+| `recursive` | `boolean` | 否   | `false` | 是否递归创建父目录。 |
+
+#### FileSystemManager.rmdir(options)
+
+删除目录。
+
+```ts
+rmdir(options: { dirPath: string; recursive?: boolean }): Promise<void>
+```
+
+| 参数        | 类型      | 必填 | 默认值  | 描述                 |
+| ----------- | --------- | ---- | ------- | -------------------- |
+| `dirPath`   | `string`  | 是   | -       | 目录路径。           |
+| `recursive` | `boolean` | 否   | `false` | 是否递归删除子内容。 |
+
+#### FileSystemManager.readdir(options)
+
+列出目录中的文件和子目录。
+
+```ts
+readdir(options: { dirPath: string }): Promise<{ files: string[] }>
+```
+
+| 参数      | 类型     | 必填 | 描述       |
+| --------- | -------- | ---- | ---------- |
+| `dirPath` | `string` | 是   | 目录路径。 |
+
+#### FileSystemManager.saveFile(options)
+
+将临时文件保存到沙箱。不指定 `filePath` 时自动使用时间戳命名。
+
+```ts
+saveFile(options: { tempFilePath: string; filePath?: string }): Promise<{ savedFilePath: string }>
+```
+
+| 参数           | 类型     | 必填 | 描述                             |
+| -------------- | -------- | ---- | -------------------------------- |
+| `tempFilePath` | `string` | 是   | 临时文件路径。                   |
+| `filePath`     | `string` | 否   | 目标保存路径。不指定时自动生成。 |
+
+#### FileSystemManager.getFileInfo(options)
+
+获取文件大小和哈希摘要。
+
+```ts
+getFileInfo(options: GetFileInfoOption): Promise<GetFileInfoResult>
+```
+
+| 参数              | 类型                          | 必填 | 默认值  | 描述       |
+| ----------------- | ----------------------------- | ---- | ------- | ---------- |
+| `filePath`        | `string`                      | 是   | -       | 文件路径。 |
+| `digestAlgorithm` | `'md5' \| 'sha1' \| 'sha256'` | 否   | `'md5'` | 摘要算法。 |
+
+**返回值 `GetFileInfoResult`：**
+
+| 字段     | 类型     | 描述               |
+| -------- | -------- | ------------------ |
+| `size`   | `number` | 文件大小（字节）。 |
+| `digest` | `string` | 文件哈希摘要。     |
+
+---
+
+## 网络
+
+### getNetworkType()
+
+获取当前网络连接类型。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getNetworkType(): Promise<string>;
+```
+
+**返回值：** `Promise<string>` — 网络类型，如 `'wifi'`、`'cellular'`、`'none'`、`'unknown'`。
+
+### onNetworkStatusChange(callback)
+
+订阅网络状态变化事件。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function onNetworkStatusChange(
+  callback: (res: NetworkStatusChangeResult) => void,
+): () => void;
+```
+
+**参数：**
+
+| 参数       | 类型                                       | 必填 | 描述                                                                           |
+| ---------- | ------------------------------------------ | ---- | ------------------------------------------------------------------------------ |
+| `callback` | `(res: NetworkStatusChangeResult) => void` | 是   | 网络状态变化时调用的回调。接收包含 `isConnected` 和 `networkType` 字段的对象。 |
+
+**回调参数 `NetworkStatusChangeResult`：**
+
+| 字段          | 类型      | 描述                                              |
+| ------------- | --------- | ------------------------------------------------- |
+| `isConnected` | `boolean` | 当前是否有网络连接。                              |
+| `networkType` | `string`  | 网络类型（`'wifi'`、`'cellular'`、`'none'` 等）。 |
+
+**返回值：** `() => void` — 调用此函数取消订阅。
+
+---
+
+## 传感器
+
+所有传感器 API 均返回取消订阅函数。订阅后持续接收数据更新，直到调用取消函数。
+
+### onAccelerometerChange(callback, interval?)
+
+订阅加速度计数据变化。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function onAccelerometerChange(
+  callback: (data: SensorData) => void,
+  interval?: number,
+): () => void;
+```
+
+**参数：**
+
+| 参数       | 类型                         | 必填 | 默认值 | 描述                                                                |
+| ---------- | ---------------------------- | ---- | ------ | ------------------------------------------------------------------- |
+| `callback` | `(data: SensorData) => void` | 是   | -      | 每次数据更新时调用的回调。接收包含 `x`、`y`、`z` 轴加速度值的对象。 |
+| `interval` | `number`                     | 否   | `100`  | 数据采样间隔（毫秒）。                                              |
+
+**回调参数 `SensorData`：**
+
+| 字段        | 类型     | 描述             |
+| ----------- | -------- | ---------------- |
+| `x`         | `number` | X 轴数值。       |
+| `y`         | `number` | Y 轴数值。       |
+| `z`         | `number` | Z 轴数值。       |
+| `timestamp` | `number` | （可选）时间戳。 |
+
+**返回值：** `() => void` — 调用此函数取消订阅。
+
+### onGyroscopeChange(callback, interval?)
+
+订阅陀螺仪数据变化。参数和返回值结构与 `onAccelerometerChange` 一致。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function onGyroscopeChange(
+  callback: (data: SensorData) => void,
+  interval?: number,
+): () => void;
+```
+
+### onMagnetometerChange(callback, interval?)
+
+订阅磁力计数据变化。参数和返回值结构与 `onAccelerometerChange` 一致。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function onMagnetometerChange(
+  callback: (data: SensorData) => void,
+  interval?: number,
+): () => void;
+```
+
+### onBarometerChange(callback)
+
+订阅气压计数据变化。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function onBarometerChange(callback: (data: BarometerData) => void): () => void;
+```
+
+**参数：**
+
+| 参数       | 类型                            | 必填 | 描述                                                       |
+| ---------- | ------------------------------- | ---- | ---------------------------------------------------------- |
+| `callback` | `(data: BarometerData) => void` | 是   | 每次数据更新时调用的回调。接收包含 `pressure` 字段的对象。 |
+
+**回调参数 `BarometerData`：**
+
+| 字段       | 类型     | 描述       |
+| ---------- | -------- | ---------- |
+| `pressure` | `number` | 大气压强。 |
+
+**返回值：** `() => void` — 调用此函数取消订阅。
+
+---
+
+## 截屏监听
+
+### onUserCaptureScreen(callback)
+
+监听用户截屏事件。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function onUserCaptureScreen(callback: () => void): () => void;
+```
+
+**参数：**
+
+| 参数       | 类型         | 必填 | 描述                   |
+| ---------- | ------------ | ---- | ---------------------- |
+| `callback` | `() => void` | 是   | 用户截屏时调用的回调。 |
+
+**返回值：** `() => void` — 调用此函数取消监听。
+
+---
+
+## 小程序更新
+
+### getMiniAppUpdateInfo()
+
+检查当前小程序是否有可用更新。不需要传入参数，自动使用当前运行的小程序 `appId`。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function getMiniAppUpdateInfo(): Promise<MiniAppUpdateInfo>;
+```
+
+**返回值 `MiniAppUpdateInfo`：**
+
+| 字段            | 类型                                         | 描述                   |
+| --------------- | -------------------------------------------- | ---------------------- |
+| `hasUpdate`     | `boolean`                                    | 是否有可用更新。       |
+| `latestVersion` | `string \| undefined`                        | 最新版本号。           |
+| `sourceUrl`     | `string \| undefined`                        | 新 bundle 的下载地址。 |
+| `mode`          | `'development' \| 'production' \| undefined` | 当前安装态。           |
+
+**超时：** 15000ms
+
+### applyMiniAppUpdate()
+
+下载并安装最新版本的 bundle。通常在 `getMiniAppUpdateInfo()` 确认有更新后调用。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```ts
+function applyMiniAppUpdate(): Promise<MiniAppUpdateInfo>;
+```
+
+**返回值：** 与 `getMiniAppUpdateInfo` 相同的 `MiniAppUpdateInfo` 对象，反映更新后的状态。
+
+**超时：** 120000ms
+
+---
+
+## 通用约定
+
+### 超时
+
+| 类别          | 默认超时 |
+| ------------- | -------- |
+| 常规 API      | 15000ms  |
+| 媒体/扫码相关 | 120000ms |
+| 文件传输      | 60000ms  |
+
+### 文件路径
+
+- 所有文件路径相对于小程序沙箱目录自动解析
+- `/Documents/` 路径映射到 `DocumentDirectoryPath`
+- `file://` 协议前缀会被自动去除
+- 小程序路径前缀为 `/Documents/MiniApps/{appId}`
+
+### 订阅模式
+
+所有订阅类 API（传感器、网络、位置、截屏）遵循统一模式：
+
+```ts
+// 订阅
+const unsubscribe = onXxxChange(callback);
+
+// 取消订阅
+unsubscribe();
+```

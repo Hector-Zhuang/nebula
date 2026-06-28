@@ -1,0 +1,77 @@
+---
+title: الشبكة والهاتف
+description: استخدم واجهات Nebula لاكتشاف حالة الشبكة، والاستماع إلى تغيّراتها، وبدء مكالمات هاتفية.
+---
+
+## الحصول على نوع الشبكة الحالي
+
+```ts
+import { getNetworkType } from '@nebula-rn/client';
+
+const networkType = await getNetworkType();
+console.log(networkType); // 'wifi' | 'cellular' | 'none' | 'unknown'
+```
+
+## الاستماع إلى تغيّرات الشبكة
+
+```ts
+import { onNetworkStatusChange } from '@nebula-rn/client';
+
+const unsubscribe = onNetworkStatusChange((status) => {
+  console.log('Connected:', status.isConnected);
+  console.log('Network type:', status.networkType);
+});
+
+// Stop listening
+unsubscribe();
+```
+
+بيانات رد النداء:
+
+```ts
+type NetworkStatusChangeResult = {
+  isConnected: boolean;
+  networkType: string;
+};
+```
+
+## مثال: مؤشر حالة الشبكة
+
+```tsx
+import React, { useState, useEffect } from 'react';
+import { Text, View } from 'react-native';
+import { getNetworkType, onNetworkStatusChange } from '@nebula-rn/client';
+
+export default function NetworkIndicator() {
+  const [connected, setConnected] = useState(true);
+  const [type, setType] = useState('');
+
+  useEffect(() => {
+    getNetworkType().then(setType);
+
+    const unsubscribe = onNetworkStatusChange((status) => {
+      setConnected(status.isConnected);
+      setType(status.networkType);
+    });
+    return () => { unsubscribe(); };
+  }, []);
+
+  return (
+    <View>
+      <Text>
+        {connected ? `Connected (${type})` : 'No network connection'}
+      </Text>
+    </View>
+  );
+}
+```
+
+## إجراء مكالمة هاتفية
+
+```ts
+import { makePhoneCall } from '@nebula-rn/client';
+
+await makePhoneCall('10086');
+```
+
+سيؤدي ذلك إلى فتح واجهة الاتصال في النظام.

@@ -1,0 +1,117 @@
+---
+title: 宿主通信
+description: 了解小程序与宿主 App 之间的双向消息通信机制。
+---
+
+Nebula 支持小程序与宿主 App 之间的双向自定义消息通信，适用于业务事件通知、状态同步等场景。
+
+<Info title="针对 Host 开发者">
+  本页从**小程序开发者**视角介绍如何发送和接收消息。
+  如果你是宿主开发者，请阅读：[宿主与小程序通信](../host/host-miniapp-messaging.mdx)
+</Info>
+
+## 通讯过程
+
+```text
+小程序                            Host
+  │                                │
+  │ postMessageToHost(message) ──► │
+  │                                │
+  │ ◄──── onHostMessage(listener)  │
+  │                                │
+```
+
+## 小程序 → 宿主
+
+使用 `Miniapp.postMessageToHost()` 向宿主发送自定义消息：
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+await Miniapp.postMessageToHost({
+  type: 'miniapp.event',
+  action: 'purchase_complete',
+  orderId: '12345',
+  timestamp: Date.now(),
+});
+```
+
+消息是一个任意结构的 JSON 对象，由宿主自行约定格式和处理逻辑。
+
+## 宿主 → 小程序
+
+使用 `Miniapp.onHostMessage()` 监听宿主推送的消息：
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+const unsubscribe = Miniapp.onHostMessage(event => {
+  console.log('收到宿主消息:', event.message);
+  // event.message 是宿主发送的 JSON 对象
+});
+
+// 停止监听
+unsubscribe();
+```
+
+## 适合使用消息的场景
+
+### 通知宿主执行某个动作
+
+```ts
+// 小程序请求宿主打开原生支付页面
+Miniapp.postMessageToHost({
+  type: 'request',
+  action: 'open_native_payment',
+  amount: 99.9,
+  currency: 'CNY',
+});
+```
+
+### 接收宿主推送的状态变更
+
+```tsx
+import React, { useState, useEffect } from 'react';
+import { Text, View } from 'react-native';
+import { Miniapp } from '@nebula-rn/sdk';
+
+export default function StatusPage() {
+  const [loginStatus, setLoginStatus] = useState('unknown');
+
+  useEffect(() => {
+    const unsubscribe = Miniapp.onHostMessage(event => {
+      if (event.message?.type === 'login_status_changed') {
+        setLoginStatus(event.message.isLoggedIn ? '已登录' : '未登录');
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  return (
+    <View>
+      <Text>登录状态: {loginStatus}</Text>
+    </View>
+  );
+}
+```
+
+## 与 Host API 的区别
+
+|              | 自定义消息                            | Host API                                           |
+| ------------ | ------------------------------------- | -------------------------------------------------- |
+| **适用场景** | 业务级事件通知、松耦合通信            | 结构化的功能调用（如获取位置、扫码）               |
+| **调用方式** | `postMessageToHost` / `onHostMessage` | `Miniapp.invokeHostApi()` 或 `@nebula-rn/client` 函数 |
+| **返回值**   | 无直接返回值（fire-and-forget）       | Promise 返回结构化结果                             |
+| **注册方式** | 宿主自行监听                          | 宿主通过 `createHostApiFeature` 注册               |
+| **类型安全** | 双方自行约定消息格式                  | 有 `NebulaHostApiDescription` 元数据               |
+
+如果你希望扩展结构化的 Host API，而不是继续使用自定义消息，请参考 [自定义 API](./custom-apis.mdx)。
+
+如果你想从宿主侧理解如何监听小程序消息和主动推送消息，请参考 [宿主与小程序通信](../host/host-miniapp-messaging.mdx)
+
+## 注意事项
+
+- 消息内容必须是 JSON 可序列化的对象
+- `postMessageToHost` 是单向发送，不会返回宿主的处理结果
+- 如果需要请求-响应模式，建议使用 Host API（`createHostApiFeature`）
+- `onHostMessage` 返回的取消函数应在组件卸载时调用，避免内存泄漏

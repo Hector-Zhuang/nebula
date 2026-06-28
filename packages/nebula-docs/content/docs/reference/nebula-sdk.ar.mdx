@@ -1,0 +1,1642 @@
+---
+title: "@nebula-rn/sdk"
+description: "مرجع API للحزمة الأساسية من Nebula SDK، يشمل تهيئة المضيف ووقت تشغيل miniapp وHooks وأنواع البيانات."
+---
+
+`@nebula-rn/sdk` هي الحزمة الأساسية لوقت تشغيل Nebula، وتوفّر أيضًا واجهات تهيئة المضيف (`NebulaAPI`) وواجهات miniapp (`MiniAppAPI` وهو تصدير باسم مستعار من `NebulaAPI`).
+
+**الإصدار:** 0.1.0
+
+**Peer Dependencies:** `react >= 19`، `react-native >= 0.83`
+
+---
+
+## تهيئة المضيف
+
+### NebulaAPI.wrap(options)
+
+دالة HOC لتغليف مكوّن جذر المضيف وتهيئة وقت تشغيل Nebula. عند تركيب المكوّن يتم استدعاء `startApiServer()` تلقائيًا، وإذا كانت قيمة `serverBaseURL` غير فارغة يتم أيضًا استدعاء `setServerBaseURL()`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function wrap(options: NebulaHostOptions): <P>(Component: React.ComponentType<P>) => React.ComponentType<P>
+```
+
+**المعاملات `NebulaHostOptions`:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `hostApis` | `NebulaHostFeature[]` | لا | `[]` | قائمة قدرات المضيف المطلوب تسجيلها في وقت التشغيل. |
+| `serverBaseURL` | `string \| null` | لا | `null` | عنوان خدمة موارد miniapp. |
+
+**مثال:**
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+export default NebulaAPI.wrap({
+	serverBaseURL: 'https://api.example.com',
+	hostApis: defaultHostApis,
+})(App);
+```
+
+---
+
+### NebulaAPI.startApiServer()
+
+تشغيل خدمة معالجة رسائل API على جانب المضيف والاستماع لطلبات البروتوكول القادمة من miniapp. عادةً يتم استدعاؤها عبر `wrap()`، والاستدعاء اليدوي آمن ومتكرر (idempotent).
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function startApiServer(): void
+```
+
+**أنواع الطلبات المعالجة:**
+
+| نوع الطلب | الوصف |
+|-----------|------|
+| `getCapabilities` | يعيد الإصدارات وحالة الدعم للـ APIs المسجلة. |
+| `getApiDescriptions` | يعيد وصف الوثائق للـ APIs المسجلة. |
+| `invoke` | يوجّه التنفيذ إلى الـ handler المناسب. |
+
+**رموز الأخطاء الداخلية:**
+
+| رمز الخطأ | الوصف |
+|--------|------|
+| `UNSUPPORTED_API` | الـ API غير مسجّل أو غير مدعوم. |
+| `INTERNAL_ERROR` | حدث استثناء داخل handler. |
+
+---
+
+### NebulaAPI.stopApiServer()
+
+إيقاف الاستماع لرسائل API على جانب المضيف وإلغاء اشتراكات bridge.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function stopApiServer(): void
+```
+
+---
+
+### NebulaAPI.setServerBaseURL(serverBaseURL)
+
+تعيين عنوان خدمة المضيف وتخزينه في التخزين الأصلي. يستخدمه وقت تشغيل miniapp عند التثبيت والتحديث لتحليل المسارات النسبية.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function setServerBaseURL(serverBaseURL?: string | null): Promise<ServerBaseURLResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `serverBaseURL` | `string \| null` | لا | — | عنوان http(s) صالح، يمكن إرسال `null` أو سلسلة فارغة للمسح. |
+
+**الإرجاع `ServerBaseURLResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `serverBaseURL` | `string \| null` | العنوان الذي تم تعيينه. |
+
+**رموز الخطأ:**
+
+| رمز الخطأ | المنصة | الوصف |
+|--------|------|------|
+| `INVALID_SERVER_URL` | iOS / Android | فشل التحقق من تنسيق URL. |
+
+---
+
+### NebulaAPI.getServerBaseURL()
+
+الحصول على عنوان الخدمة الحالي.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getServerBaseURL(): Promise<ServerBaseURLResult>
+```
+
+**الإرجاع `ServerBaseURLResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `serverBaseURL` | `string \| null` | العنوان الحالي، ويكون `null` إذا لم يُضبط. |
+
+---
+
+## تثبيت miniapp
+
+### NebulaAPI.installMiniApp(appId, bundleURL)
+
+تنزيل وتثبيت bundle من عنوان URL بعيد (وضع production). يتم جلب `app.json` تلقائيًا وتخزينه.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function installMiniApp(appId: string, bundleURL: string): Promise<MiniAppResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `appId` | `string` | نعم | المعرّف الفريد للـ miniapp. |
+| `bundleURL` | `string` | نعم | عنوان URL للـ bundle (http/https). |
+
+**الإرجاع `MiniAppResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `success` | `boolean` | هل تم التثبيت بنجاح. |
+| `appId` | `string` | معرّف miniapp. |
+
+**فروق المنصات:**
+
+| | Android | iOS |
+|--|---------|-----|
+| مسار bundle | `Files/nebula/{appId}/index.android.bundle` | `Documents/MiniApps/{appId}/index.bundle` |
+| مهلة الشبكة | اتصال 15s + قراءة 15s | URLSession الافتراضي |
+| جلب البيان | استبدال الاسم تلقائيًا بـ `app.json` | نفس Android |
+
+**رموز الخطأ:**
+
+| رمز الخطأ | الوصف |
+|--------|------|
+| `INSTALL_ERROR` | فشل في التنزيل أو التحليل. |
+
+---
+
+### NebulaAPI.installMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer?)
+
+تثبيت miniapp باستخدام URL محدد، مع تحديد ما إذا كان يجب ربطه بخادم Metro عبر `connectToURLMetroServer`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function installMiniAppWithBundleURL(
+	appId: string,
+	bundleURL: string,
+	connectToURLMetroServer?: boolean,
+): Promise<MiniAppResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `appId` | `string` | نعم | المعرّف الفريد للـ miniapp. |
+| `bundleURL` | `string` | نعم | عنوان URL للـ bundle. |
+| `connectToURLMetroServer` | `boolean` | لا | `false` تثبيت production، و`true` ربط عنوان Metro للتطوير. |
+
+**الإرجاع `MiniAppResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `success` | `boolean` | هل تم التثبيت بنجاح. |
+| `appId` | `string` | معرّف miniapp. |
+| `mode` | `string` | وضع التثبيت النهائي: `development` أو `production`. |
+
+**فروق السلوك:**
+
+| | `connectToURLMetroServer = true` | `connectToURLMetroServer = false` |
+|--|----------------------------------|-----------------------------------|
+| وضع التثبيت | `development` | `production` |
+| `version` | `null` (لا يتم تتبّع الإصدار) | يقرأ من البيان |
+| `updateStrategy` | `'manual'` إجباري | يقرأ من البيان، والافتراضي `'manual'` |
+| Dev URL | حفظ عنوان إعادة التحميل | لا يتم الحفظ |
+
+**رموز الخطأ:**
+
+| رمز الخطأ | الوصف |
+|--------|------|
+| `INSTALL_ERROR` | فشل في التنزيل أو التحليل. |
+| `INVALID_MODE` | وضع غير صالح (iOS فقط). |
+
+---
+
+## فتح miniapp والتحميل المسبق
+
+### NebulaAPI.openMiniApp(appId, initialProps?, versionType?)
+
+فتح miniapp مثبتة وعرضها للمستخدم. إذا لم تكن مثبتة سيتم تثبيت الإصدار المحدد تلقائيًا (الافتراضي `release`). إذا كانت miniapp بوضع production واستراتيجية التحديث `auto`، سيتم التحقق من التحديث وتطبيقه قبل الفتح (وأي فشل لا يمنع الفتح).
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function openMiniApp(
+	appId: string,
+	initialProps?: Record<string, unknown>,
+	versionType?: 'release' | 'experience',
+): Promise<MiniAppResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `appId` | `string` | نعم | — | معرّف miniapp المثبتة. |
+| `initialProps` | `Record<string, unknown>` | لا | `{}` | الخصائص الابتدائية للمكوّن الجذري. |
+| `versionType` | `'release' \| 'experience'` | لا | `'release'` | الإصدار الذي يُثبت عند عدم التثبيت. |
+
+**الإرجاع `MiniAppResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `success` | `boolean` | هل تم الفتح بنجاح. |
+| `appId` | `string` | معرّف miniapp. |
+
+**فروق المنصات:**
+
+| | Android | iOS |
+|--|---------|-----|
+| نموذج الخيوط | `activity.runOnUiThread()` | `DispatchQueue.main.async` |
+| خطأ عدم وجود حاوية | `NO_ACTIVITY` | `NO_ROOT_VC` |
+
+**رموز الخطأ:**
+
+| رمز الخطأ | المنصة | الوصف |
+|--------|------|------|
+| `NO_ACTIVITY` | Android | لم يتم العثور على Activity حالية. |
+| `NO_ROOT_VC` | iOS | لم يتم العثور على root view controller. |
+| `OPEN_ERROR` | كل المنصات | خطأ وقت تشغيل عند الفتح. |
+
+---
+
+### NebulaAPI.openMiniAppWithBundleURL(appId, bundleURL, initialProps?, connectToURLMetroServer?)
+
+تثبيت miniapp ثم فتحها مباشرة. يكافئ استدعاء `installMiniAppWithBundleURL()` ثم `openMiniApp()`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function openMiniAppWithBundleURL(
+	appId: string,
+	bundleURL: string,
+	initialProps?: Record<string, unknown>,
+	connectToURLMetroServer?: boolean,
+): Promise<MiniAppResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `appId` | `string` | نعم | — | معرّف miniapp الفريد. |
+| `bundleURL` | `string` | نعم | — | عنوان URL للـ bundle. |
+| `initialProps` | `Record<string, unknown>` | لا | `{}` | خصائص ابتدائية للمكوّن الجذري. |
+| `connectToURLMetroServer` | `boolean` | لا | `false` | عند `true` يتم الاتصال بـ Metro؛ وإلا يتم التثبيت والفتح بوضع production. |
+
+---
+
+### NebulaAPI.preloadMiniApp(appId)
+
+تحميل miniapp مثبتة في الخلفية لتقليل زمن الفتح لاحقًا عبر تهيئة وقت التشغيل والجذر مسبقًا.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function preloadMiniApp(appId: string): Promise<MiniAppResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `appId` | `string` | نعم | معرّف miniapp المثبتة. |
+
+**الإرجاع `MiniAppResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `success` | `boolean` | هل نجح التحميل المسبق. |
+| `appId` | `string` | معرّف miniapp. |
+
+**فروق التنفيذ:**
+
+| | iOS | Android |
+|--|-----|---------|
+| استراتيجية التخزين | مخبأ بفتحة واحدة + عداد generation | تجمّع ReactHost (ConcurrentHashMap) |
+| طريقة الحاوية | ViewController مخفي | مثيل ReactHost في الخلفية |
+
+**رموز الخطأ:**
+
+| رمز الخطأ | الوصف |
+|--------|------|
+| `PRELOAD_ERROR` | خطأ وقت تشغيل أثناء التحميل المسبق. |
+
+---
+
+### NebulaAPI.preloadMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer?)
+
+تثبيت miniapp ثم تحميلها مسبقًا. يكافئ `installMiniAppWithBundleURL()` ثم `preloadMiniApp()`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function preloadMiniAppWithBundleURL(
+	appId: string,
+	bundleURL: string,
+	connectToURLMetroServer?: boolean,
+): Promise<MiniAppResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `appId` | `string` | نعم | معرّف miniapp الفريد. |
+| `bundleURL` | `string` | نعم | عنوان URL للـ bundle. |
+| `connectToURLMetroServer` | `boolean` | لا | `false` للتحميل بوضع production، و`true` للاتصال بــ Metro. |
+
+**رموز الخطأ:**
+
+| رمز الخطأ | الوصف |
+|--------|------|
+| `PRELOAD_ERROR` | خطأ وقت تشغيل أثناء التحميل المسبق. |
+
+---
+
+## الإصدارات والتحديث
+
+### NebulaAPI.checkMiniAppUpdate(appId)
+
+التحقق من وجود تحديث متاح لـ miniapp. يتم جلب `app.json` البعيد ومقارنة الإصدار وفق semver.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function checkMiniAppUpdate(appId: string): Promise<MiniAppUpdateInfo>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `appId` | `string` | نعم | معرّف miniapp المثبتة. |
+
+**الإرجاع `MiniAppUpdateInfo`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `appId` | `string` | معرّف miniapp. |
+| `currentVersion` | `string \| null` | الإصدار المثبت. |
+| `latestVersion` | `string \| null` | أحدث إصدار بعيد. |
+| `hasUpdate` | `boolean` | هل يوجد تحديث متاح. |
+| `updateStrategy` | `'auto' \| 'manual'` | استراتيجية التحديث. |
+| `mode` | `string \| null` | وضع وقت التشغيل. |
+| `sourceUrl` | `string \| null` | عنوان مصدر bundle. |
+
+**حالات `hasUpdate: false`:**
+- miniapp غير مثبتة.
+- في وضع development.
+- لا يوجد `sourceUrl` (تطبيق محلي غير بعيد).
+- لا يمكن اشتقاق عنوان manifest.
+
+**منطق مقارنة الإصدار:** تقسيم حسب `.` والمقارنة رقمًا مع افتراض 0 للأجزاء المفقودة.
+
+---
+
+### NebulaAPI.applyMiniAppUpdate(appId)
+
+التحقق وتطبيق تحديث miniapp. تستدعي داخليًا `checkMiniAppUpdate()` وإذا كان هناك تحديث يتم التثبيت عبر `installMiniAppWithBundleURL()`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function applyMiniAppUpdate(appId: string): Promise<MiniAppUpdateInfo>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `appId` | `string` | نعم | معرّف miniapp المثبتة. |
+
+**الإرجاع:** نفس `MiniAppUpdateInfo`.
+
+---
+
+## معلومات miniapp
+
+### NebulaAPI.getInstalledMiniAppInfo(appId)
+
+الحصول على معلومات التثبيت المحلية لـ miniapp.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getInstalledMiniAppInfo(appId: string): Promise<InstalledMiniAppInfoResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `appId` | `string` | نعم | معرّف miniapp. |
+
+**الإرجاع `InstalledMiniAppInfoResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `installed` | `boolean` | هل هو مثبت. |
+| `app` | `InstalledMiniAppInfo \| undefined` | كائن التثبيت، و`undefined` إذا لم يكن مثبتًا. |
+
+**حقول `InstalledMiniAppInfo`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `appId` | `string` | معرّف miniapp. |
+| `mode` | `string \| null` | وضع وقت التشغيل. |
+| `bundlePath` | `string \| null` | مسار bundle المحلي. |
+| `sourceUrl` | `string \| null` | عنوان مصدر bundle البعيد. |
+| `version` | `string \| null` | الإصدار في البيان. |
+| `updateStrategy` | `'auto' \| 'manual' \| null` | استراتيجية التحديث. |
+
+---
+
+### NebulaAPI.getInstalledMiniApps()
+
+الحصول على قائمة معرّفات miniapps المثبتة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getInstalledMiniApps(): Promise<InstalledMiniAppsResult>
+```
+
+**الإرجاع `InstalledMiniAppsResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `apps` | `string[]` | مصفوفة معرّفات miniapp المثبتة. |
+
+---
+
+## التنقل
+
+### MiniAppAPI.navigateTo(url)
+
+الانتقال إلى صفحة جديدة مع الاحتفاظ بالصفحة الحالية في المكدس (push).
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function navigateTo(url: string): Promise<NavigationResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `url` | `string` | نعم | رابط الصفحة مثل `"/detail?id=123"`. |
+
+**الإرجاع `NavigationResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `errMsg` | `string` | صيغة `"navigateTo:ok"` أو `"navigateTo:fail سبب"`. |
+
+**فروق المنصات:**
+
+| | Android | iOS |
+|--|---------|-----|
+| الخيط | `activity.runOnUiThread()` | `DispatchQueue.main.async` |
+
+---
+
+### MiniAppAPI.redirectTo(url)
+
+الانتقال إلى صفحة جديدة مع استبدال الصفحة الحالية (لا رجوع).
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function redirectTo(url: string): Promise<NavigationResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `url` | `string` | نعم | رابط الصفحة الهدف. |
+
+---
+
+### MiniAppAPI.reLaunch(url)
+
+تفريغ مكدس الصفحات بالكامل وفتح الصفحة الهدف.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function reLaunch(url: string): Promise<NavigationResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `url` | `string` | نعم | رابط الصفحة الهدف. |
+
+---
+
+### MiniAppAPI.navigateBack(delta?)
+
+العودة عبر مكدس الصفحات.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function navigateBack(delta?: number): Promise<NavigationResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `delta` | `number` | لا | `1` | عدد الصفحات المراد الرجوع عنها. |
+
+---
+
+## نمط الصفحة
+
+### MiniAppAPI.setPageStyle(style)
+
+تعيين مظهر الصفحة الحالية.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function setPageStyle(style: NebulaPageStyle): Promise<NavigationResult>
+```
+
+**المعاملات `NebulaPageStyle`:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `backgroundColor` | `string` | لا | لون خلفية الصفحة. |
+| `navigationBarBackgroundColor` | `string` | لا | لون خلفية شريط التنقل. |
+| `navigationBarTextColor` | `string` | لا | لون نص شريط التنقل. |
+| `navigationBarTitleText` | `string` | لا | عنوان شريط التنقل. |
+| `navigationStyle` | `'default' \| 'custom'` | لا | نمط شريط التنقل، و`'custom'` لإخفائه. |
+| `visualEffectInBackground` | `'blur' \| 'none'` | لا | تأثير بصري عند الخلفية. **iOS فقط.** |
+
+---
+
+### MiniAppAPI.setNavigationBarTitle(title)
+
+طريقة مختصرة لتعيين عنوان شريط التنقل. تستدعي داخليًا `setPageStyle({ navigationBarTitleText: title })`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function setNavigationBarTitle(title: string): Promise<NavigationResult>
+```
+
+---
+
+### MiniAppAPI.setNavigationBarColor(options)
+
+طريقة مختصرة لتعيين ألوان شريط التنقل.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function setNavigationBarColor(options: {
+	backgroundColor?: string;
+	frontColor?: string;
+}): Promise<NavigationResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `backgroundColor` | `string` | لا | لون خلفية شريط التنقل. |
+| `frontColor` | `string` | لا | لون المقدمة (النص/الأيقونات). |
+
+---
+
+## الجهاز والتطبيق
+
+### MiniAppAPI.getAppId()
+
+الحصول على معرّف miniapp الحالي. دالة متزامنة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getAppId(): string | null
+```
+
+**الإرجاع:** معرّف miniapp الحالي أو `null` إذا لم يُهيّأ.
+
+---
+
+### MiniAppAPI.getSandboxPath()
+
+الحصول على مسار صندوق الملفات الخاص بـ miniapp.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getSandboxPath(): string
+```
+
+**الإرجاع:** مسار الصندوق مثل `/Documents/MiniApps/{appId}`.
+
+---
+
+### MiniAppAPI.getDeviceInfo()
+
+الحصول على معلومات الجهاز. دالة متزامنة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getDeviceInfo(): DeviceInfo
+```
+
+**الإرجاع `DeviceInfo`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `platform` | `'iOS' \| 'Android'` | المنصة الحالية. |
+| `systemVersion` | `string` | إصدار النظام. |
+| `model` | `string` | طراز الجهاز. |
+
+**فروق المنصات:**
+
+| | Android | iOS |
+|--|---------|-----|
+| `systemVersion` | `Build.VERSION.RELEASE` | `UIDevice.current.systemVersion` |
+| `model` | `Build.MODEL` | `UIDevice.current.model` |
+
+---
+
+### MiniAppAPI.showToast(title)
+
+عرض Toast قصير.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function showToast(title: string): Promise<NavigationResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `title` | `string` | نعم | نص الرسالة. |
+
+**فروق المنصات:**
+
+| | Android | iOS |
+|--|---------|-----|
+| التنفيذ | `Toast.LENGTH_SHORT` | `UIAlertController` |
+| المدة | ~2s | 1.5s |
+
+---
+
+## تواصل المضيف
+
+### MiniAppAPI.invokeHostApi(apiName, payload?, version?, timeoutMs?)
+
+استدعاء API مسجّل لدى المضيف من miniapp عبر طبقة البروتوكول (api.v1) والانتظار للرد.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function invokeHostApi<TData = unknown>(
+	apiName: string,
+	payload?: Record<string, unknown>,
+	version?: string,
+	timeoutMs?: number,
+): Promise<NebulaApiInvokeResult<TData>>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `apiName` | `string` | نعم | — | اسم API المطلوب. |
+| `payload` | `Record<string, unknown>` | لا | `{}` | البيانات المرسلة إلى handler. |
+| `version` | `string` | لا | `'1.0.0'` | إصدار API المطلوب. |
+| `timeoutMs` | `number` | لا | `15000` | مهلة الطلب (ms). `0` لعدم وجود مهلة. |
+
+**الإرجاع `NebulaApiInvokeResult<TData>`:**
+
+```ts
+// نجاح
+{ ok: true, data: TData }
+
+// فشل
+{ ok: false, error: { code: string, message: string, details?: Record<string, unknown> } }
+```
+
+**رموز الخطأ:**
+
+| رمز الخطأ | الوصف |
+|--------|------|
+| `UNSUPPORTED_API` | API غير مسجّل أو غير مدعوم. |
+| `INTERNAL_ERROR` | استثناء داخل handler. |
+
+**المهلة:** 15000ms. بعد المهلة يتم رفض Promise برسالة `"Timed out waiting for host API: {apiName}"`.
+
+---
+
+### MiniAppAPI.postMessageToHost(message)
+
+إرسال رسالة إلى المضيف.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function postMessageToHost(message: Record<string, unknown>): Promise<NavigationResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `message` | `Record<string, unknown>` | نعم | أي كائن قابل للتسلسل JSON. |
+
+---
+
+### MiniAppAPI.onHostMessage(listener)
+
+الاشتراك برسائل قادمة من المضيف.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function onHostMessage(
+	listener: (event: BridgeMessage) => void,
+): () => void
+```
+
+**حقول `BridgeMessage`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `appId` | `string` | معرّف التطبيق المرسل. |
+| `message` | `object` | محتوى الرسالة. |
+| `timestamp` | `number` | الطابع الزمني. |
+
+**الإرجاع:** دالة لإلغاء الاشتراك.
+
+---
+
+### NebulaAPI.postMessageToMiniApp(appId, message)
+
+إرسال رسالة من المضيف إلى miniapp محددة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function postMessageToMiniApp(
+	appId: string,
+	message: Record<string, unknown>,
+): Promise<NavigationResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `appId` | `string` | نعم | معرّف miniapp الهدف. |
+| `message` | `Record<string, unknown>` | نعم | أي كائن قابل للتسلسل JSON. |
+
+---
+
+### NebulaAPI.addMiniAppMessageListener(listener)
+
+الاشتراك برسائل قادمة من miniapp (من جانب المضيف).
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function addMiniAppMessageListener(
+	listener: (event: BridgeMessage) => void,
+): () => void
+```
+
+**الإرجاع:** دالة لإلغاء الاشتراك.
+
+---
+
+## كشف القدرات
+
+### MiniAppAPI.getCapabilities()
+
+الحصول على قائمة قدرات API المسجلة لدى المضيف.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getCapabilities(): Promise<{
+	bridgeVersion: string;
+	capabilities: NebulaHostCapabilityMap;
+}>
+```
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `bridgeVersion` | `string` | إصدار البروتوكول، ثابت حاليًا `'1.0.0'`. |
+| `capabilities` | `NebulaHostCapabilityMap` | خريطة قدرات الـ API. |
+
+**حقول `NebulaHostCapabilityDescriptor`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `supported` | `boolean` | هل هو مدعوم. |
+| `version` | `string` | إصدار الـ API. |
+
+**المهلة:** 15000ms (ثابت).
+
+---
+
+### MiniAppAPI.isSupported(apiName, minimumVersion?)
+
+التحقق مما إذا كان API مدعومًا مع إمكانية التحقق من الحد الأدنى للإصدار.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function isSupported(apiName: string, minimumVersion?: string): Promise<boolean>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `apiName` | `string` | نعم | اسم الـ API. |
+| `minimumVersion` | `string` | لا | أدنى إصدار مطلوب مثل `"1.0.0"`. |
+
+**الإرجاع:** `true` إذا كان مدعومًا ويطابق الحد الأدنى.
+
+---
+
+### MiniAppAPI.getHostApiDescriptions(timeoutMs?)
+
+الحصول على وصف الوثائق التفصيلي للـ APIs المسجلة لدى المضيف.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getHostApiDescriptions(
+	timeoutMs?: number,
+): Promise<NebulaHostApiDescriptionMap>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `timeoutMs` | `number` | لا | `15000` | مهلة الطلب (ms). |
+
+**الإرجاع `NebulaHostApiDescriptionMap`:**
+
+```ts
+Record<string, NebulaHostApiDescription>
+```
+
+**حقول `NebulaHostApiDescription`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `summary` | `string` | ملخص الـ API. |
+| `description` | `string \| undefined` | وصف تفصيلي. |
+| `params` | `NebulaApiFieldDescriptor[]` | قائمة المعاملات. |
+| `returns` | `{ type: string; description: string }` | وصف الإرجاع. |
+| `tags` | `string[]` | قائمة الوسوم. |
+| `examples` | `NebulaApiExampleDescriptor[]` | أمثلة كود. |
+
+---
+
+## مرئية المضيف وModal
+
+### MiniAppAPI.bringHostToFront()
+
+إظهار تطبيق المضيف في المقدمة مع إخفاء miniapp (مع حفظ الحالة لإعادتها).
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function bringHostToFront(): Promise<HostVisibilityResult>
+```
+
+**الإرجاع `HostVisibilityResult`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `success` | `boolean` | هل نجحت العملية. |
+| `token` | `string \| undefined` | رمز الاستعادة، يستخدم في `restoreMiniApp()`. |
+
+---
+
+### MiniAppAPI.restoreMiniApp(token?)
+
+استعادة miniapp التي تم إخفاؤها عبر `bringHostToFront()`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function restoreMiniApp(token?: string | null): Promise<HostVisibilityResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `token` | `string \| null` | لا | `null` | رمز الاستعادة، و`null` لاستعادة آخر عملية. |
+
+---
+
+### MiniAppAPI.presentHostModal(moduleName, props?)
+
+عرض وحدة React Native من جانب المضيف كـ Modal.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function presentHostModal(
+	moduleName: string,
+	props?: Record<string, unknown>,
+): Promise<NavigationResult>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `moduleName` | `string` | نعم | — | اسم مكوّن RN المسجّل. |
+| `props` | `Record<string, unknown>` | لا | `{}` | خصائص إضافية للـ Modal. |
+
+**فروق المنصات:**
+
+| | Android | iOS |
+|--|---------|-----|
+| طريقة العرض | Activity جديدة (`FLAG_ACTIVITY_NO_ANIMATION`) | `overFullScreen` + انتقال `crossDissolve` |
+
+**رموز الخطأ:**
+
+| رمز الخطأ | المنصة | الوصف |
+|--------|------|------|
+| `NO_ACTIVITY` | Android | لم يتم العثور على Activity. |
+| `PRESENT_HOST_MODAL_ERROR` | Android | فشل عرض الـ Modal. |
+
+---
+
+### MiniAppAPI.dismissHostModal()
+
+إغلاق الـ Modal المفتوح من جانب المضيف.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function dismissHostModal(): Promise<NavigationResult>
+```
+
+---
+
+## دورة حياة الصفحة
+
+### MiniAppAPI.onPageLifecycle(listener)
+
+الاشتراك في أحداث دورة حياة الصفحة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function onPageLifecycle(
+	listener: (event: PageLifecycleEvent) => void,
+): () => void
+```
+
+**حقول `PageLifecycleEvent`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `appId` | `string` | معرّف miniapp. |
+| `instanceId` | `string` | معرّف مثيل الصفحة. |
+| `routePath` | `string \| undefined` | مسار الصفحة الحالية. |
+| `type` | `'show' \| 'hide' \| 'unload'` | نوع الحدث. |
+
+**الإرجاع:** دالة إلغاء الاشتراك.
+
+---
+
+## Hooks دورة الحياة
+
+### usePageOnLoad(callback)
+
+تنفيذ عند تحميل الصفحة لأول مرة، يستقبل معاملات المسار. يُستدعى مرة واحدة عند تركيب المكوّن.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function usePageOnLoad(
+	callback: (params: Record<string, unknown>) => void,
+): void
+```
+
+**المعاملات:**
+
+| المعامل | النوع | الوصف |
+|------|------|------|
+| `callback` | `(params) => void` | يستقبل معاملات الاستعلام. |
+
+---
+
+### usePageOnShow(callback)
+
+تنفيذ عند ظهور الصفحة. يستدعى عند التركيب وأيضًا في كل حدث `'show'`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function usePageOnShow(callback: () => void): void
+```
+
+---
+
+### usePageOnReady(callback)
+
+تنفيذ بعد اكتمال عرض الصفحة (بعد أول إطار). يستخدم `requestAnimationFrame()` داخليًا.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function usePageOnReady(callback: () => void): void
+```
+
+---
+
+### usePageOnHide(callback)
+
+تنفيذ عند إخفاء الصفحة في حدث `'hide'`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function usePageOnHide(callback: () => void): void
+```
+
+---
+
+### usePageOnUnload(callback)
+
+تنفيذ عند تفريغ الصفحة (عند unmount).
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function usePageOnUnload(callback: () => void): void
+```
+
+---
+
+## تسجيل المسارات
+
+### NebulaAPI.registerRoutes(appId, routes)
+
+تسجيل جدول المسارات للـ miniapp، عادةً عند بدء التشغيل.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function registerRoutes(
+	appId: string,
+	routes: Record<string, string>,
+): Promise<void>
+```
+
+**المعاملات:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `appId` | `string` | نعم | معرّف miniapp الحالي. |
+| `routes` | `Record<string, string>` | نعم | خريطة المسار إلى اسم المكوّن مثل `{ "/": "Home", "/detail": "Detail" }`. |
+
+---
+
+### NebulaAPI.registerManifest(appId, manifest)
+
+تسجيل البيان الكامل للـ miniapp (جدول مسارات موسع مع إعدادات الصفحات).
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function registerManifest(
+	appId: string,
+	manifest: RegisteredMiniAppManifest,
+): Promise<void>
+```
+
+**المعاملات `RegisteredMiniAppManifest`:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `pages` | `Record<string, string>` | نعم | خريطة المسار إلى اسم المكوّن. |
+| `entryPagePath` | `string` | لا | مسار الصفحة الرئيسية مثل `"/"`. |
+| `pageConfigs` | `Record<string, NebulaPageStyle>` | لا | تجاوزات نمط الصفحات. |
+| `window` | `NebulaPageStyle` | لا | نمط النافذة العالمي. |
+| `updateStrategy` | `'auto' \| 'manual'` | لا | استراتيجية التحديث. |
+| `version` | `string` | لا | رقم الإصدار. |
+
+**رموز الخطأ:**
+
+| رمز الخطأ | الوصف |
+|--------|------|
+| `INVALID_MANIFEST` | فشل تحليل بيان JSON. |
+
+---
+
+## تسجيل Host APIs
+
+### NebulaAPI.registerApiHandler(apiName, handler)
+
+تسجيل handler يدويًا لواجهة API على المضيف. إذا لم يكن خادم API يعمل سيتم استدعاء `startApiServer()` تلقائيًا.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function registerApiHandler(
+	apiName: string,
+	handler: NebulaHostApiHandler,
+): void
+```
+
+**المعاملات `NebulaHostApiHandler`:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `version` | `string` | نعم | — | إصدار الـ API مثل `"1.0.0"`. |
+| `supported` | `boolean \| () => Promise<boolean>` | لا | `true` | هل هو مدعوم، ويمكن أن يكون async. |
+| `description` | `NebulaHostApiDescription` | لا | — | وصف وثائق الـ API. |
+| `handle` | `(payload, context) => Promise<NebulaApiInvokeResult>` | نعم | — | دالة المعالجة. |
+
+---
+
+### NebulaAPI.unregisterApiHandler(apiName)
+
+إلغاء تسجيل handler لواجهة API.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function unregisterApiHandler(apiName: string): void
+```
+
+---
+
+### NebulaAPI.getRegisteredCapabilities()
+
+الحصول على الإصدارات وحالات الدعم للـ APIs المسجلة (مع حل قيمة `supported` async).
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getRegisteredCapabilities(): Promise<NebulaHostCapabilityMap>
+```
+
+---
+
+### NebulaAPI.getRegisteredApiDescriptions()
+
+الحصول المتزامن على وصف وثائق الـ APIs المسجلة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function getRegisteredApiDescriptions(): NebulaHostApiDescriptionMap
+```
+
+---
+
+## مصانع ميزات المضيف
+
+### createHostApiFeature(options)
+
+إنشاء ميزة Host API بدون واجهة UI لتسجيلها في `hostApis` ضمن `NebulaAPI.wrap()`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function createHostApiFeature(options: RegisterHostApiOptions): NebulaHostFeature
+```
+
+**المعاملات `RegisterHostApiOptions`:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `apiName` | `string` | نعم | — | معرف اسم الـ API. |
+| `version` | `string` | لا | `'1.0'` | إصدار الـ API. |
+| `supported` | `boolean \| () => Promise<boolean>` | لا | `true` | هل هو مدعوم. |
+| `description` | `NebulaHostApiDescription` | لا | — | وصف وثائق الـ API. |
+| `handle` | `(payload, context) => Promise<NebulaApiInvokeResult>` | نعم | — | دالة المعالجة. |
+
+**الإرجاع `NebulaHostFeature`:** كائن يتضمن `name` و`description` و`register()`.
+
+---
+
+### createHostModalApiFeature(options)
+
+إنشاء ميزة Host API تتطلب UI من نوع Modal. يتم فتح Modal تلقائيًا عند الاستدعاء ويعاد النتيجة عند الإغلاق.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function createHostModalApiFeature<TPayload, TRequest>(
+	options: RegisterHostModalApiOptions<TPayload, TRequest>,
+): NebulaHostFeature
+```
+
+**المعاملات `RegisterHostModalApiOptions`:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `apiName` | `string` | نعم | معرف اسم الـ API. |
+| `component` | `React.ComponentType` | نعم | مكوّن React المعروض داخل Modal. |
+| `channel` | `HostModalChannel<TRequest>` | نعم | قناة طلب/استجابة لـ Modal. |
+| `createRequest` | `(payload: TPayload) => TRequest` | نعم | إنشاء طلب الـ Modal من payload. |
+| `modalProps` | `Record \| (payload, request) => Record` | لا | خصائص إضافية لواجهة Modal. |
+| `onBeforeOpen` | `(payload) => Promise<NebulaApiInvokeResult \| null>` | لا | معالجة قبل الفتح (مثل فحص الأذونات). إذا لم تكن `null` يتم تجاوز الـ Modal. |
+| `onUnmountErrorMessage` | `string` | لا | رسالة خطأ عند إزالة الـ Modal بشكل غير طبيعي. |
+| `version` | `string` | لا | إصدار الـ API. |
+| `description` | `NebulaHostApiDescription` | لا | وصف وثائق الـ API. |
+
+---
+
+### createHostModalChannel()
+
+إنشاء قناة طلب/استجابة ثنائية الاتجاه للـ Modal بين مكوّن المضيف واستدعاء الـ API.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function createHostModalChannel<TRequest extends object>(): HostModalChannel<TRequest>
+```
+
+**الإرجاع `HostModalChannel<TRequest>`:**
+
+| الطريقة | التوقيع | الوصف |
+|------|------|------|
+| `open` | `(request: TRequest) => Promise<NebulaApiInvokeResult>` | فتح القناة وانتظار النتيجة. |
+| `settle` | `(result: NebulaApiInvokeResult) => void` | إرسال النتيجة من جهة Modal. |
+| `getCurrent` | `() => TRequest \| null` | الحصول على الطلب الحالي. |
+| `clear` | `() => void` | مسح الطلب الحالي. |
+| `subscribe` | `(listener: (request: TRequest \| null) => void) => () => void` | الاشتراك بتغيّر الطلب. |
+
+---
+
+## دوال مساعدة
+
+### createHostApiSuccess(data)
+
+إنشاء نتيجة ناجحة للـ API.
+
+```ts
+function createHostApiSuccess<TData>(data: TData): NebulaApiInvokeResult<TData>
+// يعيد { ok: true, data }
+```
+
+---
+
+### createHostApiFailure(code, message)
+
+إنشاء نتيجة فاشلة للـ API.
+
+```ts
+function createHostApiFailure(code: string, message: string): NebulaApiInvokeResult
+// يعيد { ok: false, error: { code, message } }
+```
+
+---
+
+### definePageConfig(config)
+
+دالة مساعدة لـ TypeScript لضبط إعدادات الصفحة (pass-through مع قيود نوع فقط).
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function definePageConfig<T extends MiniAppPageConfig>(config: T): T
+```
+
+**المعاملات `MiniAppPageConfig`:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `route` | `string` | لا | مسار الصفحة. |
+| `backgroundColor` | `string` | لا | لون خلفية الصفحة. |
+| `navigationBarBackgroundColor` | `string` | لا | لون خلفية شريط التنقل. |
+| `navigationBarTextColor` | `string` | لا | لون نص شريط التنقل. |
+| `navigationBarTitleText` | `string` | لا | عنوان شريط التنقل. |
+| `navigationStyle` | `'default' \| 'custom'` | لا | نمط شريط التنقل. |
+| `visualEffectInBackground` | `'blur' \| 'none'` | لا | تأثير بصري في الخلفية. **iOS فقط.** |
+
+---
+
+### createMiniAppPage(Component)
+
+دالة HOC لتغليف صفحة miniapp مع سياق Nebula. تستدعي `MiniAppAPI.bootstrap()` تلقائيًا وتوفّر `MiniAppPageContext`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```ts
+function createMiniAppPage<P extends Record<string, unknown>>(
+	Component: React.ComponentType<P>,
+): React.ComponentType<P>
+```
+
+**Props محفوظة (لا تُمرر للابن):** `appId` و`instanceId` و`sandboxPath` و`title` و`__pageConfig` و`__routePath` و`__routeUrl`.
+
+---
+
+## تعريفات الأنواع
+
+```ts
+type MiniAppUpdateStrategy = 'auto' | 'manual';
+
+type MiniAppResult = {
+	success: boolean;
+	appId: string;
+	mode?: string;
+};
+
+type MiniAppUpdateInfo = {
+	appId: string;
+	currentVersion?: string | null;
+	latestVersion?: string | null;
+	hasUpdate: boolean;
+	updateStrategy: 'auto' | 'manual';
+	mode?: string | null;
+	sourceUrl?: string | null;
+};
+
+type NebulaApiInvokeResult<T = unknown> =
+	| { ok: true; data: T }
+	| { ok: false; error: NebulaApiError };
+
+type NebulaApiError = {
+	code: string;
+	message: string;
+	details?: Record<string, unknown>;
+};
+
+type NebulaHostCapabilityDescriptor = {
+	supported: boolean;
+	version: string;
+};
+
+type NebulaHostCapabilityMap = Record<string, NebulaHostCapabilityDescriptor>;
+
+type PageLifecycleEvent = {
+	appId: string;
+	instanceId: string;
+	routePath?: string;
+	type: 'show' | 'hide' | 'unload';
+};
+
+type NebulaPageStyle = {
+	backgroundColor?: string;
+	navigationBarBackgroundColor?: string;
+	navigationBarTextColor?: string;
+	navigationBarTitleText?: string;
+	navigationStyle?: 'default' | 'custom';
+	visualEffectInBackground?: 'blur' | 'none';
+};
+
+type NavigationResult = {
+	errMsg: string;
+};
+
+type HostVisibilityResult = {
+	success: boolean;
+	token?: string | null;
+};
+
+type ServerBaseURLResult = {
+	serverBaseURL?: string | null;
+};
+```
+
+---
+
+## الوحدات الأصلية
+
+يتواصل `@nebula-rn/sdk` مع الطبقة الأصلية عبر `NebulaNativeModule`.
+
+**الأساليب المتزامنة:** `getDeviceInfo()`
+
+**الأساليب غير المتزامنة:** جميع الاستدعاءات الأخرى تعيد Promise.
+
+**ثوابت الإعدادات على المنصة:**
+
+| الإعداد | القيمة الافتراضية في iOS | الوصف |
+|------|------------|------|
+| الحد الأقصى لعدد miniapps المتزامنة | `3` | أقصى عدد miniapps في الذاكرة في الوقت نفسه. |
+| الحد الأقصى لعمق مكدس الصفحات | `10` | أقصى عدد صفحات لكل miniapp. |
+
+**القيم الافتراضية للمهل:**
+
+| العملية | المهلة |
+|------|------|
+| `invokeHostApi()` | 15000ms |
+| `getCapabilities()` | 15000ms (ثابت) |
+| `getHostApiDescriptions()` | 15000ms (قابلة للضبط) |
+| تنزيل الشبكة (Android) | اتصال 15s + قراءة 15s |
+| تنزيل الشبكة (iOS) | URLSession الافتراضي |
+
+**ملخص رموز الخطأ:**
+
+| رمز الخطأ | المنصة | السياق |
+|--------|------|------|
+| `NO_ACTIVITY` | Android | عدم وجود Activity عند فتح/عرض Modal |
+| `NO_ROOT_VC` | iOS | عدم وجود root view controller عند الفتح |
+| `OPEN_ERROR` | كل المنصات | خطأ عند فتح miniapp |
+| `PRELOAD_ERROR` | كل المنصات | خطأ في التحميل المسبق |
+| `INSTALL_ERROR` | كل المنصات | فشل التنزيل أو التحليل |
+| `INVALID_SERVER_URL` | كل المنصات | تنسيق URL غير صالح |
+| `INVALID_MANIFEST` | كل المنصات | فشل تحليل بيان JSON |
+| `INVALID_MODE` | iOS | وضع تشغيل غير صالح |
+| `UNSUPPORTED_API` | كل المنصات | API غير مسجّل أو غير مدعوم |
+| `INTERNAL_ERROR` | كل المنصات | استثناء داخل handler |
+| `PRESENT_HOST_MODAL_ERROR` | Android | فشل عرض Modal |

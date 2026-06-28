@@ -1,0 +1,180 @@
+---
+title: Integrate into an Existing RN App
+description: Add Nebula to an existing React Native host app by installing @nebula-rn/host and initializing the host runtime.
+---
+
+This guide is for teams that already have a React Native app and want to turn it into a Nebula host.
+
+The key idea is:
+
+- install `@nebula-rn/host`
+- let React Native link the native host package
+- initialize Nebula in JavaScript with `NebulaAPI.wrap(...)`
+
+You should **not** copy native files out of `sample-host`. `sample-host` is an example app, not the integration mechanism.
+
+## When to use this guide
+
+Use this guide when:
+
+- you already have a React Native app
+- you want Nebula inside that app
+- you want to keep your existing app shell and business structure
+
+If you want a ready-made starter instead, use:
+
+```bash
+npx nebula create host my-host
+```
+
+## 1. Install the host packages
+
+Install the Nebula host packages into your existing app:
+
+```bash
+npm install @nebula-rn/sdk @nebula-rn/host @nebula-rn/host-apis @nebula-rn/components
+```
+
+| Package | Purpose |
+|---|---|
+| `@nebula-rn/sdk` | JavaScript runtime layer, `NebulaAPI`, lifecycle hooks, and host feature APIs |
+| `@nebula-rn/host` | Native host integration package for iOS and Android |
+| `@nebula-rn/host-apis` | Official host API implementations |
+| `@nebula-rn/components` | Shared UI components available to miniapps |
+
+If you use `defaultHostApis`, also install the native libraries they depend on:
+
+```bash
+npm install react-native-mmkv react-native-device-info react-native-vision-camera \
+  react-native-image-picker @bam.tech/react-native-image-resizer \
+  @dr.pogodin/react-native-fs @react-native-clipboard/clipboard \
+  @react-native-community/geolocation @react-native-community/netinfo \
+  @react-native-camera-roll/camera-roll react-native-sensors
+```
+
+## 2. Let React Native link `@nebula-rn/host`
+
+`@nebula-rn/host` is a native package. Its iOS and Android integration is described through its React Native package metadata, so your app should consume it like any other native dependency.
+
+In a normal app, React Native autolinking should pick it up automatically.
+
+### iOS
+
+After installing dependencies, run:
+
+```bash
+cd ios
+pod install
+```
+
+### Android
+
+Make sure your app uses the standard React Native autolinking flow. In a typical modern React Native app, no extra manual package registration is needed beyond the normal setup.
+
+## 3. Monorepo note
+
+If your app lives in a monorepo and `@nebula-rn/host` is not being discovered from the published package location, point React Native to the local package root with `react-native.config.js`.
+
+For example:
+
+```js
+const path = require('path');
+
+module.exports = {
+  dependencies: {
+    '@nebula-rn/host': {
+      root: path.resolve(__dirname, '../host'),
+    },
+  },
+};
+```
+
+This is a workspace wiring step. It is still using `@nebula-rn/host`; it is **not** copying native files into your app.
+
+## 4. Initialize Nebula in JavaScript
+
+Wrap your app root with `NebulaAPI.wrap(...)`:
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+function App() {
+  return <YourAppContent />;
+}
+
+export default NebulaAPI.wrap({
+  hostApis: defaultHostApis,
+  serverBaseURL: 'https://your-nebula-cloud.com/api',
+})(App);
+```
+
+This is the main host-side JavaScript entry point.
+
+`NebulaAPI.wrap(...)` is where you configure:
+
+- `hostApis`
+- `miniappLoading`
+- `serverBaseURL`
+
+For the full configuration surface, see [Host Configuration](../host/configuration.mdx).
+
+## 5. Add custom host APIs when needed
+
+Start with `defaultHostApis`, then add your own business capabilities as separate host features.
+
+```ts
+import { createHostApiFeature, NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+const getUserInfoApi = createHostApiFeature({
+  apiName: 'getUserInfo',
+  supported: true,
+  version: '1.0',
+  description: 'Get the currently signed-in user',
+  handle: async () => {
+    const user = await fetchCurrentUser();
+    return {
+      userId: user.id,
+      name: user.name,
+      avatar: user.avatar,
+    };
+  },
+});
+
+export default NebulaAPI.wrap({
+  hostApis: [...defaultHostApis, getUserInfoApi],
+  serverBaseURL: 'https://your-nebula-cloud.com/api',
+})(App);
+```
+
+## 6. Open a miniapp
+
+Once the host is initialized, you can open a miniapp by app ID or by a development bundle URL.
+
+Example:
+
+```tsx
+await NebulaAPI.openMiniAppWithBundleURL(
+  'com.example.hello',
+  'http://localhost:8082',
+  {},
+  true,
+);
+```
+
+## 7. What this guide is not telling you to do
+
+This guide does **not** recommend:
+
+- copying iOS source files out of `sample-host`
+- copying Android source files out of `sample-host`
+- treating `sample-host` as the integration layer
+
+The correct integration layer is `@nebula-rn/host`.
+
+## Related docs
+
+- [Create Host with CLI](./create-host.mdx)
+- [Host Configuration](../host/configuration.mdx)
+- [Native-side APIs](../host/native-apis.mdx)

@@ -1,0 +1,92 @@
+---
+title: Dev Runner
+description: Develop miniapps independently with the shared Nebula Dev Runner, without maintaining host configuration inside the miniapp project.
+---
+
+Nebula Dev Runner is the shared development host used for independent miniapp development.
+
+For miniapp developers, there is only one main path:
+
+```bash
+npx nebula miniapp dev
+```
+
+The CLI prepares and opens Dev Runner, then switches it to the current miniapp. Developers usually do not need to care about Dev Runner installation or startup details.
+
+<Info title="What Dev Runner is">
+  Dev Runner is also a Host.
+
+  Its role is not to replace a real product Host, but to provide Host developers with a reusable development environment. It lets miniapp developers build pages independently and rely on mocked Host APIs, such as user profile, permission state, or business context.
+
+  For business safety, we do not recommend putting real business logic, production data access, or sensitive host logic directly into the shared Dev Runner. Dev Runner is better for development-time mocks, default behavior, and debugging support. Real implementations should stay in the production Host, or be handled by a custom Runner in a controlled environment.
+</Info>
+
+Its goals are:
+
+- keep miniapp projects clean, without `ios/` or `android/`
+- let miniapp developers run and debug pages independently
+- make Dev Runner the development host that already integrates `@nebula-rn/host-apis`, providing basic Host APIs and default development behavior
+
+## Quick start
+
+```bash
+# 1. create a pure miniapp project
+npx nebula create miniapp hello-nebula
+
+cd hello-nebula
+
+# 2. start development for the current miniapp
+npx nebula miniapp dev
+```
+
+In the current implementation:
+
+- `npx nebula miniapp dev` exposes via Metro:
+  - `/app.json`
+  - `index.bundle?...`
+- The CLI automatically:
+  - starts the miniapp Metro
+  - prepares Dev Runner's Metro
+  - installs/opens Dev Runner for the target platform
+  - switches Dev Runner to the current miniapp
+
+If you only want to start the miniapp Metro without launching Runner automatically, use:
+
+```bash
+npx nebula miniapp dev --no-runner
+```
+
+## Built-in Dev Runner capabilities
+
+Dev Runner already integrates `@nebula-rn/host-apis`, so common Host APIs can be used directly without extra configuration.
+
+For example:
+
+- `scanCode`
+- `previewImage`
+- `showToast`
+- `showModal`
+
+If your team has business API needs, such as:
+
+- `getUserProfile`
+- `getTenantInfo`
+- `getFeatureFlags`
+
+See [Custom APIs](./custom-apis.mdx) to extend your own Host APIs.
+
+## Custom Runner
+
+If your team needs stronger customization than the default Dev Runner, such as:
+
+- branded UI
+- custom native modules
+- behavior closer to the real Host
+
+You can use:
+
+```bash
+npx nebula create runner my-runner
+```
+
+This generates a customizable Dev Runner project.

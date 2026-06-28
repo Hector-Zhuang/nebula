@@ -1,0 +1,217 @@
+---
+title: 页面生命周期
+description: 了解 Nebula 小程序的页面生命周期事件及其对应的 React Hooks。
+---
+
+Nebula 小程序的每个页面都有完整的生命周期，由宿主容器在页面显示、隐藏和销毁时触发。开发者可以通过生命周期 Hooks 在合适的时机执行数据加载、状态保存等操作。
+
+## 生命周期事件
+
+```
+页面创建
+  │
+  ▼
+onLoad ──── 页面首次加载，可获取路由参数
+  │
+  ▼
+onShow ──── 页面显示（首次显示或从后台切回）
+  │
+  ▼
+onReady ─── 页面首次渲染完成
+  │
+  │         ┌─────────────┐
+  │         │  页面被覆盖   │
+  │         │  或切到后台   │
+  │         └──────┬──────┘
+  │                ▼
+  │          onHide ─── 页面隐藏
+  │                │
+  │                ▼
+  │          onShow ─── 页面重新显示
+  │                │
+  │               ...（可多次循环）
+  │
+  ▼
+onUnload ── 页面销毁
+```
+
+| 事件 | 触发时机 | 触发次数 |
+|------|---------|---------|
+| `onLoad` | 页面首次加载 | 一次 |
+| `onShow` | 页面显示（含首次显示和从隐藏恢复） | 多次 |
+| `onReady` | 页面首次渲染完成 | 一次 |
+| `onHide` | 页面隐藏（被新页面覆盖或切到后台） | 多次 |
+| `onUnload` | 页面销毁 | 一次 |
+
+## Hooks API
+
+Nebula SDK 为每个生命周期事件提供了对应的 React Hook。
+
+### usePageOnLoad
+
+页面首次加载时触发，可以获取路由参数。适合在此处执行初始数据加载。
+
+```ts
+import { usePageOnLoad } from '@nebula-rn/sdk';
+
+usePageOnLoad((params) => {
+  console.log('页面加载，路由参数:', params);
+  // params: Record<string, unknown> 来自路由查询参数
+  fetchData(params.id);
+});
+```
+
+### usePageOnShow
+
+页面每次变为可见时触发，包括首次显示和从隐藏状态恢复。适合刷新需要实时更新的数据。
+
+```ts
+import { usePageOnShow } from '@nebula-rn/sdk';
+
+usePageOnShow(() => {
+  console.log('页面显示');
+  refreshListData();
+});
+```
+
+### usePageOnReady
+
+页面首次渲染完成后触发（通过 `requestAnimationFrame` 延迟确保渲染完成）。适合执行依赖 DOM/视图就绪的操作。
+
+```ts
+import { usePageOnReady } from '@nebula-rn/sdk';
+
+usePageOnReady(() => {
+  console.log('页面渲染完成');
+  startAnimation();
+});
+```
+
+### usePageOnHide
+
+页面被隐藏时触发（如导航到新页面、切到后台）。适合暂停定时器、保存临时状态。
+
+```ts
+import { usePageOnHide } from '@nebula-rn/sdk';
+
+usePageOnHide(() => {
+  console.log('页面隐藏');
+  pauseVideoPlayback();
+  saveScrollPosition();
+});
+```
+
+### usePageOnUnload
+
+页面被销毁时触发。适合做最终的资源清理。
+
+```ts
+import { usePageOnUnload } from '@nebula-rn/sdk';
+
+usePageOnUnload(() => {
+  console.log('页面销毁');
+  cancelPendingRequests();
+});
+```
+
+## 完整示例
+
+```tsx
+import { View, Text } from 'react-native';
+import {
+  usePageOnLoad,
+  usePageOnShow,
+  usePageOnReady,
+  usePageOnHide,
+  usePageOnUnload,
+} from '@nebula-rn/sdk';
+import { useState } from 'react';
+
+export default function DetailPage() {
+  const [data, setData] = useState(null);
+
+  usePageOnLoad((params) => {
+    // 首次加载：根据路由参数请求数据
+    fetchDetail(params.id).then(setData);
+  });
+
+  usePageOnShow(() => {
+    // 每次显示：刷新时间敏感的数据
+    refreshTimestamp();
+  });
+
+  usePageOnReady(() => {
+    // 渲染完成：上报页面曝光
+    reportPageView();
+  });
+
+  usePageOnHide(() => {
+    // 页面隐藏：暂停自动轮播
+    pauseAutoPlay();
+  });
+
+  usePageOnUnload(() => {
+    // 页面销毁：取消未完成的网络请求
+    abortController.abort();
+  });
+
+  return (
+    <View>
+      <Text>{data?.title}</Text>
+    </View>
+  );
+}
+```
+
+## 底层事件机制
+
+### 原生层事件发射
+
+生命周期事件由宿主容器在原生层触发：
+
+**iOS（NebulaContainerController）：**
+
+- `viewWillAppear` → 发送 `NebulaContainerWillAppear` 通知 → 映射为 `show` 事件
+- `viewDidDisappear` → 发送 `NebulaContainerDidDisappear` 通知 → 映射为 `hide` 事件
+- `deinit`（控制器销毁） → 发送 `NebulaContainerDidUnload` 通知 → 映射为 `unload` 事件
+
+**Android（NebulaActivity）：**
+
+- `onResume` → 发布 `show` 事件
+- `onPause` → 发布 `hide` 事件
+- `onDestroy` → 发布 `unload` 事件
+
+### JavaScript 层接收
+
+原生事件通过 `NebulaNativeModule` 的 EventEmitter 桥接到 JavaScript 层，事件名为 `NebulaPageLifecycle`：
+
+```ts
+type PageLifecycleEvent = {
+  appId: string;       // 小程序 ID
+  instanceId: string;  // 容器实例 ID
+  routePath?: string;  // 当前页面路由
+  type: 'show' | 'hide' | 'unload' | 'ready';
+};
+```
+
+### 底层监听 API
+
+除了上面的 Hooks，也可以直接使用底层 API 监听所有页面生命周期事件：
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+const unsubscribe = Miniapp.onPageLifecycle((event) => {
+  console.log(`[${event.type}] appId=${event.appId} route=${event.routePath}`);
+});
+
+// 取消监听
+unsubscribe();
+```
+
+## 注意事项
+
+- `onShow` / `onHide` 可能触发多次，确保相关逻辑是幂等的
+- `onLoad` 中的 `params` 来自路由导航时的查询参数（如 `navigateTo('/detail?id=123')`）
+- `onReady` 使用 `requestAnimationFrame` 确保触发时视图已完成首次渲染
+- `onUnload` 触发时页面即将销毁，不应再执行 UI 更新操作

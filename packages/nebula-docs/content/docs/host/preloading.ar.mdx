@@ -1,0 +1,11 @@
+---
+title: التحميل المسبق
+description: استخدم التحميل المسبق في Nebula لتقليل زمن التشغيل البارد وتسريع فتح التطبيقات المصغّرة المتكررة.
+---
+
+يوفّر التحميل المسبق في Nebula أسلوبًا لتحسين بدء التشغيل. من خلال تهيئة وقت تشغيل JavaScript والجذر البصري قبل أن يفتح المستخدم التطبيق المصغّر فعليًا، يمكن تقليل زمن التأخير الأولي بشكل واضح.
+
+## الواجهات الرئيسية
+
+- `NebulaAPI.preloadMiniApp(appId)`
+- `NebulaAPI.preloadMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer?)`

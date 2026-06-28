@@ -1,0 +1,1450 @@
+---
+title: "@nebula-rn/host-apis"
+description: "مرجع API لحزمة تنفيذ قدرات المضيف الرسمية في Nebula، مع تسجيل جاهز وشرح مفصل لكل API."
+---
+
+توفر `@nebula-rn/host-apis` تنفيذات رسمية لقدرات المضيف. يمكن لتطبيق المضيف استخدام هذه الميزات الجاهزة وتسجيلها في وقت التشغيل عبر `NebulaAPI.wrap()`.
+
+**الإصدار:** 0.0.1
+
+---
+
+## بدء سريع
+
+### تسجيل جميع واجهات API الافتراضية
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+export default NebulaAPI.wrap({
+	serverBaseURL: 'https://api.example.com',
+	hostApis: defaultHostApis,
+})(App);
+```
+
+### التسجيل حسب الحاجة
+
+```tsx
+import { scanCodeHostApi, previewImageHostApi } from '@nebula-rn/host-apis';
+
+NebulaAPI.wrap({
+	hostApis: [scanCodeHostApi, previewImageHostApi],
+})(App);
+```
+
+---
+
+## التصديرات
+
+| اسم التصدير | النوع | الوصف |
+|--------|------|------|
+| `defaultHostApis` | `NebulaHostFeature[]` | مصفوفة تتضمن جميع واجهات API الافتراضية. |
+| `scanCodeHostApi` | `NebulaHostFeature` | واجهة Modal للمسح. |
+| `previewImageHostApi` | `NebulaHostFeature` | واجهة Modal لمعاينة الصور. |
+| `coreHostApis` | `NebulaHostFeature[]` | مصفوفة واجهات API الأساسية. |
+| `downloadFileHostApi` | `NebulaHostFeature` | تنزيل ملفات (Task API). |
+| `downloadFileHost` | `function` | تنزيل ملفات (دالة مباشرة). |
+| `uploadFileHostApi` | `NebulaHostFeature` | رفع ملفات (Task API). |
+| `uploadFileHost` | `function` | رفع ملفات (دالة مباشرة). |
+| `saveMediaHost` | `function` | حفظ الوسائط إلى ألبوم النظام. |
+
+`defaultHostApis` = `[scanCodeHostApi, previewImageHostApi, ...coreHostApis]`
+
+---
+
+## واجهات Modal
+
+### scanCode
+
+فتح واجهة مسح يديرها المضيف، تدعم QR والباركود.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `scanCode`
+
+**الإصدار:** 1.0
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `scanType` | `string[]` | لا | `['qr', 'ean-13', 'code-128']` | أنواع الأكواد المراد التعرف عليها. |
+| `onlyFromCamera` | `boolean` | لا | — | استخدام الكاميرا فقط. |
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `result` | `string \| undefined` | محتوى المسح. |
+| `scanType` | `string \| 'unknown'` | نوع الكود المُعرّف. |
+| `rawData` | `unknown` | بيانات المسح الخام. |
+
+**متطلبات الأذونات:** إذن الكاميرا.
+
+**الفروق بين المنصات:**
+
+| | iOS | Android |
+|--|-----|---------|
+| التحقق من الإذن | تحقق مسبق في `onBeforeOpen`، عند عدم الإذن يُعاد `PERMISSION_DENIED` | معالجة تلقائية على مستوى النظام |
+
+**رموز الخطأ:**
+
+| رمز الخطأ | الوصف |
+|--------|------|
+| `PERMISSION_DENIED` | عدم منح إذن الكاميرا (iOS فقط). |
+| `USER_CANCELLED` | أغلق المستخدم واجهة المسح. |
+| `UNSUPPORTED_SOURCE` | الجهاز لا يدعم المسح. |
+| `SCAN_FAILED` | فشل عملية المسح. |
+
+---
+
+### previewImage
+
+فتح واجهة معاينة صور بملء الشاشة مع دعم تعدد الصور والحفظ.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `previewImage`
+
+**الإصدار:** 1.0
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `urls` | `string[]` | نعم | — | قائمة روابط الصور. |
+| `current` | `string` | لا | — | رابط الصورة المعروضة في البداية. |
+| `showMenu` | `boolean` | لا | — | إظهار قائمة الحفظ/المشاركة. |
+| `saveMediaText` | `string` | لا | — | نص زر الحفظ. |
+| `cancelText` | `string` | لا | — | نص زر الإلغاء. |
+
+**الإرجاع:** نفس بنية Payload.
+
+**متطلبات الأذونات:** لا يوجد.
+
+---
+
+## الجهاز والتطبيق
+
+### getAppBaseInfo
+
+الحصول على معلومات التطبيق الأساسية.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `getAppBaseInfo`
+
+**Payload:** `{}` (بدون معاملات)
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `version` | `string` | إصدار التطبيق. |
+| `language` | `string` | لغة الجهاز. |
+| `enableDebug` | `boolean` | هل وضع التصحيح مفعّل. |
+| `theme` | `string` | الثيم الحالي (`'light'` أو `'dark'`). |
+
+---
+
+### getSystemInfo
+
+الحصول على معلومات الجهاز والشاشة ومنطقة الأمان.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `getSystemInfo`
+
+**Payload:** `{}` (بدون معاملات)
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `brand` | `string` | علامة الجهاز. |
+| `model` | `string` | طراز الجهاز. |
+| `pixelRatio` | `number` | كثافة البكسل. |
+| `screenWidth` | `number` | عرض الشاشة (px). |
+| `screenHeight` | `number` | ارتفاع الشاشة (px). |
+| `windowWidth` | `number` | عرض النافذة. |
+| `windowHeight` | `number` | ارتفاع النافذة. |
+| `statusBarHeight` | `number` | ارتفاع شريط الحالة. |
+| `platform` | `string` | `'ios'` أو `'android'`. |
+| `system` | `string` | اسم النظام وإصداره مثل "iOS 17.0". |
+| `version` | `string` | إصدار النظام. |
+| `fontSizeSetting` | `number` | معامل تحجيم الخط. |
+| `deviceOrientation` | `string` | اتجاه الجهاز (`'portrait'` أو `'landscape'`). |
+| `safeArea` | `SafeArea` | منطقة الأمان. |
+| `language` | `null` | حقل محجوز. |
+| `SDKVersion` | `null` | حقل محجوز. |
+
+**حقول `SafeArea`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `left` | `number` | هامش الأمان الأيسر. |
+| `right` | `number` | هامش الأمان الأيمن. |
+| `top` | `number` | هامش الأمان العلوي. |
+| `bottom` | `number` | هامش الأمان السفلي. |
+| `width` | `number` | عرض منطقة الأمان. |
+| `height` | `number` | ارتفاع منطقة الأمان. |
+
+**الفروق بين المنصات:**
+
+| | Android | iOS |
+|--|---------|-----|
+| `statusBarHeight` | `StatusBar.currentHeight` | قيمة `top` في منطقة الأمان |
+
+---
+
+### getScreenBrightness
+
+الحصول على سطوع الشاشة الحالي.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `getScreenBrightness`
+
+**Payload:** `{}` (بدون معاملات)
+
+**الإرجاع:** `number` (قيمة السطوع من 0 إلى 1).
+
+---
+
+### makePhoneCall
+
+فتح تطبيق الاتصال مع رقم محدد.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `makePhoneCall`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `phoneNumber` | `string` | نعم | رقم الهاتف. |
+
+**الإرجاع:** `boolean` (`true` إذا تم بدء الاتصال، و`false` إذا كان الرقم فارغًا أو فشل).
+
+---
+
+## الحافظة
+
+### getClipboardData
+
+قراءة نص الحافظة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `getClipboardData`
+
+**Payload:** `{}` (بدون معاملات)
+
+**الإرجاع:** `string` (نص الحافظة).
+
+---
+
+### setClipboardData
+
+كتابة نص إلى الحافظة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `setClipboardData`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `data` | `string` | نعم | النص المراد نسخه. |
+
+**الإرجاع:** `null`
+
+---
+
+## الموقع
+
+### getLocation
+
+الحصول على الموقع الجغرافي الحالي (مرة واحدة).
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `getLocation`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `isHighAccuracy` | `boolean` | لا | — | تفعيل الدقة العالية. |
+| `highAccuracyExpireTime` | `number` | لا | `10000` | مهلة الدقة العالية (ms). |
+| `altitude` | `boolean` | لا | — | طلب بيانات الارتفاع. |
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `latitude` | `number` | خط العرض. |
+| `longitude` | `number` | خط الطول. |
+| `speed` | `number` | السرعة (m/s). |
+| `accuracy` | `number` | الدقة (متر). |
+| `altitude` | `number` | الارتفاع (متر). |
+| `verticalAccuracy` | `number` | دقة عمودية. |
+| `horizontalAccuracy` | `number` | دقة أفقية. |
+
+**متطلبات الأذونات (Android):** `ACCESS_FINE_LOCATION` مع إمكانية النزول إلى `ACCESS_COARSE_LOCATION`.
+
+**رموز الخطأ:**
+
+| رمز الخطأ | الوصف |
+|--------|------|
+| `LOCATION_FAILED` | فشل طلب تحديد الموقع. |
+
+---
+
+### locationChange.subscribe
+
+بدء الاستماع المستمر لتغيّر الموقع.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `locationChange.subscribe`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `enableHighAccuracy` | `boolean` | لا | `true` | تفعيل الدقة العالية. |
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `subscriptionId` | `string` | معرّف الاشتراك. |
+
+**بيانات الحدث:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `latitude` | `number` | خط العرض. |
+| `longitude` | `number` | خط الطول. |
+| `speed` | `number` | السرعة. |
+| `accuracy` | `number` | الدقة. |
+| `altitude` | `number` | الارتفاع. |
+| `timestamp` | `number` | الطابع الزمني. |
+
+**المهلة:** 10000ms.
+
+**distanceFilter:** 0 (أي حركة تُطلق الحدث).
+
+---
+
+### locationChange.unsubscribe
+
+إيقاف الاستماع لتغيّر الموقع.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `locationChange.unsubscribe`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `subscriptionId` | `string` | نعم | معرّف الاشتراك المراد إلغاؤه. |
+
+**الإرجاع:** `null`
+
+---
+
+## الوسائط
+
+### chooseMedia
+
+فتح منتقي الوسائط لاختيار صور/فيديو من الألبوم أو الكاميرا.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `chooseMedia`
+
+**المهلة:** 120000ms
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `count` | `number` | لا | `9` | الحد الأقصى للملفات. |
+| `mediaType` | `('image' \| 'video' \| 'mix')[]` | لا | `['image', 'video']` | فلترة أنواع الوسائط. |
+| `sourceType` | `('album' \| 'camera')[]` | لا | `['album', 'camera']` | فلترة المصدر. |
+| `maxDuration` | `number` | لا | `10` | مدة التسجيل القصوى (ثوان). |
+| `sizeType` | `('original' \| 'compressed')[]` | لا | `['original', 'compressed']` | خيارات الضغط. |
+| `camera` | `'back' \| 'front'` | لا | `'back'` | الكاميرا الافتراضية. |
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `type` | `'image' \| 'video' \| 'mix'` | نوع الوسائط المختارة. |
+| `tempFiles` | `TempFile[]` | قائمة الملفات. |
+
+**حقول `TempFile`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `tempFilePath` | `string` | مسار الملف المؤقت. |
+| `size` | `number` | حجم الملف (بايت). |
+| `duration` | `number \| undefined` | مدة الفيديو (ثوان). |
+| `height` | `number \| undefined` | الارتفاع. |
+| `width` | `number \| undefined` | العرض. |
+| `thumbTempFilePath` | `string \| undefined` | مسار الصورة المصغرة (فيديو). |
+| `fileType` | `'image' \| 'video'` | نوع الملف. |
+
+**جودة الضغط:** `compressed` = 0.8، و`original` = 1.0.
+
+**رموز الخطأ:**
+
+| رمز الخطأ | الوصف |
+|--------|------|
+| `chooseMedia:fail cancel` | إلغاء المستخدم. |
+| `chooseMedia:fail {code}` | خطأ في المنتقي. |
+
+---
+
+### getImageInfo
+
+الحصول على معلومات أبعاد الصورة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `getImageInfo`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `src` | `string` | نعم | URL الصورة أو المسار المحلي. |
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `width` | `number` | عرض الصورة (px). |
+| `height` | `number` | ارتفاع الصورة (px). |
+| `path` | `string` | مسار الصورة. |
+| `orientation` | `string` | الاتجاه (ثابت على `'up'`). |
+| `type` | `string` | نوع الصورة. |
+| `errMsg` | `string` | `'getImageInfo:ok'`. |
+
+---
+
+### compressImage
+
+ضغط الصورة وإخراجها بصيغة JPEG.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `compressImage`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `src` | `string` | نعم | — | مسار الصورة الأصلية. |
+| `quality` | `number` | لا | `80` | جودة الضغط (0-100). |
+| `compressedWidth` | `number` | لا | — | العرض المستهدف (px). |
+| `compressedHeight` | `number` | لا | — | الارتفاع المستهدف (px). |
+
+**الإرجاع:** `string` (URI الصورة المضغوطة).
+
+---
+
+### saveMedia
+
+حفظ الصور أو الفيديو في ألبوم النظام.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `saveMedia`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `url` | `string` | نعم | مسار/URL ملف الوسائط. |
+| `type` | `'photo' \| 'video'` | نعم | نوع الوسائط. |
+| `album` | `string` | لا | اسم الألبوم الهدف. |
+
+**الإرجاع:** `string` (URI/مسار في ألبوم النظام).
+
+**التنفيذ:** حفظ عبر CameraRoll إلى مكتبة الوسائط.
+
+---
+
+## التخزين
+
+مبني على MMKV (Memory Mapped KV Store) بمعرّف `nebula.host.api.storage`.
+
+### storage.setItem
+
+كتابة زوج مفتاح/قيمة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `storage.setItem`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `key` | `string` | نعم | اسم المفتاح. |
+| `data` | `string` | نعم | القيمة المسلسلة (JSON). |
+
+**الإرجاع:** `null`
+
+---
+
+### storage.getItem
+
+قراءة زوج مفتاح/قيمة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `storage.getItem`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `key` | `string` | نعم | اسم المفتاح. |
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `value` | `string \| null` | القيمة المخزنة، أو `null` إذا لم توجد. |
+
+---
+
+### storage.removeItem
+
+حذف زوج مفتاح/قيمة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `storage.removeItem`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `key` | `string` | نعم | اسم المفتاح. |
+
+**الإرجاع:** `null`
+
+---
+
+### storage.clearItems
+
+مسح كل بيانات التخزين وتحرير الذاكرة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `storage.clearItems`
+
+**Payload:** `{}` (بدون معاملات)
+
+**الإرجاع:** `null`
+
+---
+
+### storage.getKeys
+
+الحصول على جميع أسماء المفاتيح المخزنة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `storage.getKeys`
+
+**Payload:** `{}` (بدون معاملات)
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `keys` | `string[]` | مصفوفة أسماء المفاتيح. |
+
+---
+
+### storage.getCurrentSize
+
+الحصول على حجم التخزين الحالي.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `storage.getCurrentSize`
+
+**Payload:** `{}` (بدون معاملات)
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `size` | `number` | الحجم المستخدم (KB مع خانتين عشريتين). |
+
+---
+
+## نظام الملفات
+
+### fileSystem.access
+
+التحقق من وجود ملف أو مجلد.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `fileSystem.access`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `path` | `string` | نعم | مسار الملف أو المجلد. |
+
+**الإرجاع:** `null`
+
+**رموز الخطأ:**
+
+| رمز الخطأ | الوصف |
+|--------|------|
+| `FILE_NOT_FOUND` | المسار غير موجود. |
+
+---
+
+### fileSystem.readFile
+
+قراءة محتوى الملف.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `fileSystem.readFile`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `filePath` | `string` | نعم | — | مسار الملف. |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | لا | `'utf8'` | ترميز الملف. |
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `data` | `string` | محتوى الملف. |
+
+---
+
+### fileSystem.writeFile
+
+كتابة ملف.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `fileSystem.writeFile`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `filePath` | `string` | نعم | — | مسار الملف الهدف. |
+| `data` | `string` | نعم | — | المحتوى المراد كتابته. |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | لا | `'utf8'` | ترميز الملف. |
+
+**الإرجاع:** `null`
+
+---
+
+### fileSystem.appendFile
+
+إلحاق محتوى بنهاية الملف.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `fileSystem.appendFile`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `filePath` | `string` | نعم | — | مسار الملف الهدف. |
+| `data` | `string` | نعم | — | المحتوى المراد إلحاقه. |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | لا | `'utf8'` | ترميز الملف. |
+
+**الإرجاع:** `null`
+
+---
+
+### fileSystem.copyFile
+
+نسخ ملف.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `fileSystem.copyFile`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `srcPath` | `string` | نعم | مسار المصدر. |
+| `destPath` | `string` | نعم | مسار الوجهة. |
+
+**الإرجاع:** `null`
+
+---
+
+### fileSystem.rename
+
+إعادة تسمية أو نقل ملف/مجلد.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `fileSystem.rename`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `oldPath` | `string` | نعم | المسار القديم. |
+| `newPath` | `string` | نعم | المسار الجديد. |
+
+**الإرجاع:** `null`
+
+---
+
+### fileSystem.unlink
+
+حذف ملف.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `fileSystem.unlink`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `filePath` | `string` | نعم | مسار الملف المراد حذفه. |
+
+**الإرجاع:** `null`
+
+---
+
+### fileSystem.mkdir
+
+إنشاء مجلد (بشكل تكراري).
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `fileSystem.mkdir`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `dirPath` | `string` | نعم | مسار المجلد. |
+
+**الإرجاع:** `null`
+
+---
+
+### fileSystem.rmdir
+
+حذف مجلد (بشكل تكراري).
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `fileSystem.rmdir`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `dirPath` | `string` | نعم | مسار المجلد. |
+
+**الإرجاع:** `null`
+
+---
+
+### fileSystem.readdir
+
+عرض محتويات المجلد.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `fileSystem.readdir`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `dirPath` | `string` | نعم | مسار المجلد. |
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `files` | `string[]` | أسماء الملفات/المجلدات. |
+
+---
+
+### fileSystem.saveFile
+
+حفظ ملف مؤقت داخل صندوق miniapp.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `fileSystem.saveFile`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `tempFilePath` | `string` | نعم | مسار الملف المؤقت. |
+| `filePath` | `string` | لا | المسار الهدف. إذا لم يُقدّم يُولّد تلقائيًا. |
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `savedFilePath` | `string` | مسار الملف المحفوظ. |
+
+---
+
+### fileSystem.getFileInfo
+
+الحصول على معلومات الملف والملخص (digest).
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `fileSystem.getFileInfo`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `filePath` | `string` | نعم | — | مسار الملف. |
+| `digestAlgorithm` | `'md5' \| 'sha1' \| 'sha256'` | لا | `'md5'` | خوارزمية الملخص. |
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `size` | `number` | حجم الملف (بايت). |
+| `digest` | `string` | ملخص الملف. |
+
+---
+
+### removeFile
+
+حذف ملف من الصندوق.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `removeFile`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `filePath` | `string` | نعم | مسار الملف المراد حذفه. |
+
+**الإرجاع:** `null`
+
+**رموز الخطأ:**
+
+| رمز الخطأ | الوصف |
+|--------|------|
+| `FILE_NOT_FOUND` | الملف غير موجود. |
+
+---
+
+## قواعد تحليل المسارات
+
+- المسارات التي تبدأ بـ `file://` يتم تطبيعها.
+- مسارات miniapp تُحل نسبة إلى `/Documents/MiniApps/{appId}/`.
+- المسارات التي تبدأ بـ `/Documents/` تُحل إلى `${RNFS.DocumentDirectoryPath}`.
+
+---
+
+## الشبكة
+
+### getNetworkType
+
+الحصول على نوع الشبكة الحالي.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `getNetworkType`
+
+**Payload:** `{}` (بدون معاملات)
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `networkType` | `string` | نوع الشبكة مثل `'wifi'` أو `'cellular'` أو `'none'`. |
+
+---
+
+### networkStatusChange.subscribe
+
+بدء الاستماع لتغيّر حالة الشبكة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `networkStatusChange.subscribe`
+
+**Payload:** `{}` (بدون معاملات)
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `subscriptionId` | `string` | معرّف الاشتراك. |
+
+**بيانات الحدث:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `isConnected` | `boolean` | هل توجد شبكة. |
+| `networkType` | `string` | نوع الشبكة الحالي. |
+
+**التنفيذ:** يعتمد على NetInfo للبث الفوري.
+
+---
+
+### networkStatusChange.unsubscribe
+
+إيقاف الاستماع لتغيّر حالة الشبكة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `networkStatusChange.unsubscribe`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `subscriptionId` | `string` | نعم | معرّف الاشتراك المراد إلغاؤه. |
+
+**الإرجاع:** `null`
+
+---
+
+## المستشعرات
+
+تدعم جميع واجهات اشتراك المستشعرات تخصيص فترة أخذ العينات.
+
+### accelerometerChange.subscribe / unsubscribe
+
+الاستماع لتغيرات مقياس التسارع.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `accelerometerChange.subscribe` / `accelerometerChange.unsubscribe`
+
+**Payload للاشتراك:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `interval` | `number` | لا | `100` | فترة أخذ العينات (ms). |
+
+**بيانات الحدث:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `x` | `number` | تسارع محور X. |
+| `y` | `number` | تسارع محور Y. |
+| `z` | `number` | تسارع محور Z. |
+| `timestamp` | `number \| undefined` | الطابع الزمني. |
+
+**Payload لإلغاء الاشتراك:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `subscriptionId` | `string` | نعم | معرّف الاشتراك. |
+
+---
+
+### gyroscopeChange.subscribe / unsubscribe
+
+الاستماع لتغيرات الجيروسكوب.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `gyroscopeChange.subscribe` / `gyroscopeChange.unsubscribe`
+
+**Payload للاشتراك/البيانات:** نفس مقياس التسارع.
+
+---
+
+### magnetometerChange.subscribe / unsubscribe
+
+الاستماع لتغيرات مقياس المغناطيس.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `magnetometerChange.subscribe` / `magnetometerChange.unsubscribe`
+
+**Payload للاشتراك/البيانات:** نفس مقياس التسارع.
+
+---
+
+### barometerChange.subscribe / unsubscribe
+
+الاستماع لتغيرات مقياس الضغط الجوي.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `barometerChange.subscribe` / `barometerChange.unsubscribe`
+
+**Payload للاشتراك:** `{}` (لا يدعم إعداد interval)
+
+**بيانات الحدث:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `pressure` | `number` | قيمة الضغط (Pa أو hPa). |
+
+---
+
+## حدث لقطة الشاشة
+
+### userCaptureScreen.subscribe / unsubscribe
+
+الاستماع لالتقاط المستخدم لقطة شاشة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `userCaptureScreen.subscribe` / `userCaptureScreen.unsubscribe`
+
+**Payload للاشتراك:** `{}` (بدون معاملات)
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `subscriptionId` | `string` | معرّف الاشتراك. |
+
+**بيانات الحدث:** `null` (مجرد إشعار بدون بيانات إضافية).
+
+**التنفيذ:** يعتمد على مستمع `ScreenshotAware`.
+
+---
+
+## تحديث miniapp
+
+### getMiniAppUpdateInfo
+
+الحصول على معلومات التثبيت/الإصدار المتاح لـ miniapp.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `getMiniAppUpdateInfo`
+
+**المهلة:** 15000ms
+
+**Payload:** `{}` (بدون معاملات)
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `appId` | `string` | معرّف miniapp. |
+| `currentVersion` | `string \| null` | الإصدار المثبّت حاليًا. |
+| `latestVersion` | `string \| null` | أحدث إصدار بعيد. |
+| `hasUpdate` | `boolean` | هل يوجد تحديث متاح. |
+| `updateStrategy` | `'auto' \| 'manual'` | استراتيجية التحديث. |
+| `mode` | `string \| null` | وضع وقت التشغيل. |
+| `sourceUrl` | `string \| null` | URL مصدر bundle. |
+
+---
+
+### applyMiniAppUpdate
+
+تنزيل وتثبيت أحدث bundle متاح.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `applyMiniAppUpdate`
+
+**المهلة:** 120000ms
+
+**Payload:** `{}` (بدون معاملات)
+
+**الإرجاع:** مثل `getMiniAppUpdateInfo`.
+
+---
+
+## نقل الملفات (Task API)
+
+تدعم Task API ردود تقدم وإلغاء العمليات. يستدعي `start` ويعيد `taskId`، ويستخدم `abort` للإلغاء.
+
+### downloadFile.start
+
+بدء مهمة تنزيل ملف.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `downloadFile.start`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `url` | `string` | نعم | — | عنوان التنزيل. |
+| `header` | `Record<string, string>` | لا | — | ترويسات HTTP مخصّصة. |
+| `timeout` | `number` | لا | `60000` | المهلة (ms). |
+| `filePath` | `string` | لا | يتم توليده | مسار الحفظ. إذا لم يُقدّم يُحفظ في المسار المؤقت. |
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `taskId` | `string` | معرّف المهمة. |
+
+**أحداث التقدم (channel: `task.progress`):**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `progress` | `number` | نسبة التقدم (0-100). |
+| `totalBytesWritten` | `number` | البايتات التي تم تنزيلها. |
+| `totalBytesExpectedToWrite` | `number` | إجمالي البايتات. |
+
+**أحداث الترويسات (channel: `task.headers`):**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `header` | `Record<string, string>` | ترويسات الاستجابة. |
+
+**نتيجة الاكتمال:**
+
+```ts
+// نجاح
+{ ok: true, data: { tempFilePath: string, statusCode: number } }
+
+// فشل
+{ ok: false, error: { code: 'DOWNLOAD_FAILED', message: string } }
+```
+
+**توليد المسار تلقائيًا:** `${TemporaryDirectoryPath}/${Date.now()}_download`
+
+**التنفيذ:** يعتمد على RNFS.downloadFile.
+
+---
+
+### downloadFile.abort
+
+إلغاء مهمة التنزيل.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `downloadFile.abort`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `taskId` | `string` | نعم | معرّف المهمة المراد إلغاؤها. |
+
+**الإرجاع:** `{ ok: true, data: null }`
+
+---
+
+### uploadFile.start
+
+بدء مهمة رفع ملف.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `uploadFile.start`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `url` | `string` | نعم | — | عنوان الرفع. |
+| `filePath` | `string` | نعم | — | مسار الملف المراد رفعه. |
+| `name` | `string` | نعم | — | اسم الحقل في النموذج. |
+| `header` | `Record<string, string>` | لا | — | ترويسات HTTP مخصّصة. |
+| `formData` | `Record<string, string>` | لا | — | حقول نموذج إضافية. |
+| `timeout` | `number` | لا | `60000` | المهلة (ms). |
+
+**الإرجاع:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `taskId` | `string` | معرّف المهمة. |
+
+**أحداث التقدم (channel: `task.progress`):**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `progress` | `number` | نسبة التقدم (0-100). |
+| `totalBytesSent` | `number` | البايتات المرسلة. |
+| `totalBytesExpectedToSend` | `number` | إجمالي البايتات. |
+
+**نتيجة الاكتمال:**
+
+```ts
+// نجاح
+{ ok: true, data: { data: string, statusCode: number } }
+
+// فشل
+{ ok: false, error: { code: 'UPLOAD_FAILED', message: string } }
+```
+
+**طريقة HTTP:** POST
+
+**التنفيذ:** يعتمد على RNFS.uploadFiles، ويتم استخراج اسم الملف تلقائيًا من `filePath`.
+
+---
+
+### uploadFile.abort
+
+إلغاء مهمة الرفع.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+**اسم API:** `uploadFile.abort`
+
+**Payload:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `taskId` | `string` | نعم | معرّف المهمة المراد إلغاؤها. |
+
+**الإرجاع:** `{ ok: true, data: null }`
+
+---
+
+## تصديرات الدوال المباشرة
+
+يمكن استدعاء الدوال التالية مباشرة دون استخدام Task API (بدون تقدم).
+
+### downloadFileHost(options)
+
+تنزيل ملفات بشكل بسيط.
+
+```ts
+async function downloadFileHost(options: {
+	url: string;
+	header?: Record<string, string>;
+	timeout?: number;
+	filePath?: string;
+}): Promise<{ tempFilePath: string; statusCode: number }>
+```
+
+---
+
+### uploadFileHost(options)
+
+رفع ملفات بشكل بسيط.
+
+```ts
+async function uploadFileHost(options: {
+	url: string;
+	filePath: string;
+	name: string;
+	header?: Record<string, string>;
+	formData?: Record<string, string>;
+	timeout?: number;
+}): Promise<{ data: string; statusCode: number }>
+```
+
+---
+
+### saveMediaHost(payload)
+
+حفظ الوسائط مباشرة إلى ألبوم النظام.
+
+```ts
+async function saveMediaHost(payload: {
+	url: string;
+	type: 'photo' | 'video';
+	album?: string;
+}): Promise<string>
+```
+
+---
+
+## صيغة الخطأ العامة
+
+تعود جميع نداءات API الفاشلة بالتنسيق الموحد:
+
+```ts
+{
+	ok: false,
+	error: {
+		code: string;
+		message: string;
+		details?: Record<string, unknown>;
+	}
+}
+```
+
+---
+
+## القيم الافتراضية للمهل
+
+| العملية | المهلة |
+|------|------|
+| واجهات API العامة | 15000ms |
+| عمليات الوسائط (chooseMedia) | 120000ms |
+| تحديث miniapp (applyMiniAppUpdate) | 120000ms |
+| نقل الملفات (download/upload) | 60000ms |

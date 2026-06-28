@@ -1,0 +1,40 @@
+{
+  "name": "@nebula-rn/sdk",
+  "version": "0.0.1",
+  "description": "Nebula Mini-App Framework - JavaScript/TypeScript client SDK",
+  "author": "Hector Zhuang",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hector-Zhuang/nebula.git",
+    "directory": "packages/nebula-sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/Hector-Zhuang/nebula/issues"
+  },
+  "homepage": "https://github.com/Hector-Zhuang/nebula/tree/main/packages/nebula-sdk#readme",
+  "keywords": ["nebula", "superapp", "miniapp", "react-native"],
+  "main": "./dist/index.js",
+  "react-native": "./src/index.ts",
+  "source": "./src/index.ts",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "src", "README.md"],
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src --ext .ts,.tsx",
+    "prepack": "npm run build"
+  },
+  "codegenConfig": {
+    "name": "NebulaSpecs",
+    "type": "modules",
+    "jsSrcsDir": "src/specs",
+    "android": {
+      "javaPackageName": "com.superapp.specs"
+    }
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-native": ">=0.83"
+  }
+}

@@ -1,0 +1,15 @@
+<svg width="550px" height="550px" viewBox="0 0 550 550" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:bx="https://boxy-svg.com">
+  <defs>
+    <bx:guide x="100.145" y="322.029" angle="0"/>
+    <bx:guide x="159.608" y="339.306" angle="0"/>
+    <bx:guide x="223.909" y="393.282" angle="90"/>
+    <bx:guide x="270.334" y="139.967" angle="0"/>
+    <bx:guide x="450.053" y="8.198" angle="0"/>
+  </defs>
+  <rect width="550" height="550" rx="120" style="" fill="#09090B" y="0.812" x="-0.254"/>
+  <g transform="matrix(1.279331, 0, -0.952618, 1.431348, 173.657608, -109.77314)" style="">
+    <path d="M 176.001 351.436 L 176.001 183.085 L 221.859 183.085 L 306.519 292.513 L 306.519 183.085 L 352.376 183.085 L 352.376 351.436 L 306.519 351.436 L 221.859 242.008 L 221.859 351.436 L 176.001 351.436 Z" style="" fill="#FAFAFA"/>
+  </g>
+  <rect width="123.508" height="62.726" style="stroke-width: 1; fill: rgb(0, 0, 0);" x="62.208" y="339.194"/>
+  <rect width="59.575" height="27.655" style="stroke-width: 1; fill: rgb(255, 255, 255);" x="100.145" y="365.627"/>
+</svg>

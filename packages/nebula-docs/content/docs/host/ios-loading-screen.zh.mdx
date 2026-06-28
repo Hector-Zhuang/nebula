@@ -1,0 +1,210 @@
+---
+title: iOS 加载屏幕
+description: 在 iOS 上配置 Nebula 的开发和运行时加载 UI 行为。
+---
+
+Nebula 在 iOS 上提供了两个独立的加载层：
+
+- 容器加载指示器
+- 开发加载视图
+
+它们解决不同的问题，应该分开处理。
+
+## 容器加载指示器
+
+容器加载指示器由 `NebulaContainerController` 在 React 内容挂载之前显示。
+
+### 行为
+
+- 在 `viewDidLoad` 中自动创建
+- 渲染一个居中的 `.large` 样式 `UIActivityIndicatorView`
+- 在 React 根视图准备好后自动移除
+
+### 背景颜色
+
+背景颜色通过 `backgroundColor` 由小程序页面配置控制：
+
+```ts
+definePageConfig({
+  route: '/home',
+  backgroundColor: '#f0f9ff',
+});
+```
+
+## 开发加载视图
+
+开发加载视图仅在开发期间使用。它负责显示 Metro 加载状态、编译进度和开发时错误。
+
+## 在哪里集成
+
+在 iOS 上，此自定义不位于小程序内部。它属于**宿主应用的 `AppDelegate.swift`**。
+
+Nebula 从 `NebulaAppDelegate` 协议中读取两个可选钩子：
+
+- `nebulaHost(_:configureDevLoading:)`
+- `nebulaHost(_:makeDevLoadingView:)`
+
+最常见的集成形式是：
+
+1. 让 `AppDelegate` 遵循 `NebulaAppDelegate`
+2. 在 `didFinishLaunchingWithOptions` 内部调用 `NebulaHost.shared.initialize(appDelegate: self)`
+3. 在同一个 `AppDelegate.swift` 中实现你需要的任何可选钩子
+
+例如，类似于 [sample-host 的 AppDelegate.swift](/Users/hectorchong/Project/superapp/packages/sample-host/ios/SuperApp/AppDelegate.swift)：
+
+```swift
+import React
+import ReactAppDependencyProvider
+import React_RCTAppDelegate
+import UIKit
+import NebulaHost
+
+@main
+class AppDelegate: UIResponder, UIApplicationDelegate, NebulaAppDelegate {
+  var window: UIWindow?
+
+  func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+  ) -> Bool {
+    NebulaHost.shared.initialize(appDelegate: self)
+
+    // 你的宿主启动代码...
+    return true
+  }
+}
+```
+
+换句话说：
+
+- 你不需要创建单独的委托对象
+- 最简单的设置是让 `AppDelegate` 自身充当 `NebulaAppDelegate`
+
+## 默认开发加载视图
+
+Nebula 附带 `NebulaDefaultDevLoadingView`，使用 SwiftUI 实现。它包括：
+
+- 一个活动指示器
+- 标题和消息文本
+- 一个可选的进度条
+- 一个可选的关闭提示
+- 平滑的进入和退出动画
+
+## 配置字段
+
+`NebulaDevLoadingConfiguration` 控制默认外观：
+
+| 字段                     | 类型           | 含义                     |
+| ------------------------ | -------------- | ------------------------ |
+| `title`                  | `String`       | 加载标题                 |
+| `message`                | `String`       | 加载描述                 |
+| `progress`               | `NSNumber?`    | 从 `0.0` 到 `1.0` 的进度 |
+| `accentColor`            | `UIColor`      | 指示器和进度的强调色     |
+| `backgroundColor`        | `UIColor`      | 背景颜色                 |
+| `titleColor`             | `UIColor`      | 标题颜色                 |
+| `messageColor`           | `UIColor`      | 消息颜色                 |
+| `showsActivityIndicator` | `Bool`         | 是否显示旋转器           |
+| `showsDismissHint`       | `Bool`         | 是否显示关闭提示         |
+| `cornerRadius`           | `CGFloat`      | 圆角半径                 |
+| `maximumWidth`           | `CGFloat`      | 最大宽度                 |
+| `contentInsets`          | `UIEdgeInsets` | 内容内边距               |
+
+## 自定义默认外观
+
+如果你只想调整颜色、文本或圆角半径，在 `AppDelegate.swift` 中实现 `configureDevLoading`：
+
+```swift
+func nebulaHost(
+  _ host: NebulaHost,
+  configureDevLoading configuration: NebulaDevLoadingConfiguration
+) -> NebulaDevLoadingConfiguration {
+  var config = configuration
+  config.accentColor = .systemBlue
+  config.backgroundColor = UIColor(white: 0.12, alpha: 0.95)
+  config.titleColor = .white
+  config.messageColor = .lightGray
+  config.cornerRadius = 16
+  return config
+}
+```
+
+这通常是轻量级视觉自定义的最佳位置。
+
+## 完全替换开发加载视图
+
+如果默认 UI 不够用，在同一个 `AppDelegate.swift` 中实现 `makeDevLoadingView`：
+
+```swift
+func nebulaHost(
+  _ host: NebulaHost,
+  makeDevLoadingView configuration: NebulaDevLoadingConfiguration
+) -> NebulaDevLoadingView {
+  return MyCustomDevLoadingView(configuration: configuration)
+}
+```
+
+你的自定义视图应该继承自 `NebulaDevLoadingView`。
+
+一个更完整的结构如下所示：
+
+```swift
+@main
+class AppDelegate: UIResponder, UIApplicationDelegate, NebulaAppDelegate {
+  func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+  ) -> Bool {
+    NebulaHost.shared.initialize(appDelegate: self)
+    return true
+  }
+
+  func nebulaHost(
+    _ host: NebulaHost,
+    configureDevLoading configuration: NebulaDevLoadingConfiguration
+  ) -> NebulaDevLoadingConfiguration {
+    var config = configuration
+    config.accentColor = .systemBlue
+    return config
+  }
+
+  func nebulaHost(
+    _ host: NebulaHost,
+    makeDevLoadingView configuration: NebulaDevLoadingConfiguration
+  ) -> NebulaDevLoadingView {
+    MyCustomDevLoadingView(configuration: configuration)
+  }
+}
+```
+
+如果你只需要颜色和文案更新：
+
+- 实现 `configureDevLoading`
+
+如果你需要完全自定义的体验：
+
+- 同时实现 `makeDevLoadingView`
+
+## 显示和隐藏行为
+
+开发加载由 `NebulaDevLoadingPresenter` 管理：
+
+- **显示**：使用 `show(title:message:progress:...)` 并将视图从顶部动画进入
+- **隐藏**：使用 `hide()`，在关闭前保持视图可见最短显示时间
+- 它在单独的 `UIWindow` 中渲染，因此不会干扰主宿主层级
+
+## 两个加载层之间的区别
+
+|            | 容器加载指示器         | 开发加载视图               |
+| ---------- | ---------------------- | -------------------------- |
+| 触发时机   | React 内容挂载前       | Metro 加载/编译期间        |
+| 环境       | 开发和生产             | 仅开发                     |
+| 展示方式   | 居中的页内旋转器       | 顶部覆盖横幅               |
+| 自定义方式 | 通过页面配置的背景颜色 | 外观、颜色或完全自定义视图 |
+| 目的       | 页面加载过渡           | 开发反馈                   |
+
+## 最佳实践
+
+- 将容器加载和开发加载视为不同的关注点
+- 保持生产加载简单且可预测
+- 使用开发加载在开发期间展示 Metro 反馈
+- 在小程序内部使用页面级骨架屏来加载业务数据，而不是重载容器加载 UI

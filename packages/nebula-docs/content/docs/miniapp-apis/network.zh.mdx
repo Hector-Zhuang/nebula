@@ -1,0 +1,77 @@
+---
+title: 网络与电话
+description: 使用 Nebula API 检测网络状态、监听网络变化和拨打电话。
+---
+
+## 获取当前网络类型
+
+```ts
+import { getNetworkType } from '@nebula-rn/client';
+
+const networkType = await getNetworkType();
+console.log(networkType); // 'wifi' | 'cellular' | 'none' | 'unknown'
+```
+
+## 监听网络状态变化
+
+```ts
+import { onNetworkStatusChange } from '@nebula-rn/client';
+
+const unsubscribe = onNetworkStatusChange((status) => {
+  console.log('是否联网:', status.isConnected);
+  console.log('网络类型:', status.networkType);
+});
+
+// 停止监听
+unsubscribe();
+```
+
+回调数据：
+
+```ts
+type NetworkStatusChangeResult = {
+  isConnected: boolean;   // 是否有网络连接
+  networkType: string;    // 网络类型
+};
+```
+
+## 示例：网络状态指示器
+
+```tsx
+import React, { useState, useEffect } from 'react';
+import { Text, View } from 'react-native';
+import { getNetworkType, onNetworkStatusChange } from '@nebula-rn/client';
+
+export default function NetworkIndicator() {
+  const [connected, setConnected] = useState(true);
+  const [type, setType] = useState('');
+
+  useEffect(() => {
+    getNetworkType().then(setType);
+
+    const unsubscribe = onNetworkStatusChange((status) => {
+      setConnected(status.isConnected);
+      setType(status.networkType);
+    });
+    return () => { unsubscribe(); };
+  }, []);
+
+  return (
+    <View>
+      <Text>
+        {connected ? `已连接 (${type})` : '无网络连接'}
+      </Text>
+    </View>
+  );
+}
+```
+
+## 拨打电话
+
+```ts
+import { makePhoneCall } from '@nebula-rn/client';
+
+await makePhoneCall('10086');
+```
+
+调用后会打开系统拨号界面。

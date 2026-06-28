@@ -1,0 +1,202 @@
+---
+title: Miniapp Loading Screen
+description: Configure a host-owned loading screen for production miniapps.
+---
+
+Nebula supports a **host-owned loading screen** for production miniapps.
+
+This loading UI is rendered by the host runtime, not by the
+miniapp itself. That makes it a good fit for:
+
+- production startup transitions
+- bundle installation or update feedback
+- branded loading experiences controlled by the host app
+- avoiding blank screens before the miniapp first page is ready
+
+## Configure it in `NebulaAPI.wrap()`
+
+```tsx
+import React from 'react';
+import { Text, View } from 'react-native';
+import { NebulaAPI } from '@nebula-rn/sdk';
+import type { MiniappLoadingProps } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+function MiniappLoadingScreen({ appId, status }: MiniappLoadingProps) {
+  const message =
+    status === 'installing'
+      ? 'Installing latest bundle...'
+      : status === 'error'
+        ? 'Failed to load miniapp.'
+        : 'Preparing miniapp...';
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: 'rgba(15, 23, 42, 0.32)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+      }}
+    >
+      <View
+        style={{
+          width: '100%',
+          maxWidth: 320,
+          borderRadius: 24,
+          backgroundColor: '#fff',
+          paddingHorizontal: 24,
+          paddingVertical: 28,
+        }}
+      >
+        <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b' }}>
+          Nebula
+        </Text>
+        <Text
+          style={{
+            marginTop: 10,
+            fontSize: 24,
+            fontWeight: '700',
+            color: '#0f172a',
+          }}
+        >
+          {appId}
+        </Text>
+        <Text style={{ marginTop: 8, fontSize: 15, color: '#475569' }}>
+          {message}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+export default NebulaAPI.wrap({
+  hostApis: defaultHostApis,
+  miniappLoading: {
+    component: MiniappLoadingScreen,
+    delayMs: 600,
+    enterContentDelayMs: 160,
+  },
+})(App);
+```
+
+## Configuration shape
+
+`NebulaAPI.wrap()` now supports:
+
+```ts
+type NebulaHostOptions = {
+  hostApis?: NebulaHostFeature[];
+  serverBaseURL?: string | null;
+  miniappLoading?: {
+    component: React.ComponentType<MiniappLoadingProps>;
+    delayMs?: number;
+    enterContentDelayMs?: number;
+    resolveProps?: (
+      context: MiniappLoadingResolveContext,
+    ) => MiniappLoadingResolvedProps;
+  };
+};
+```
+
+The loading component receives:
+
+```ts
+type MiniappLoadingProps = {
+  appId: string;
+  mode: 'development' | 'production';
+  status: 'installing' | 'loading' | 'ready' | 'error';
+  title?: string | null;
+  icon?: ReactNode;
+  extraData?: Record<string, unknown> | null;
+  errorMessage?: string | null;
+};
+```
+
+`resolveProps` lets the host enrich the loading screen with app-specific
+presentation data such as a title, icon, or custom `extraData`.
+
+`delayMs` adds an intentional hold after the miniapp is technically ready. This
+is useful when you want the loading alert to stay visible for a little longer
+before the fade-out begins.
+
+`enterContentDelayMs` delays when the miniapp content itself is attached behind
+the loading screen. This is useful when you want the loading animation to begin
+first, then let the miniapp enter slightly later.
+
+```
+  [ openMiniApp() ]
+         │
+         ▼
+ ┌───────────────┐
+ │  INSTALLING / │
+ │    LOADING    │ ◄─── Status changes; host loading UI mounts immediately.
+ └───────┬───────┘
+         │
+         ▼
+   ( Container ) ◄─── Native shell container is prepared.
+         │
+         ├────────────────────────┐
+         │  enterContentDelayMs   │ ◄─── Delay before attaching miniapp view.
+         │  [====== SHIELD ======]│      Ensures loading animations initialize smoothly.
+         ▼                        │
+ ┌───────────────┐                │
+ │ CONTENT ATTACH│ ◄──────────────┘ ◄─── Miniapp content mounts behind the loading UI.
+ └───────┬───────┘
+         │
+         ▼
+   (   READY   ) ◄─── Native layer detects miniapp's first frame is fully rendered.
+         │
+         ├────────────────────────┐
+         │        delayMs         │ ◄─── Intentional hold on the loading screen.
+         │  [===== HOLD UI =====] │      Prevents visual flashing on fast loads.
+         ▼                        │
+ ┌───────────────┐                │
+ │  HIDE JS UI   │ ◄──────────────┘ ◄─── Javascript hides the host loading component.
+ └───────┬───────┘
+         │
+         ├────────────────────────┐
+         │   240ms Exit Buffer    │ ◄─── Fixed delay window.
+         │  [=== ANIMATION ===]   │      Allows Reanimated/exit transitions to complete.
+         ▼                        │
+ ┌───────────────┐                │
+ │ OVERLAY REMOVE│ ◄──────────────┘ ◄─── Native overlay unmounts completely.
+ └───────────────┘
+```
+
+## When Nebula shows it
+
+Nebula only uses this loading screen for **production miniapps**.
+
+The current behavior is:
+
+1. `openMiniApp()` or `openMiniAppWithBundleURL(..., initialProps, false)` starts
+2. if needed, the loading state becomes `installing`
+3. when the production miniapp container is being prepared, the state becomes `loading`
+4. Nebula waits for `enterContentDelayMs`, if configured, before attaching the
+   miniapp content behind the loading screen
+5. the native container detects that the first miniapp content is ready
+6. Nebula waits for the configured `delayMs` value, if any
+7. Nebula hides the host loading component in JS
+8. Nebula keeps a `240ms` delay so any host-side exit animation, such as a
+   `reanimated` fade-out, has time to finish
+9. the native overlay container is removed
+
+Development miniapps do not use versioned loading behavior and do not
+participate in this production loading flow.
+
+## Design guidance
+
+Good loading screens usually:
+
+- identify the miniapp or business domain clearly
+- keep messaging short and infrastructure-focused
+- avoid depending on product data that may not be available yet
+- feel branded, but not overly animated
+
+Avoid using this layer for:
+
+- skeletons that belong to the miniapp page itself
+- business-specific loading states after the miniapp is already ready
+- long-running workflows that should show real progress from the miniapp

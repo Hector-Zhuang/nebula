@@ -1,0 +1,420 @@
+---
+title: Nebula Cloud API
+description: Nebula Cloud REST API reference, including interface contracts for runtime and CLI.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Nebula Cloud provides a REST API for managing miniapps, versions, publishing, and authentication. The service listens on port 3001 by default, with the API root path at `/api`.
+
+<Callout type="info">
+  If you choose to build your own backend instead of using Nebula Cloud, your
+  service **must** implement the interfaces marked as "Runtime Required" and
+  "CLI Required" below for the Nebula runtime and CLI to function correctly. The
+  remaining management interfaces are optional.
+</Callout>
+
+## Authentication
+
+All APIs except publicly accessible endpoints require a Bearer Token in the request header:
+
+```
+Authorization: Bearer <accessToken>
+```
+
+### Register
+
+```
+POST /api/auth/register
+```
+
+| Parameter  | Type     | Description                      |
+| ---------- | -------- | -------------------------------- |
+| `email`    | `string` | Email address                    |
+| `password` | `string` | Password (at least 6 characters) |
+
+**Returns:** `{ id, email, accessToken, displayName }`
+
+### Login `CLI Required`
+
+```
+POST /api/auth/login
+```
+
+| Parameter  | Type     | Description   |
+| ---------- | -------- | ------------- |
+| `email`    | `string` | Email address |
+| `password` | `string` | Password      |
+
+**Returns:**
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "id": "user-uuid",
+    "email": "user@example.com",
+    "displayName": "User Name"
+  }
+}
+```
+
+### Get Current User
+
+```
+GET /api/auth/me
+```
+
+**Returns:** `{ id, email, displayName, role, status }`
+
+### CLI Device Authorization Flow `CLI Required`
+
+The CLI uses the device authorization flow for login (recommended method):
+
+**1. Create CLI Session**
+
+```
+POST /api/auth/cli/sessions
+```
+
+No authentication required, no request body.
+
+**Returns:**
+
+```json
+{
+  "code": "ABCD-1234",
+  "verificationUrl": "https://your-server.com/cli/verify?code=ABCD-1234",
+  "expiresAt": "2025-01-15T10:45:00Z",
+  "intervalSeconds": 5
+}
+```
+
+The CLI prints the `verificationUrl` and automatically opens a browser. The user logs in and confirms authorization in the browser.
+
+**2. Poll Session Status**
+
+```
+GET /api/auth/cli/sessions/{code}
+```
+
+The CLI polls this endpoint at `intervalSeconds` intervals until the `status` becomes `approved`.
+
+**Returns:**
+
+```json
+{
+  "status": "pending | approved | expired",
+  "accessToken": "eyJhbGci... (returned when status is approved)",
+  "user": { "id": "...", "email": "...", "displayName": "..." }
+}
+```
+
+**3. Approve Session (user action in browser)**
+
+```
+POST /api/auth/cli/sessions/{code}/approve
+Authorization: Bearer <accessToken>
+```
+
+---
+
+## Runtime API Contract (Public Access)
+
+The following interfaces are **core dependencies for Nebula runtime to download and update miniapps**. No user login authentication is required; they use query token authentication.
+
+<Callout type="warn">
+  **Self-hosted backend developers note:** Regardless of your technology stack,
+  these three interfaces are the minimum requirement for the runtime to function
+  correctly. If any are missing, the host app will not be able to install or
+  update miniapps.
+</Callout>
+
+### Get Installation Info `Runtime Required`
+
+```
+GET /api/mini-apps/access/versions/{versionId}/install?token={accessToken}
+```
+
+Returns installation metadata for the miniapp. The runtime uses this interface to obtain download URLs for the bundle and manifest.
+
+**Returns:**
+
+```json
+{
+  "appId": "com.example.weather",
+  "appName": "Weather",
+  "versionId": "version-uuid",
+  "version": "1.2.0",
+  "releaseType": "RELEASE",
+  "routeUrl": "nebula://com.example.weather",
+  "bundleUrl": "https://your-server.com/api/mini-apps/access/versions/{versionId}/bundle?token=...",
+  "bundles": {
+    "ios": "https://your-server.com/api/mini-apps/access/versions/{versionId}/bundles/ios?token=...",
+    "android": "https://your-server.com/api/mini-apps/access/versions/{versionId}/bundles/android?token=..."
+  },
+  "assetsUrl": {
+    "ios": "https://your-server.com/api/mini-apps/access/versions/{versionId}/assets/ios?token=...",
+    "android": "https://your-server.com/api/mini-apps/access/versions/{versionId}/assets/android?token=..."
+  },
+  "manifestUrl": "https://your-server.com/api/mini-apps/access/versions/{versionId}/manifest?token=..."
+}
+```
+
+| Field         | Description                                         |
+| ------------- | --------------------------------------------------- |
+| `appId`       | Unique identifier of the miniapp                    |
+| `routeUrl`    | `nebula://` protocol address for in-host navigation |
+| `bundleUrl`   | JS bundle download address (can be a CDN URL)       |
+| `bundles`     | Platform-specific bundle download URLs               |
+| `assetsUrl`   | Platform-specific assets archive download URLs       |
+| `manifestUrl` | Manifest download address                           |
+
+### Download Bundle `Runtime Required`
+
+```
+GET /api/mini-apps/access/versions/{versionId}/bundle?token={accessToken}
+```
+
+Returns the JavaScript bundle file. Content-Type is `application/javascript`.
+
+This is the Metro build output `main.jsbundle`. The runtime saves it to the sandbox directory `/Documents/MiniApps/{appId}/`.
+
+### Download Manifest `Runtime Required`
+
+```
+GET /api/mini-apps/access/versions/{versionId}/manifest?token={accessToken}
+```
+
+Returns the miniapp's manifest file (`app.json`). Content-Type is `application/json`.
+
+The runtime uses this interface to check for version updates by comparing the locally installed version with the `version` field in the remote manifest.
+
+### Download Assets `Runtime Required`
+
+```
+GET /api/mini-apps/access/versions/{versionId}/assets/{platform}?token={accessToken}
+```
+
+Returns the miniapp's assets archive (zip) for the specified platform. Content-Type is `application/zip`.
+
+The `platform` parameter accepts `ios` or `android`. The runtime downloads this zip, extracts it into the miniapp's sandbox directory, and places assets alongside the bundle file so React Native can resolve `require('./image.png')` references correctly.
+
+| Platform | Sandbox Path | Assets Layout |
+| -------- | ---- | ------------- |
+| iOS | `Documents/MiniApps/{appId}/` | `assets/` directory extracted alongside `index.bundle` |
+| Android | `{filesDir}/nebula/{appId}/` | `drawable-*` directories extracted alongside `index.android.bundle` |
+
+### URL Derivation Rules
+
+<Callout type="warn">
+The Nebula runtime automatically derives the manifest URL from the `bundleUrl` — it takes the parent path of the bundle URL and appends `/app.json`. For example:
+- Bundle: `https://cdn.example.com/miniapps/v123/bundle`
+- Derived Manifest: `https://cdn.example.com/miniapps/v123/app.json`
+
+If you use a CDN to host the bundle, ensure the manifest file is accessible at the same path, or provide the complete `manifestUrl` in the install interface response.
+
+</Callout>
+
+### URL Resolution Rules
+
+The runtime resolves relative paths using `serverBaseURL` (configured in `NebulaAPI.wrap()`):
+
+```ts
+export default NebulaAPI.wrap({
+  serverBaseURL: 'https://your-api.example.com/api',
+  // ...
+})(App);
+```
+
+| URL Format    | Example                          | Resolved Result                                        |
+| ------------- | -------------------------------- | ------------------------------------------------------ |
+| Absolute path | `/mini-apps/v1/bundle`           | `https://your-api.example.com/mini-apps/v1/bundle`     |
+| Relative path | `mini-apps/v1/bundle`            | `https://your-api.example.com/api/mini-apps/v1/bundle` |
+| Full URL      | `https://cdn.example.com/bundle` | No transformation                                      |
+
+---
+
+## Miniapp Management
+
+### List Miniapps
+
+```
+GET /api/mini-apps
+```
+
+**Returns:** `MiniApp[]`
+
+### Create Miniapp
+
+```
+POST /api/mini-apps
+```
+
+| Parameter     | Type      | Description                      |
+| ------------- | --------- | -------------------------------- |
+| `appId`       | `string`  | Unique identifier of the miniapp |
+| `name`        | `string`  | Display name                     |
+| `description` | `string?` | Description                      |
+| `iconUrl`     | `string?` | Icon URL                         |
+
+**Returns:** `MiniApp`
+
+### Get Miniapp Details
+
+```
+GET /api/mini-apps/{miniAppId}
+```
+
+### Update Miniapp
+
+```
+PATCH /api/mini-apps/{miniAppId}
+```
+
+| Parameter     | Type      | Description  |
+| ------------- | --------- | ------------ |
+| `name`        | `string?` | Display name |
+| `description` | `string?` | Description  |
+| `iconUrl`     | `string?` | Icon URL     |
+
+### Get Workspace
+
+```
+GET /api/mini-apps/{miniAppId}/workspace
+```
+
+Returns miniapp details and all its versions.
+
+---
+
+## Version Management
+
+### Upload Version `CLI Required`
+
+```
+POST /api/mini-apps/by-app-id/{appId}/versions/upload
+Content-Type: multipart/form-data
+```
+
+The CLI's `nebula miniapp upload` command calls this interface.
+
+| Parameter       | Type      | Description                                    |
+| --------------- | --------- | ---------------------------------------------- |
+| `version`       | `string`  | Version number (e.g., `1.0.0`)                 |
+| `changelog`     | `string?` | Changelog                                      |
+| `bundleIos`     | `File`    | iOS JS bundle file (`main.ios.jsbundle`)       |
+| `bundleAndroid` | `File`    | Android JS bundle file (`main.android.bundle`) |
+| `manifest`      | `File`    | Manifest file (`app.json`)                     |
+| `assetsIos`     | `File`    | iOS assets archive (`assets-ios.zip`)          |
+| `assetsAndroid` | `File`    | Android assets archive (`assets-android.zip`)  |
+
+**Returns:**
+
+```json
+{
+  "id": "version-id",
+  "version": "1.0.0",
+  "buildNumber": 1,
+  "releaseType": "RELEASE",
+  "status": "DRAFT"
+}
+```
+
+After successful upload, this version automatically becomes the current experience version.
+
+### Submit for Review
+
+```
+POST /api/mini-apps/{miniAppId}/versions/{versionId}/review
+```
+
+Submits the current experience version or a historical version to the review process and updates `currentReviewVersionId`.
+
+### Publish Version
+
+```
+POST /api/mini-apps/{miniAppId}/versions/{versionId}/publish
+```
+
+| Parameter | Type      | Description   |
+| --------- | --------- | ------------- |
+| `notes`   | `string?` | Release notes |
+
+After publishing: the version status updates to `PUBLISHED`, and the current release version updates to this version.
+
+### Rollback Version
+
+```
+POST /api/mini-apps/{miniAppId}/rollback
+```
+
+| Parameter         | Type      | Description                       |
+| ----------------- | --------- | --------------------------------- |
+| `targetVersionId` | `string`  | Target version ID to roll back to |
+| `notes`           | `string?` | Rollback reason                   |
+
+### Delete Version
+
+```
+DELETE /api/mini-apps/{miniAppId}/versions/{versionId}
+```
+
+---
+
+## Admin Interfaces
+
+### List Users
+
+```
+GET /api/admin/users
+Authorization: Bearer <admin-token>
+```
+
+**Returns:** `{ users: User[], auditLogs: AuditLog[] }`
+
+### Create User
+
+```
+POST /api/admin/users
+Authorization: Bearer <admin-token>
+```
+
+| Parameter     | Type                 | Description   |
+| ------------- | -------------------- | ------------- |
+| `email`       | `string`             | Email address |
+| `displayName` | `string`             | Display name  |
+| `password`    | `string`             | Password      |
+| `role`        | `'ADMIN' \| 'USER'?` | Role          |
+
+### Update User
+
+```
+PATCH /api/admin/users/{userId}
+Authorization: Bearer <admin-token>
+```
+
+---
+
+## Self-Hosted Backend Minimal Implementation Checklist
+
+If you choose to build your own backend, here is the priority order for a minimal viable implementation:
+
+### For Runtime to Work Properly (Required)
+
+1. `GET .../install` — Returns `bundleUrl`, `bundles`, `assetsUrl`, and `manifestUrl`
+2. `GET .../bundle` — Returns JS bundle file
+3. `GET .../bundles/{platform}` — Returns platform-specific JS bundle file
+4. `GET .../manifest` — Returns manifest JSON
+5. `GET .../assets/{platform}` — Returns platform-specific assets archive (zip)
+
+### For CLI to Work Properly (Recommended)
+
+4. `POST /api/auth/login` or `POST /api/auth/cli/sessions` — Authentication
+5. `POST .../versions/upload` — Accepts multipart file uploads (including assets)
+
+### For Complete Management Features (Optional)
+
+6. Miniapp CRUD, version publish/rollback, admin panel, etc.
+
+See [Nebula Cloud Deployment](/docs/nebula-cloud/deployment) for self-hosted backend guidance and recommended production architecture.

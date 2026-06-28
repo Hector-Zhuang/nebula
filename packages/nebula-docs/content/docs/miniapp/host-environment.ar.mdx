@@ -1,0 +1,171 @@
+---
+title: بيئة تشغيل miniapp داخل المضيف
+description: تعرّف إلى بيئة المضيف التي تعمل فيها Nebula miniapps، بما في ذلك أسلوب العرض والتفاعل مع المضيف وواجهات API المتاحة.
+---
+
+تعمل Nebula miniapps داخل بيئة حاوية يوفّرها تطبيق المضيف. يتولى المضيف تنفيذ القدرات الأصلية، بينما تتواصل الـ miniapp معه عبر طبقة API موحدة.
+
+## نموذج العرض
+
+تعرض Nebula الصفحات عبر **React Native** وليس WebView. لكل صفحة miniapp جذر React Native يديره المضيف عبر `NebulaContainerController` (iOS) أو `NebulaContainerActivity` (Android).
+
+خط سير العرض:
+
+1. عند فتح المضيف للـ miniapp، ينشئ مثيلًا من حاوية العرض
+2. تبحث الحاوية عن ملف الـ bundle المثبت بناءً على `appId`
+3. يتم إنشاء React Native root view باستخدام JavaScript bundle المبني عبر Metro
+4. يُثبّت الجذر داخل شجرة العرض الخاصة بالحاوية
+5. تعرض الحاوية مؤشر تحميل حتى اكتمال تركيب محتوى React
+
+```
+تطبيق المضيف
+  └── NebulaContainerController
+        ├── مؤشر تحميل (قبل تركيب محتوى React)
+        └── React Native Root View
+              └── مكوّنات صفحات الـ miniapp
+```
+
+### وضع التطوير والإنتاج
+
+- **وضع التطوير**: تحميل الـ bundle من خادم Metro المحلي مع دعم التحديث الفوري
+- **وضع الإنتاج**: تحميل الـ bundle من نظام ملفات الجهاز (ملفات `.jsbundle` المثبتة)
+
+## التفاعل مع المضيف
+
+يتم التواصل بين الـ miniapp والمضيف عبر **Nebula Protocol**، وإصدار البروتوكول الحالي هو `api.v1`.
+
+<Warning title="حدود الوحدات الأصلية">
+  تعمل Nebula داخل بيئة React Native الخاصة بالمضيف ولا توفّر عزلًا أصليًا كاملًا. إذا استدعت miniapp وحدات `NativeModules` غير مدمجة في المضيف (مثل الملاحة أو الإشعارات أو الخرائط)، فقد تتعطل miniapp أثناء التشغيل.
+
+  يجب على مطوري المضيف توفير قائمة واضحة بواجهات API والوحدات الأصلية المدعومة، وتنبيه مطوري miniapp إلى عدم إدراج اعتمادات أصلية غير متوافقة.
+
+  قد تقدم Nebula مستقبلًا آلية عزل JavaScript للحد من الاستدعاءات الأصلية غير المسموح بها وتقليل المخاطر.
+</Warning>
+
+### آلية الاتصال
+
+```
+miniapp (JavaScript)
+    │
+    │  Miniapp.invokeHostApi()
+    │  Miniapp.postMessageToHost()
+    ▼
+Nebula Bridge (طبقة البروتوكول)
+    │
+    │  NebulaNativeModule
+    │  EventEmitter
+    ▼
+المضيف (Native)
+```
+
+عند استدعاء miniapp لقدرات المضيف، يقوم SDK ببناء رسالة بروتوكول وإرسالها إلى المضيف عبر Native Module:
+
+```ts
+// بنية رسالة البروتوكول
+{
+  __nebulaProtocol: 'api.v1',
+  kind: 'invoke',          // 'invoke' | 'getCapabilities' | 'getApiDescriptions'
+  requestId: 'unique-id',  // لمطابقة الطلب والرد
+  api: 'scanCode',         // اسم الـ API
+  payload: { ... },        // معطيات الطلب
+}
+```
+
+بعد أن يعالج المضيف الطلب، يعيد النتيجة إلى miniapp عبر EventEmitter باستخدام `requestId` للمطابقة.
+
+### اتجاهات الرسائل
+
+| الاتجاه | الطريقة | الوصف |
+|--------|---------|-------|
+| miniapp -> المضيف | `Miniapp.postMessageToHost(message)` | إرسال رسالة مخصصة إلى المضيف |
+| المضيف -> miniapp | `Miniapp.onHostMessage(listener)` | الاستماع لرسائل المضيف |
+| miniapp -> Host API | `Miniapp.invokeHostApi(name, payload)` | استدعاء API مسجّل من المضيف |
+
+## واجهات API
+
+يصل مطورو miniapp إلى قدرات المضيف عبر `@nebula-rn/client` و `Miniapp` (من `@nebula-rn/sdk`).
+
+### واجهات التنقل
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+// التنقل إلى صفحة جديدة مع الإبقاء على الحالية
+await Miniapp.navigateTo('/page1');
+
+// إعادة التوجيه (استبدال الصفحة الحالية)
+await Miniapp.redirectTo('/page2');
+
+// إعادة التشغيل (مسح المكدس وفتح صفحة جديدة)
+await Miniapp.reLaunch('/home');
+
+// الرجوع إلى الصفحة السابقة
+await Miniapp.navigateBack();
+```
+
+### واجهات نمط الصفحة
+
+```ts
+// تعيين عنوان شريط التنقل
+await Miniapp.setNavigationBarTitle('عنوان جديد');
+
+// تعيين ألوان شريط التنقل
+await Miniapp.setNavigationBarColor({
+  backgroundColor: '#ffffff',
+  frontColor: '#000000',
+});
+
+// تعيين نمط الصفحة
+await Miniapp.setPageStyle({
+  backgroundColor: '#f8fafc',
+  navigationBarBackgroundColor: '#ffffff',
+});
+```
+
+### واجهات الجهاز والنظام
+
+```ts
+// الحصول على معلومات الجهاز
+const deviceInfo = await Miniapp.getDeviceInfo();
+
+// عرض إشعار Toast
+await Miniapp.showToast('تمت العملية بنجاح');
+
+// الحصول على معرّف التطبيق
+const appId = Miniapp.getAppId();
+
+// الحصول على مسار الـ sandbox
+const sandboxPath = await Miniapp.getSandboxPath();
+```
+
+### استدعاء قدرات المضيف
+
+```ts
+import { scanCode } from '@nebula-rn/client';
+
+// استدعاء API scanCode المسجل في المضيف
+const result = await scanCode();
+if (result.result) {
+  console.log('نتيجة المسح:', result.result);
+}
+```
+
+### التحقق من القدرات
+
+قبل استخدام أي API، يُنصح بالتحقق من دعم المضيف لها:
+
+```ts
+// الحصول على جميع القدرات المدعومة
+const { capabilities } = await Miniapp.getCapabilities();
+
+// التحقق من دعم API محدد
+const supported = await Miniapp.isSupported('scanCode', '1.0');
+```
+
+### دورة حياة الصفحة
+
+```ts
+Miniapp.onPageLifecycle((event) => {
+  // event: { type: 'show' | 'hide' | 'unload' | 'ready' }
+});
+```

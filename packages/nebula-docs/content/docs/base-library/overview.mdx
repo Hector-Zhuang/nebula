@@ -1,0 +1,102 @@
+---
+title: Overview
+description: Understand what the Nebula base library is for, which packages belong to it, and how to design stable platform capabilities.
+---
+
+The Nebula base library is the **platform-facing capability layer** shared between miniapps and hosts.
+
+It exists to answer one question clearly:
+
+> Which capabilities should feel stable to miniapp developers, even if host implementations evolve over time?
+
+This section is therefore not about business APIs. It is about the reusable capability model that Nebula exposes as part of the platform itself.
+
+## What belongs here
+
+The base library covers the reusable layers that define how platform capabilities are modeled, exposed, and implemented:
+
+| Package | Role |
+|---|---|
+| `@nebula-rn/client` | Stable miniapp-facing API surface |
+| `@nebula-rn/sdk` | Runtime protocol, host invocation primitives, shared types |
+| `@nebula-rn/host-apis` | Official host-side capability implementations |
+
+Together, these layers allow Nebula to provide APIs that are:
+
+- understandable to miniapp developers
+- explicitly registered by hosts
+- compatible with capability detection
+- extensible without leaking host internals
+
+## What does not belong here
+
+The base library should not become a container for product-specific or host-specific behavior.
+
+The following usually do **not** belong in the base library:
+
+- checkout or commerce workflows
+- tenant-specific queries
+- app-specific business context
+- private host services
+- one-off integration shortcuts
+
+Those capabilities should remain in the host project, even if they are exposed to miniapps through custom Host APIs.
+
+## Design goals
+
+Nebula base library capabilities should aim for four properties:
+
+### Stable miniapp-facing contracts
+
+Miniapp developers should interact with capability names, inputs, and result types that remain stable over time.
+
+### Clear host ownership
+
+Hosts decide which capabilities are actually exposed. The base library defines the model, but hosts still control registration and governance.
+
+### Compatibility-aware evolution
+
+Capabilities should be able to evolve with version checks, feature detection, and graceful fallback behavior.
+
+### Separation from host internals
+
+A Nebula API should describe a capability, not a host implementation detail.
+
+## Typical capability categories
+
+Examples of platform-level capability categories include:
+
+- scanning
+- media
+- device information
+- location
+- network
+- storage
+- file transfer
+- clipboard
+
+These are good candidates for the base library because they can be normalized into a shared contract across hosts.
+
+## Mental model
+
+You can think about the base library in three steps:
+
+1. `@nebula-rn/client` defines what miniapp developers call
+2. `@nebula-rn/sdk` defines how the runtime transports and shapes that capability
+3. `@nebula-rn/host-apis` defines how a host can implement the capability in a reusable way
+
+That split is what lets Nebula keep miniapp APIs stable without forcing every host to share the same internal implementation.
+
+## How to use this section
+
+Use the pages in this section in this order:
+
+1. Start here to understand the purpose and boundaries of the base library
+2. Read [Developing New APIs](./developing-apis.mdx) when you are designing a new capability
+3. Read [Capability Detection](./capability-detection.mdx) when you need compatibility and fallback behavior
+
+## Rule of thumb
+
+If a new capability would still make sense across multiple hosts with different implementations, it may belong in the base library.
+
+If it only makes sense for one host or one product workflow, it probably belongs in host-owned custom APIs instead.

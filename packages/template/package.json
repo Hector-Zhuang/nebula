@@ -1,0 +1,7 @@
+{
+  "name": "@nebula-rn/template",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Starter templates for Nebula CLI create commands",
+  "license": "MIT"
+}

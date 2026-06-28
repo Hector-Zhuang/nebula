@@ -1,0 +1,45 @@
+---
+title: Capability Detection
+description: Detect whether a host supports a given Nebula API and version before using it.
+---
+
+Mini-apps must not assume every host implements every API.
+
+Nebula supports capability detection through:
+
+- `Miniapp.getCapabilities()`
+- `Miniapp.isSupported(...)`
+
+<Info title="Related docs">
+  This page focuses on the detection mechanism itself. If you want the broader
+  versioning and compatibility model behind it, see
+  [Base Library Versioning](../miniapp/base-library-versioning.mdx).
+</Info>
+
+## Why this matters
+
+- host and mini-app versions may advance independently
+- some APIs may exist only on selected host builds
+- some features may be intentionally disabled
+
+## Example
+
+```ts
+const capabilities = await Miniapp.getCapabilities();
+const supportsScanCode = await Miniapp.isSupported('scanCode', '1.0');
+```
+
+## Best practices
+
+- detect before rendering optional entry points
+- still handle runtime failure even after capability checks
+- keep unsupported behavior explicit and structured
+
+## Unsupported API behavior
+
+The host should return a structured result with `UNSUPPORTED_API` instead of
+silently failing.
+
+## Related docs
+
+- [Base Library Versioning](../miniapp/base-library-versioning.mdx)

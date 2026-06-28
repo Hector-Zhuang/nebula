@@ -1,0 +1,171 @@
+---
+title: 小程序的宿主环境
+description: 了解 Nebula 小程序运行的宿主环境，包括渲染方式、与宿主交互方式以及可用 API。
+---
+
+Nebula 小程序运行在宿主 App 提供的容器环境中。宿主负责原生能力的实现，小程序通过标准化的 API 层与宿主交互。
+
+## 渲染方式
+
+Nebula 小程序基于 **React Native** 进行渲染，而非 WebView。每个小程序页面对应一个 React Native 根视图，由宿主侧的 `NebulaContainerController`（iOS）或 `NebulaContainerActivity`（Android）管理。
+
+渲染流程：
+
+1. 宿主打开小程序时，创建一个容器控制器实例
+2. 容器根据小程序的 `appId` 查找已安装的 bundle 文件
+3. 使用 Metro 打包的 JavaScript bundle 创建 React Native 根视图
+4. 根视图挂载到容器的视图层级中
+5. 容器在 React 内容挂载完成前显示 loading indicator
+
+```
+宿主 App
+  └── NebulaContainerController
+        ├── Loading Indicator（React 内容挂载前）
+        └── React Native Root View
+              └── 小程序页面组件
+```
+
+### 开发模式与生产模式
+
+- **开发模式**：bundle 从本地 Metro dev server 加载，支持热更新
+- **生产模式**：bundle 从设备本地文件系统加载（已安装的 `.jsbundle` 文件）
+
+## 与宿主交互方式
+
+小程序与宿主之间通过 **Nebula Protocol** 进行通信，当前协议版本为 `api.v1`。
+
+<Warning title="原生模块边界">
+  Nebula 运行于 Host 的 React Native 环境，缺乏原生隔离。若小程序调用 Host 未集成的 `NativeModules`（如导航、推送、地图等），会导致小程序运行时崩溃。
+
+  Host 开发者应提供明确的 API 与原生模块清单，并告知你的小程序开发者，禁止引入未经适配的第三方原生依赖。
+
+  Nebula 未来可能引入 JavaScript 沙箱机制，以限制非法原生调用，降低此类风险。
+</Warning>
+
+### 通信机制
+
+```
+小程序（JavaScript）
+    │
+    │  Miniapp.invokeHostApi()
+    │  Miniapp.postMessageToHost()
+    ▼
+Nebula Bridge（协议层）
+    │
+    │  NebulaNativeModule
+    │  EventEmitter
+    ▼
+宿主（Native）
+```
+
+小程序调用宿主能力时，SDK 会构造一条协议消息并通过 Native Module 发送到宿主：
+
+```ts
+// 协议消息结构
+{
+  __nebulaProtocol: 'api.v1',
+  kind: 'invoke',          // 'invoke' | 'getCapabilities' | 'getApiDescriptions'
+  requestId: 'unique-id',  // 用于匹配请求和响应
+  api: 'scanCode',         // API 名称
+  payload: { ... },        // 请求参数
+}
+```
+
+宿主处理完成后，通过 EventEmitter 将结果返回给小程序，使用 `requestId` 匹配对应的请求。
+
+### 消息方向
+
+| 方向 | 方法 | 说明 |
+|------|------|------|
+| 小程序 -> 宿主 | `Miniapp.postMessageToHost(message)` | 向宿主发送自定义消息 |
+| 宿主 -> 小程序 | `Miniapp.onHostMessage(listener)` | 监听宿主发送的消息 |
+| 小程序 -> 宿主 API | `Miniapp.invokeHostApi(name, payload)` | 调用宿主注册的 API |
+
+## API
+
+小程序开发者通过 `@nebula-rn/client` 和 `Miniapp`（来自 `@nebula-rn/sdk`）访问宿主提供的能力。
+
+### 导航 API
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+// 页面导航（保留当前页面，推入新页面）
+await Miniapp.navigateTo('/page1');
+
+// 页面重定向（替换当前页面）
+await Miniapp.redirectTo('/page2');
+
+// 重启动（清空页面栈，打开新页面）
+await Miniapp.reLaunch('/home');
+
+// 返回上一页
+await Miniapp.navigateBack();
+```
+
+### 页面样式 API
+
+```ts
+// 设置导航栏标题
+await Miniapp.setNavigationBarTitle('新标题');
+
+// 设置导航栏颜色
+await Miniapp.setNavigationBarColor({
+  backgroundColor: '#ffffff',
+  frontColor: '#000000',
+});
+
+// 设置页面样式
+await Miniapp.setPageStyle({
+  backgroundColor: '#f8fafc',
+  navigationBarBackgroundColor: '#ffffff',
+});
+```
+
+### 设备与系统 API
+
+```ts
+// 获取设备信息
+const deviceInfo = await Miniapp.getDeviceInfo();
+
+// 显示 Toast
+await Miniapp.showToast('操作成功');
+
+// 获取应用 ID
+const appId = Miniapp.getAppId();
+
+// 获取沙箱路径
+const sandboxPath = await Miniapp.getSandboxPath();
+```
+
+### 宿主能力调用
+
+```ts
+import { scanCode } from '@nebula-rn/client';
+
+// 调用宿主注册的 scanCode API
+const result = await scanCode();
+if (result.result) {
+  console.log('扫码结果:', result.result);
+}
+```
+
+### 能力检测
+
+在使用 API 前，建议先检测宿主是否支持：
+
+```ts
+// 获取宿主支持的所有能力
+const { capabilities } = await Miniapp.getCapabilities();
+
+// 检测特定 API 是否支持
+const supported = await Miniapp.isSupported('scanCode', '1.0');
+```
+
+### 页面生命周期
+
+```ts
+Miniapp.onPageLifecycle((event) => {
+  // event: { type: 'show' | 'hide' | 'unload' | 'ready' }
+});
+```

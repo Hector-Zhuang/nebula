@@ -1,0 +1,24 @@
+{
+  "name": "@nebula-rn/sdk",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "root": "packages/nebula-sdk",
+  "sourceRoot": "packages/nebula-sdk/src",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:sdk"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/nebula-sdk",
+        "command": "npm run build"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/nebula-sdk",
+        "command": "npm run lint"
+      }
+    }
+  }
+}
