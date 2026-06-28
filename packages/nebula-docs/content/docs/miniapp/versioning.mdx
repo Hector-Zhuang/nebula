@@ -1,0 +1,140 @@
+---
+title: Miniapp Versioning and Release
+description: Learn how Nebula miniapps manage versions and update strategies, including auto and manual updates.
+---
+
+Nebula miniapps control version management and update behavior through the version info in `app.json` and the `updateStrategy` setting.
+
+## Version declaration
+
+The miniapp version is written into the `app.json` manifest during build:
+
+```json
+{
+  "appId": "my-miniapp",
+  "version": "1.2.0",
+  "updateStrategy": "auto",
+  "pages": ["home", "detail"],
+  "entryPagePath": "/home"
+}
+```
+
+Versions follow semantic versioning (e.g. `1.0.0`). By default the version is read from `package.json`, but the CLI can override it during upload.
+
+## Update strategies (`updateStrategy`)
+
+`updateStrategy` determines update behavior when the miniapp opens, with two modes:
+
+### `auto` - automatic updates
+
+When `updateStrategy` is `auto`, the Host automatically checks and applies updates before each open:
+
+```
+User opens miniapp
+    │
+    ▼
+Check if installed locally
+    │
+    ├── Installed and not in development mode
+    │       │
+    │       ▼
+    │   Fetch remote manifest (app.json)
+    │       │
+    │       ▼
+    │   Compare versions
+    │       │
+    │       ├── New version -> download and install new bundle -> open miniapp
+    │       └── No update -> open miniapp directly
+    │
+    └── Not installed -> install first, then open
+```
+
+The auto mode is suitable when you want users to always be on the latest version. Note that updates complete before opening, which may add some delay.
+
+### `manual` - manual updates
+
+When `updateStrategy` is `manual`, the Host does not automatically check for updates when opening the miniapp. The miniapp typically checks and applies updates at the right time.
+
+This flow usually uses two APIs:
+
+- `getMiniAppUpdateInfo()`
+  - checks whether an update is available
+  - returns information such as:
+    - current version
+    - latest version
+    - whether an update exists
+    - update strategy
+
+- `applyMiniAppUpdate()`
+  - downloads and installs the latest bundle after an update is confirmed
+  - returns status for the applied update
+
+<Info title="Why these APIs come from @nebula-rn/client">
+  `getMiniAppUpdateInfo()` and `applyMiniAppUpdate()` are currently exported from `@nebula-rn/client`, not directly from `Miniapp`.
+
+  This is because, in the current architecture, they are treated as **standard Host API wrappers**:
+
+  - The miniapp still communicates with the Host via `Miniapp.invokeHostApi(...)`
+  - `@nebula-rn/client` provides more convenient API functions above that, such as `scanCode`, `getLocation`, and `getMiniAppUpdateInfo`
+
+  In other words, `Miniapp` is more about low-level runtime capabilities, while `@nebula-rn/client` is the common API set for miniapp developers.
+</Info>
+
+A typical usage looks like this:
+
+```ts
+import { getMiniAppUpdateInfo, applyMiniAppUpdate } from '@nebula-rn/client';
+
+// Check for updates
+const updateInfo = await getMiniAppUpdateInfo();
+
+if (updateInfo.hasUpdate) {
+  console.log('New version found:', updateInfo.latestVersion);
+
+  // Let the developer decide whether to update (e.g. show a dialog)
+  const confirmed = await showUpdateDialog(updateInfo);
+
+  if (confirmed) {
+    // Apply update (download and install new bundle)
+    const result = await applyMiniAppUpdate();
+    console.log('Update finished:', result);
+  }
+}
+```
+
+The manual mode is suitable when you need to control update timing, such as prompting the user on a specific page or at a specific time.
+
+## Update mechanism details
+
+### Version check flow
+
+1. Get the installed miniapp `sourceUrl`
+2. Derive the remote manifest URL from `sourceUrl` (replace the bundle filename with `app.json`)
+3. Request the remote manifest and read the `version` field
+4. Compare with the installed version using semantic versioning
+5. If the remote version is greater than the local version, mark as update available
+
+### Version install flow
+
+1. Download the new bundle from remote
+2. Save the bundle to the miniapp sandbox directory
+3. Download and save the new manifest file
+4. Update local installation records
+
+### Development mode behavior
+
+In development mode (`mode: 'development'`), automatic update checks do not run. Bundles in development mode are always loaded from the dev server.
+
+## Release flow
+
+Use the Nebula CLI to build and upload:
+
+```bash
+# build the miniapp
+nebula miniapp build
+
+# upload to Nebula Cloud
+nebula miniapp upload
+```
+
+After upload, the version becomes the current experience version. Then you can submit it for review and publish it from the Nebula Cloud admin console. See [Nebula Cloud deployment and management](/docs/nebula-cloud/deployment) for details.

@@ -1,0 +1,17 @@
+{
+  "title": "Nebula Docs",
+  "pages": [
+    "index",
+    "scenarios",
+    "getting-started",
+    "miniapp",
+    "miniapp-apis",
+    "host",
+    "runtime",
+    "nebula-cloud",
+    "base-library",
+    "compliance",
+    "roadmap",
+    "reference"
+  ]
+}

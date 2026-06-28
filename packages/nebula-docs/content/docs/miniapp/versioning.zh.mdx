@@ -1,0 +1,141 @@
+---
+title: 小程序版本与发布
+description: 了解 Nebula 小程序的版本管理和更新机制，包括自动更新和手动更新策略。
+---
+
+Nebula 小程序通过 `app.json` 中的版本信息和 `updateStrategy` 配置项来控制版本管理和更新行为。
+
+## 版本声明
+
+小程序的版本信息在构建时写入 `app.json` manifest 文件：
+
+```json
+{
+  "appId": "my-miniapp",
+  "version": "1.2.0",
+  "updateStrategy": "auto",
+  "pages": ["home", "detail"],
+  "entryPagePath": "/home"
+}
+```
+
+版本号遵循语义化版本格式（如 `1.0.0`），默认从 `package.json` 读取，也可以由 CLI 上传时覆盖。
+
+## 更新策略（updateStrategy）
+
+`updateStrategy` 决定了小程序打开时的更新行为，支持两种模式：
+
+### `auto` - 自动更新
+
+当 `updateStrategy` 设置为 `auto` 时，宿主在每次打开小程序前会自动检查并应用更新：
+
+```
+用户打开小程序
+    │
+    ▼
+检查本地是否已安装
+    │
+    ├── 已安装且非开发模式
+    │       │
+    │       ▼
+    │   获取远程 manifest（app.json）
+    │       │
+    │       ▼
+    │   比较版本号
+    │       │
+    │       ├── 有新版本 → 下载并安装新 bundle → 打开小程序
+    │       └── 无新版本 → 直接打开小程序
+    │
+    └── 未安装 → 先安装再打开
+```
+
+auto 模式适合希望用户始终使用最新版本的场景。需要注意的是，更新过程会在打开前完成，可能引入少量延迟。
+
+### `manual` - 手动更新
+
+当 `updateStrategy` 设置为 `manual` 时，宿主打开小程序时不会自动检查更新。此时通常由小程序在合适的时机主动检查并应用更新。
+
+这条流程里通常会用到两个 API：
+
+- `getMiniAppUpdateInfo()`
+  - 检查当前小程序是否有可用更新
+  - 返回的信息通常包括：
+    - 当前版本
+    - 最新版本
+    - 是否有更新
+    - 更新策略
+
+- `applyMiniAppUpdate()`
+  - 在确认有更新后，下载并安装最新 bundle
+  - 返回更新后的状态信息
+
+<Info title="为什么这两个能力来自 @nebula-rn/client">
+  `getMiniAppUpdateInfo()` 和 `applyMiniAppUpdate()` 当前由 `@nebula-rn/client`
+  导出，而不是 `Miniapp` 直接导出。
+
+  这是因为在当前架构里，它们被视为两条**标准 Host API 的封装**：
+
+  - 小程序底层仍然通过 `Miniapp.invokeHostApi(...)` 与宿主通信
+  - `@nebula-rn/client` 在此之上提供更易用的 API 函数，例如 `scanCode`、`getLocation`、`getMiniAppUpdateInfo`
+
+  换句话说，`Miniapp` 更偏底层运行时能力，`@nebula-rn/client` 更偏面向小程序开发者的常用 API 集合。
+</Info>
+
+一个典型的使用方式如下：
+
+```ts
+import { getMiniAppUpdateInfo, applyMiniAppUpdate } from '@nebula-rn/client';
+
+// 检查是否有可用更新
+const updateInfo = await getMiniAppUpdateInfo();
+
+if (updateInfo.hasUpdate) {
+  console.log('发现新版本:', updateInfo.latestVersion);
+
+  // 由开发者决定是否更新（例如弹窗提示用户）
+  const confirmed = await showUpdateDialog(updateInfo);
+
+  if (confirmed) {
+    // 应用更新（下载并安装新 bundle）
+    const result = await applyMiniAppUpdate();
+    console.log('更新完成:', result);
+  }
+}
+```
+
+manual 模式适合需要控制更新时机的场景，例如在特定页面、特定时间点提示用户更新。
+
+## 更新机制详解
+
+### 版本检查流程
+
+1. 获取已安装小程序的 `sourceUrl`
+2. 从 `sourceUrl` 推导出远程 manifest 地址（将 bundle 文件名替换为 `app.json`）
+3. 请求远程 manifest，读取 `version` 字段
+4. 与本地已安装版本进行语义化版本比较
+5. 如果远程版本大于本地版本，则标记为有更新
+
+### 版本安装流程
+
+1. 从远程下载新的 bundle 文件
+2. 将 bundle 保存到小程序的沙箱目录
+3. 同时下载并保存新的 manifest 文件
+4. 更新本地安装记录
+
+### 开发模式行为
+
+在开发模式（`mode: 'development'`）下，不会触发自动更新检查。开发模式的 bundle 始终从 dev server 加载。
+
+## 发布流程
+
+使用 Nebula CLI 完成构建和上传：
+
+```bash
+# 构建小程序
+nebula miniapp build
+
+# 上传到 Nebula Cloud
+nebula miniapp upload
+```
+
+上传后，该版本会自动成为当前体验版本。随后可在 Nebula Cloud 管理后台将体验版本提交审核，再发布到线上。详见 [Nebula Cloud 部署与管理](/docs/nebula-cloud/deployment) 文档。

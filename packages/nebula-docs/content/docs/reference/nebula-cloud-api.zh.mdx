@@ -1,0 +1,417 @@
+---
+title: Nebula Cloud API
+description: Nebula Cloud REST API 参考文档，包含运行时和 CLI 的接口契约。
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Nebula Cloud 提供了用于管理小程序、版本、发布和认证的 REST API。服务默认监听 3001 端口，API 根路径为 `/api`。
+
+<Callout type="info">
+  如果您选择自行构建后端而不是使用 Nebula
+  Cloud，您的服务**必须**实现下方标记为"运行时必需"和"CLI 必需"的接口，Nebula
+  运行时和 CLI 才能正常工作。其余的管理接口是可选的。
+</Callout>
+
+## 认证
+
+除公开访问的端点外，所有 API 都需要在请求头中携带 Bearer Token：
+
+```
+Authorization: Bearer <accessToken>
+```
+
+### 注册
+
+```
+POST /api/auth/register
+```
+
+| 参数       | 类型     | 描述                  |
+| ---------- | -------- | --------------------- |
+| `email`    | `string` | 邮箱地址              |
+| `password` | `string` | 密码（至少 6 个字符） |
+
+**返回：** `{ id, email, accessToken, displayName }`
+
+### 登录 `CLI 必需`
+
+```
+POST /api/auth/login
+```
+
+| 参数       | 类型     | 描述     |
+| ---------- | -------- | -------- |
+| `email`    | `string` | 邮箱地址 |
+| `password` | `string` | 密码     |
+
+**返回：**
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "id": "user-uuid",
+    "email": "user@example.com",
+    "displayName": "User Name"
+  }
+}
+```
+
+### 获取当前用户
+
+```
+GET /api/auth/me
+```
+
+**返回：** `{ id, email, displayName, role, status }`
+
+### CLI 设备授权流程 `CLI 必需`
+
+CLI 使用设备授权流程进行登录（推荐方式）：
+
+**1. 创建 CLI 会话**
+
+```
+POST /api/auth/cli/sessions
+```
+
+无需认证，无需请求体。
+
+**返回：**
+
+```json
+{
+  "code": "ABCD-1234",
+  "verificationUrl": "https://your-server.com/cli/verify?code=ABCD-1234",
+  "expiresAt": "2025-01-15T10:45:00Z",
+  "intervalSeconds": 5
+}
+```
+
+CLI 会打印 `verificationUrl` 并自动打开浏览器。用户登录后在浏览器中确认授权。
+
+**2. 轮询会话状态**
+
+```
+GET /api/auth/cli/sessions/{code}
+```
+
+CLI 以 `intervalSeconds` 为间隔轮询此端点，直到 `status` 变为 `approved`。
+
+**返回：**
+
+```json
+{
+  "status": "pending | approved | expired",
+  "accessToken": "eyJhbGci...（status 为 approved 时返回）",
+  "user": { "id": "...", "email": "...", "displayName": "..." }
+}
+```
+
+**3. 批准会话（用户在浏览器中操作）**
+
+```
+POST /api/auth/cli/sessions/{code}/approve
+Authorization: Bearer <accessToken>
+```
+
+---
+
+## 运行时 API 契约（公开访问）
+
+以下接口是 **Nebula 运行时下载和更新小程序的核心依赖**。不需要用户登录认证，使用查询参数 token 认证。
+
+<Callout type="warn">
+  **自建后端开发者注意：**
+  无论您使用什么技术栈，这三个接口都是运行时正常工作的最低要求。如果缺少任何一个，宿主应用将无法安装或更新小程序。
+</Callout>
+
+### 获取安装信息 `运行时必需`
+
+```
+GET /api/mini-apps/access/versions/{versionId}/install?token={accessToken}
+```
+
+返回小程序的安装元数据。运行时使用此接口获取 bundle 和 manifest 的下载地址。
+
+**返回：**
+
+```json
+{
+  "appId": "com.example.weather",
+  "appName": "Weather",
+  "versionId": "version-uuid",
+  "version": "1.2.0",
+  "releaseType": "RELEASE",
+  "routeUrl": "nebula://com.example.weather",
+  "bundleUrl": "https://your-server.com/api/mini-apps/access/versions/{versionId}/bundle?token=...",
+  "bundles": {
+    "ios": "https://your-server.com/api/mini-apps/access/versions/{versionId}/bundles/ios?token=...",
+    "android": "https://your-server.com/api/mini-apps/access/versions/{versionId}/bundles/android?token=..."
+  },
+  "assetsUrl": {
+    "ios": "https://your-server.com/api/mini-apps/access/versions/{versionId}/assets/ios?token=...",
+    "android": "https://your-server.com/api/mini-apps/access/versions/{versionId}/assets/android?token=..."
+  },
+  "manifestUrl": "https://your-server.com/api/mini-apps/access/versions/{versionId}/manifest?token=..."
+}
+```
+
+| 字段          | 描述                                 |
+| ------------- | ------------------------------------ |
+| `appId`       | 小程序的唯一标识符                   |
+| `routeUrl`    | `nebula://` 协议地址，用于应用内导航 |
+| `bundleUrl`   | JS bundle 下载地址（可以是 CDN URL） |
+| `bundles`     | 平台特定的 bundle 下载地址           |
+| `assetsUrl`   | 平台特定的资源包下载地址             |
+| `manifestUrl` | Manifest 下载地址                    |
+
+### 下载 Bundle `运行时必需`
+
+```
+GET /api/mini-apps/access/versions/{versionId}/bundle?token={accessToken}
+```
+
+返回 JavaScript bundle 文件。Content-Type 为 `application/javascript`。
+
+这是 Metro 构建输出 `main.jsbundle`。运行时将其保存到沙盒目录 `/Documents/MiniApps/{appId}/`。
+
+### 下载 Manifest `运行时必需`
+
+```
+GET /api/mini-apps/access/versions/{versionId}/manifest?token={accessToken}
+```
+
+返回小程序的 manifest 文件（`app.json`）。Content-Type 为 `application/json`。
+
+运行时使用此接口检查版本更新，通过比较本地安装版本与远程 manifest 中的 `version` 字段来判断是否需要更新。
+
+### 下载资源文件 `运行时必需`
+
+```
+GET /api/mini-apps/access/versions/{versionId}/assets/{platform}?token={accessToken}
+```
+
+返回指定平台的小程序资源压缩包（zip）。Content-Type 为 `application/zip`。
+
+`platform` 参数接受 `ios` 或 `android`。运行时下载此 zip 包，解压到小程序的沙盒目录中，将资源与 bundle 文件放在一起，以便 React Native 能正确解析 `require('./image.png')` 引用。
+
+| 平台    | 沙盒路径                      | 资源布局                                            |
+| ------- | ----------------------------- | --------------------------------------------------- |
+| iOS     | `Documents/MiniApps/{appId}/` | `assets/` 目录与 `index.bundle` 一起解压            |
+| Android | `{filesDir}/nebula/{appId}/`  | `drawable-*` 目录与 `index.android.bundle` 一起解压 |
+
+### URL 推导规则
+
+<Callout type="warn">
+Nebula 运行时会自动从 `bundleUrl` 推导 manifest URL——它取 bundle URL 的父路径并追加 `/app.json`。例如：
+- Bundle: `https://cdn.example.com/miniapps/v123/bundle`
+- 推导的 Manifest: `https://cdn.example.com/miniapps/v123/app.json`
+
+如果您使用 CDN 托管 bundle，请确保 manifest 文件在同一路径下可访问，或者在安装接口响应中提供完整的 `manifestUrl`。
+
+</Callout>
+
+### URL 解析规则
+
+运行时使用 `serverBaseURL`（在 `NebulaAPI.wrap()` 中配置）解析相对路径：
+
+```ts
+export default NebulaAPI.wrap({
+  serverBaseURL: 'https://your-api.example.com/api',
+  // ...
+})(App);
+```
+
+| URL 格式 | 示例                             | 解析结果                                               |
+| -------- | -------------------------------- | ------------------------------------------------------ |
+| 绝对路径 | `/mini-apps/v1/bundle`           | `https://your-api.example.com/mini-apps/v1/bundle`     |
+| 相对路径 | `mini-apps/v1/bundle`            | `https://your-api.example.com/api/mini-apps/v1/bundle` |
+| 完整 URL | `https://cdn.example.com/bundle` | 不做转换                                               |
+
+---
+
+## 小程序管理
+
+### 列出小程序
+
+```
+GET /api/mini-apps
+```
+
+**返回：** `MiniApp[]`
+
+### 创建小程序
+
+```
+POST /api/mini-apps
+```
+
+| 参数          | 类型      | 描述               |
+| ------------- | --------- | ------------------ |
+| `appId`       | `string`  | 小程序的唯一标识符 |
+| `name`        | `string`  | 显示名称           |
+| `description` | `string?` | 描述               |
+| `iconUrl`     | `string?` | 图标 URL           |
+
+**返回：** `MiniApp`
+
+### 获取小程序详情
+
+```
+GET /api/mini-apps/{miniAppId}
+```
+
+### 更新小程序
+
+```
+PATCH /api/mini-apps/{miniAppId}
+```
+
+| 参数          | 类型      | 描述     |
+| ------------- | --------- | -------- |
+| `name`        | `string?` | 显示名称 |
+| `description` | `string?` | 描述     |
+| `iconUrl`     | `string?` | 图标 URL |
+
+### 获取工作区
+
+```
+GET /api/mini-apps/{miniAppId}/workspace
+```
+
+返回小程序详情及其所有版本。
+
+---
+
+## 版本管理
+
+### 上传版本 `CLI 必需`
+
+```
+POST /api/mini-apps/by-app-id/{appId}/versions/upload
+Content-Type: multipart/form-data
+```
+
+CLI 的 `nebula miniapp upload` 命令调用此接口。
+
+| 参数            | 类型      | 描述                                            |
+| --------------- | --------- | ----------------------------------------------- |
+| `version`       | `string`  | 版本号（例如 `1.0.0`）                          |
+| `changelog`     | `string?` | 更新日志                                        |
+| `bundleIos`     | `File`    | iOS JS bundle 文件（`main.ios.jsbundle`）       |
+| `bundleAndroid` | `File`    | Android JS bundle 文件（`main.android.bundle`） |
+| `manifest`      | `File`    | Manifest 文件（`app.json`）                     |
+| `assetsIos`     | `File`    | iOS 资源压缩包（`assets-ios.zip`）              |
+| `assetsAndroid` | `File`    | Android 资源压缩包（`assets-android.zip`）      |
+
+**返回：**
+
+```json
+{
+  "id": "version-id",
+  "version": "1.0.0",
+  "buildNumber": 1,
+  "releaseType": "RELEASE",
+  "status": "DRAFT"
+}
+```
+
+上传成功后，此版本自动成为当前体验版本。
+
+### 提交审核
+
+```
+POST /api/mini-apps/{miniAppId}/versions/{versionId}/review
+```
+
+将当前体验版本或历史版本提交审核流程，并更新 `currentReviewVersionId`。
+
+### 发布版本
+
+```
+POST /api/mini-apps/{miniAppId}/versions/{versionId}/publish
+```
+
+| 参数    | 类型      | 描述     |
+| ------- | --------- | -------- |
+| `notes` | `string?` | 发布说明 |
+
+发布后：版本状态更新为 `PUBLISHED`，当前发布版本更新为此版本。
+
+### 回滚版本
+
+```
+POST /api/mini-apps/{miniAppId}/rollback
+```
+
+| 参数              | 类型      | 描述            |
+| ----------------- | --------- | --------------- |
+| `targetVersionId` | `string`  | 目标回滚版本 ID |
+| `notes`           | `string?` | 回滚原因        |
+
+### 删除版本
+
+```
+DELETE /api/mini-apps/{miniAppId}/versions/{versionId}
+```
+
+---
+
+## 管理接口
+
+### 列出用户
+
+```
+GET /api/admin/users
+Authorization: Bearer <admin-token>
+```
+
+**返回：** `{ users: User[], auditLogs: AuditLog[] }`
+
+### 创建用户
+
+```
+POST /api/admin/users
+Authorization: Bearer <admin-token>
+```
+
+| 参数          | 类型                 | 描述     |
+| ------------- | -------------------- | -------- |
+| `email`       | `string`             | 邮箱地址 |
+| `displayName` | `string`             | 显示名称 |
+| `password`    | `string`             | 密码     |
+| `role`        | `'ADMIN' \| 'USER'?` | 角色     |
+
+### 更新用户
+
+```
+PATCH /api/admin/users/{userId}
+Authorization: Bearer <admin-token>
+```
+
+---
+
+## 自建后端最小实现检查清单
+
+如果您选择自行构建后端，以下是实现优先级的排序：
+
+### 运行时正常工作所需（必需）
+
+1. `GET .../install` — 返回 `bundleUrl`、`bundles`、`assetsUrl` 和 `manifestUrl`
+2. `GET .../bundle` — 返回 JS bundle 文件
+3. `GET .../bundles/{platform}` — 返回平台特定的 JS bundle 文件
+4. `GET .../manifest` — 返回 manifest JSON
+5. `GET .../assets/{platform}` — 返回平台特定的资源压缩包（zip）
+
+### CLI 正常工作所需（推荐）
+
+4. `POST /api/auth/login` 或 `POST /api/auth/cli/sessions` — 认证
+5. `POST .../versions/upload` — 接受 multipart 文件上传（包含资源文件）
+
+### 完整管理功能（可选）
+
+6. 小程序 CRUD、版本发布/回滚、管理面板等
+
+请参阅 [Nebula Cloud 部署](/docs/nebula-cloud/deployment) 获取自建后端指南和推荐的生成环境架构。

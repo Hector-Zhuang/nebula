@@ -1,0 +1,329 @@
+---
+title: CLI
+description: Detailed reference for the Nebula command-line interface.
+---
+
+Nebula CLI is the command-line entry point for creating projects, configuring Nebula Cloud access, signing in, running miniapps locally, building production bundles, and uploading versions to Nebula Cloud.
+
+## Scope
+
+Nebula CLI currently supports five areas:
+
+- project scaffolding
+- server configuration
+- CLI authentication
+- miniapp development and build
+- miniapp upload
+
+## Command index
+
+| Command | Purpose |
+|------|------|
+| `npx nebula create host <name>` | Create a host project from the host template |
+| `npx nebula create miniapp <name>` | Create a miniapp project from the miniapp template |
+| `npx nebula create runner <name>` | Create a custom runner project |
+| `npx nebula config server` | Read, set, or clear the saved Nebula Cloud server URL |
+| `npx nebula auth login` | Start the CLI device login flow |
+| `npx nebula auth logout` | Remove the saved access token and user session |
+| `npx nebula miniapp dev` | Start miniapp development mode |
+| `npx nebula miniapp build` | Build production miniapp artifacts |
+| `npx nebula miniapp upload` | Build and upload a miniapp version to Nebula Cloud |
+
+## `create`
+
+Use `create` to scaffold a new project from the template package.
+
+### Syntax
+
+```bash
+npx nebula create <host|miniapp|runner> <name> [options]
+```
+
+### Supported project kinds
+
+| Kind | Result |
+|------|------|
+| `host` | A host application shell |
+| `miniapp` | A standalone miniapp project |
+| `runner` | A custom development runner |
+
+### Options
+
+| Option | Meaning |
+|------|------|
+| `--directory <path>` | Write the project into a custom directory instead of `<name>` |
+| `--app-id <id>` | Override the generated miniapp app ID |
+| `--display-name <name>` | Override the display name shown in the generated project |
+| `--bundle-id <id>` | Override the generated native bundle identifier |
+
+### Examples
+
+```bash
+npx nebula create miniapp hello-nebula
+npx nebula create host my-host
+npx nebula create runner my-runner
+npx nebula create miniapp checkout --directory ./examples/checkout
+npx nebula create host enterprise-host --bundle-id com.company.enterprise
+```
+
+### Notes
+
+- The target directory must be empty.
+- The generated project uses the current local Nebula package versions from the workspace or template source.
+- `runner` is intended for host teams that want a more specialized development host.
+
+## `config server`
+
+Use `config server` to manage the saved Nebula Cloud API base URL.
+
+### Syntax
+
+```bash
+npx nebula config server [--url <url>]
+npx nebula config server <url>
+npx nebula config server --clear
+```
+
+### Behavior
+
+| Form | Result |
+|------|------|
+| `npx nebula config server` | Print the currently saved server URL |
+| `npx nebula config server <url>` | Save a server URL |
+| `npx nebula config server --url <url>` | Save a server URL |
+| `npx nebula config server --clear` | Remove the saved server URL and any saved login |
+
+### Examples
+
+```bash
+npx nebula config server
+npx nebula config server http://localhost:3001/api
+npx nebula config server --url https://cloud.example.com/api
+npx nebula config server --clear
+```
+
+### Important behavior
+
+If the saved server changes, Nebula CLI clears the saved login session automatically. This prevents an access token from being reused against the wrong server.
+
+## `auth login`
+
+Use `auth login` to authorize the CLI against Nebula Cloud.
+
+### Syntax
+
+```bash
+npx nebula auth login [--server <url>] [--open false]
+```
+
+### Behavior
+
+The CLI starts a device-style login session:
+
+1. it requests a verification session from Nebula Cloud
+2. it prints the verification URL and code
+3. it optionally opens the browser automatically
+4. it polls until the session is approved or expires
+
+### Options
+
+| Option | Meaning |
+|------|------|
+| `--server <url>` | Override the saved server for this login flow |
+| `--open false` | Do not automatically open the browser |
+
+### Examples
+
+```bash
+npx nebula auth login
+npx nebula auth login --server http://localhost:3001/api
+npx nebula auth login --open false
+```
+
+## `auth logout`
+
+Use `auth logout` to clear the saved access token and user information.
+
+### Syntax
+
+```bash
+npx nebula auth logout
+```
+
+## `miniapp dev`
+
+Use `miniapp dev` to start local development for a miniapp project.
+
+### Syntax
+
+```bash
+npx nebula miniapp dev [options]
+```
+
+### Behavior
+
+`miniapp dev` does the following:
+
+1. reads `app.json`
+2. generates runtime files under `.nebula/generated/`
+3. starts Metro on port `8082`
+4. optionally launches the shared Dev Runner
+
+### Options
+
+| Option | Meaning |
+|------|------|
+| `--platform ios` | Launch the Dev Runner on iOS |
+| `--platform android` | Launch the Dev Runner on Android |
+| `--no-runner true` | Start only the miniapp dev server and skip runner auto-launch |
+
+### Examples
+
+```bash
+npx nebula miniapp dev
+npx nebula miniapp dev --platform ios
+npx nebula miniapp dev --platform android
+npx nebula miniapp dev --no-runner true
+```
+
+### Generated files
+
+Development mode generates files inside:
+
+```text
+.nebula/generated/
+  app.json
+  index.js
+  metro.config.cjs
+```
+
+These files are build artifacts for the local runtime and should be treated as generated output.
+
+## `miniapp build`
+
+Use `miniapp build` to build production miniapp artifacts from the current miniapp project.
+
+### Syntax
+
+```bash
+npx nebula miniapp build
+```
+
+## `miniapp upload`
+
+Use `miniapp upload` to build the current miniapp and upload the generated bundles and manifest to Nebula Cloud.
+
+### Syntax
+
+```bash
+npx nebula miniapp upload [options]
+```
+
+### Prerequisites
+
+Before uploading, make sure you have:
+
+1. configured a Nebula Cloud server
+2. logged in through the CLI
+3. created the target miniapp in Nebula Cloud with the same `appId`
+
+### Behavior
+
+`miniapp upload`:
+
+1. reads `app.json`
+2. builds production artifacts for iOS and Android
+3. generates a runtime manifest
+4. uploads the bundles and manifest to Nebula Cloud
+
+### Options
+
+| Option | Meaning |
+|------|------|
+| `--server <url>` | Override the saved Nebula Cloud server URL for this upload |
+| `--version <version>` | Override the version read from `package.json` |
+| `--changelog <text>` | Attach changelog text to the uploaded version |
+
+### Current upload behavior
+
+The current CLI upload flow always uploads as:
+
+- channel: `stable`
+- release type: `RELEASE`
+
+Review and publish transitions happen after upload through Nebula Cloud or console workflows.
+
+### Example
+
+```bash
+npx nebula config server http://localhost:3001/api
+npx nebula auth login
+npx nebula miniapp upload --version 1.2.0 --changelog "Fix checkout flow"
+```
+
+### Behavior
+
+`miniapp build`:
+
+1. generates `.nebula/generated/`
+2. builds iOS and Android bundles
+3. writes output into `build/`
+
+### Output
+
+| File | Purpose |
+|------|------|
+| `build/app.json` | Generated runtime manifest |
+| `build/main.ios.jsbundle` | iOS production bundle |
+| `build/main.android.bundle` | Android production bundle |
+
+### Example
+
+```bash
+npx nebula miniapp build
+```
+
+## Typical workflows
+
+### Create and run a miniapp
+
+```bash
+npx nebula create miniapp hello-nebula
+cd hello-nebula
+npm install
+npx nebula miniapp dev
+```
+
+### Build a miniapp for distribution
+
+```bash
+npx nebula miniapp build
+```
+
+### Build and upload a miniapp version
+
+```bash
+npx nebula config server http://localhost:3001/api
+npx nebula auth login
+npx nebula miniapp upload --version 1.2.0 --changelog "Fix checkout flow"
+```
+
+### Configure and authenticate the CLI
+
+```bash
+npx nebula config server http://localhost:3001/api
+npx nebula auth login
+```
+
+## What is not covered here
+
+Nebula CLI does **not** currently provide:
+
+- review approval workflows in the CLI
+- publish transitions in the CLI
+- full Nebula Cloud administration beyond server configuration, login, and upload
+
+For the runtime and distribution model around versions and updates, see:
+
+- [Miniapp Versioning and Release](../miniapp/versioning.mdx)
+- [Nebula Cloud API](./nebula-cloud-api.mdx)

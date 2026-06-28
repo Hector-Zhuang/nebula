@@ -1,0 +1,210 @@
+---
+title: iOS Loading Screen
+description: Configure Nebula's development and runtime loading UI behavior on iOS.
+---
+
+Nebula provides two separate loading layers on iOS:
+
+- a container loading indicator
+- a development loading view
+
+They solve different problems and should be treated separately.
+
+## Container loading indicator
+
+The container loading indicator is shown by `NebulaContainerController` before the React content mounts.
+
+### Behavior
+
+- created automatically in `viewDidLoad`
+- renders a centered `UIActivityIndicatorView` with `.large` style
+- removed automatically after the React root view is ready
+
+### Background color
+
+The background is controlled by the miniapp page configuration through `backgroundColor`:
+
+```ts
+definePageConfig({
+  route: '/home',
+  backgroundColor: '#f0f9ff',
+});
+```
+
+## Dev loading view
+
+The dev loading view is only used during development. It is responsible for showing Metro loading state, compilation progress, and development-time errors.
+
+## Where to integrate it
+
+On iOS, this customization does not live inside the miniapp. It belongs in the **host app's `AppDelegate.swift`**.
+
+Nebula reads two optional hooks from the `NebulaAppDelegate` protocol:
+
+- `nebulaHost(_:configureDevLoading:)`
+- `nebulaHost(_:makeDevLoadingView:)`
+
+The most common integration shape is:
+
+1. make `AppDelegate` conform to `NebulaAppDelegate`
+2. call `NebulaHost.shared.initialize(appDelegate: self)` inside `didFinishLaunchingWithOptions`
+3. implement whichever optional hooks you need in the same `AppDelegate.swift`
+
+For example, similar to [sample-host's AppDelegate.swift](/Users/hectorchong/Project/superapp/packages/sample-host/ios/SuperApp/AppDelegate.swift):
+
+```swift
+import React
+import ReactAppDependencyProvider
+import React_RCTAppDelegate
+import UIKit
+import NebulaHost
+
+@main
+class AppDelegate: UIResponder, UIApplicationDelegate, NebulaAppDelegate {
+  var window: UIWindow?
+
+  func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+  ) -> Bool {
+    NebulaHost.shared.initialize(appDelegate: self)
+
+    // your host bootstrap...
+    return true
+  }
+}
+```
+
+In other words:
+
+- you do not need to create a separate delegate object
+- the simplest setup is to let `AppDelegate` itself act as `NebulaAppDelegate`
+
+## Default dev loading view
+
+Nebula ships with `NebulaDefaultDevLoadingView`, implemented with SwiftUI. It includes:
+
+- an activity indicator
+- title and message text
+- an optional progress bar
+- an optional dismiss hint
+- smooth enter and exit animations
+
+## Configuration fields
+
+`NebulaDevLoadingConfiguration` controls the default appearance:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `title` | `String` | loading title |
+| `message` | `String` | loading description |
+| `progress` | `NSNumber?` | progress from `0.0` to `1.0` |
+| `accentColor` | `UIColor` | accent color for indicators and progress |
+| `backgroundColor` | `UIColor` | background color |
+| `titleColor` | `UIColor` | title color |
+| `messageColor` | `UIColor` | message color |
+| `showsActivityIndicator` | `Bool` | whether to show the spinner |
+| `showsDismissHint` | `Bool` | whether to show the dismiss hint |
+| `cornerRadius` | `CGFloat` | corner radius |
+| `maximumWidth` | `CGFloat` | maximum width |
+| `contentInsets` | `UIEdgeInsets` | content padding |
+
+## Customize the default appearance
+
+If you only want to adjust colors, text, or corner radius, implement `configureDevLoading` inside `AppDelegate.swift`:
+
+```swift
+func nebulaHost(
+  _ host: NebulaHost,
+  configureDevLoading configuration: NebulaDevLoadingConfiguration
+) -> NebulaDevLoadingConfiguration {
+  var config = configuration
+  config.accentColor = .systemBlue
+  config.backgroundColor = UIColor(white: 0.12, alpha: 0.95)
+  config.titleColor = .white
+  config.messageColor = .lightGray
+  config.cornerRadius = 16
+  return config
+}
+```
+
+This is usually the best place for lightweight visual customization.
+
+## Replace the dev loading view entirely
+
+If the default UI is not enough, implement `makeDevLoadingView` in the same `AppDelegate.swift`:
+
+```swift
+func nebulaHost(
+  _ host: NebulaHost,
+  makeDevLoadingView configuration: NebulaDevLoadingConfiguration
+) -> NebulaDevLoadingView {
+  return MyCustomDevLoadingView(configuration: configuration)
+}
+```
+
+Your custom view should inherit from `NebulaDevLoadingView`.
+
+A fuller structure looks like this:
+
+```swift
+@main
+class AppDelegate: UIResponder, UIApplicationDelegate, NebulaAppDelegate {
+  func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+  ) -> Bool {
+    NebulaHost.shared.initialize(appDelegate: self)
+    return true
+  }
+
+  func nebulaHost(
+    _ host: NebulaHost,
+    configureDevLoading configuration: NebulaDevLoadingConfiguration
+  ) -> NebulaDevLoadingConfiguration {
+    var config = configuration
+    config.accentColor = .systemBlue
+    return config
+  }
+
+  func nebulaHost(
+    _ host: NebulaHost,
+    makeDevLoadingView configuration: NebulaDevLoadingConfiguration
+  ) -> NebulaDevLoadingView {
+    MyCustomDevLoadingView(configuration: configuration)
+  }
+}
+```
+
+If you only need color and copy updates:
+
+- implement `configureDevLoading`
+
+If you need a fully custom experience:
+
+- also implement `makeDevLoadingView`
+
+## Show and hide behavior
+
+Dev loading is managed by `NebulaDevLoadingPresenter`:
+
+- **show**: uses `show(title:message:progress:...)` and animates the view in from the top
+- **hide**: uses `hide()` and keeps the view visible for a minimum display time before dismissing
+- it is rendered in a separate `UIWindow`, so it does not interfere with the main host hierarchy
+
+## Difference between the two loading layers
+
+| | Container loading indicator | Dev loading view |
+|---|---|---|
+| Trigger | Before React content mounts | During Metro loading / compilation |
+| Environment | Development and production | Development only |
+| Presentation | Centered in-page spinner | Top overlay banner |
+| Customization | Background color through page config | Appearance, colors, or fully custom view |
+| Purpose | Page-load transition | Development feedback |
+
+## Best practices
+
+- treat container loading and dev loading as separate concerns
+- keep production loading simple and predictable
+- use dev loading to surface Metro feedback during development
+- use page-level skeletons inside the miniapp for business data loading instead of overloading the container loading UI

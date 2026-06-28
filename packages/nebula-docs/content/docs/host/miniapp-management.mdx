@@ -1,0 +1,369 @@
+---
+title: Miniapp Management
+description: Use NebulaAPI to install, open, preload, close, uninstall, and query miniapps on the host side, and understand the differences between development and production management.
+---
+
+The host application manages the complete lifecycle of miniapps through `NebulaAPI` (from `@nebula-rn/sdk`).
+
+## Two Management Modes
+
+Miniapp management in Nebula is typically divided into two modes:
+
+### 1. Development Mode Management
+
+Development mode typically connects directly to a local bundle URL or Metro server.
+
+Use cases:
+
+- Local page development
+- Dev Runner debugging
+- Host integration debugging
+
+Common APIs:
+
+- `openMiniAppWithBundleURL(...)`
+- `preloadMiniAppWithBundleURL(...)`
+- `installMiniAppWithBundleURL(...)`
+
+### 2. Production Mode Management
+
+Production mode typically works with installed bundles, Nebula Cloud metadata, and formal update processes.
+
+Use cases:
+
+- Production host environment
+- Experience and release version distribution
+- Automatic or manual updates
+
+Common APIs:
+
+- `openMiniApp(...)`
+- `preloadMiniApp(...)`
+- `installMiniApp(...)`
+- `getInstalledMiniAppInfo(...)`
+- `checkMiniAppUpdate(...)`
+- `applyMiniAppUpdate(...)`
+
+## Opening a Miniapp
+
+### `openMiniApp(appId, initialProps?, versionType?)`
+
+Opens an already installed miniapp.
+
+```ts
+import { NebulaAPI } from '@nebula-rn/sdk';
+
+await NebulaAPI.openMiniApp('com.example.weather', {
+  city: 'Toronto',
+  source: 'home',
+});
+```
+
+If the target miniapp is not yet installed, `openMiniApp(...)` will attempt an automatic installation flow via the host-configured `serverBaseURL`.
+
+```ts
+await NebulaAPI.openMiniApp(
+  'com.example.weather',
+  { city: 'Toronto' },
+  'experience',
+);
+```
+
+#### Automatic Installation Behavior
+
+When a miniapp is not installed, the host will:
+
+1. Read `serverBaseURL`
+2. Request installation information for the corresponding version
+3. Download the bundle and manifest
+4. Install into the local sandbox
+5. Then proceed to open
+
+## Opening a Miniapp via Bundle URL
+
+### `openMiniAppWithBundleURL(appId, bundleURL, initialProps?, connectToURLMetroServer?)`
+
+Completes installation and opening in one step.
+
+```ts
+await NebulaAPI.openMiniAppWithBundleURL(
+  'com.example.weather',
+  'http://localhost:8082',
+  { city: 'Toronto' },
+  true,
+);
+```
+
+It can also be used to specify a production bundle URL:
+
+```ts
+await NebulaAPI.openMiniAppWithBundleURL(
+  'com.example.weather',
+  'https://cdn.example.com/miniapps/weather/index.bundle',
+  {},
+  false,
+);
+```
+
+#### Notes
+
+- When `connectToURLMetroServer = true`, Nebula normalizes the input as a development bundle URL
+- Development mode does not use production loading semantics
+- Production mode will install first, then continue with the formal opening process
+
+## Preloading a Miniapp
+
+Preloading is used to prepare miniapp runtime resources in advance, reducing cold start cost when actually opened.
+
+### `preloadMiniApp(appId)`
+
+Preloads an installed miniapp:
+
+```ts
+await NebulaAPI.preloadMiniApp('com.example.weather');
+```
+
+### `preloadMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer?)`
+
+Preloads a miniapp with a specified bundle URL:
+
+```ts
+await NebulaAPI.preloadMiniAppWithBundleURL(
+  'com.example.weather',
+  'http://localhost:8082',
+  true,
+);
+```
+
+#### Use Cases
+
+- User is about to enter a miniapp
+- Home screen cards, banners, or recommendations can predict user clicks
+- Host wants to reduce first-open latency
+
+## Installing a Miniapp
+
+Install APIs are suitable for scenarios where the host needs explicit control over the installation phase, rather than implicitly bundling installation with "opening".
+
+### `installMiniApp(appId, bundleURL)`
+
+Installs a production miniapp from a bundle URL:
+
+```ts
+await NebulaAPI.installMiniApp(
+  'com.example.weather',
+  'https://cdn.example.com/miniapps/weather/index.bundle',
+);
+```
+
+### `installMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer?)`
+
+Installs with a specified bundle URL, explicitly declaring whether it is development or production:
+
+```ts
+await NebulaAPI.installMiniAppWithBundleURL(
+  'com.example.weather',
+  'http://localhost:8082',
+  true,
+);
+```
+
+### Installation Behavior Summary
+
+During the installation phase, Nebula will, depending on the mode:
+
+- Download or record the bundle source
+- Parse or download the manifest
+- Create a local sandbox
+- Write installation metadata
+- Register installed runtime information
+
+## Querying Installed Miniapps
+
+### `getInstalledMiniApps()`
+
+Returns all installed miniapp `appId`s:
+
+```ts
+const result = await NebulaAPI.getInstalledMiniApps();
+// { apps: ['com.example.weather', 'com.example.shop'] }
+```
+
+### `getInstalledMiniAppInfo(appId)`
+
+Queries installation information for a specific miniapp:
+
+```ts
+const result = await NebulaAPI.getInstalledMiniAppInfo('com.example.weather');
+```
+
+Example return value:
+
+```ts
+{
+  installed: true,
+  app: {
+    appId: 'com.example.weather',
+    mode: 'production',
+    bundlePath: '/path/to/index.bundle',
+    sourceUrl: 'https://cdn.example.com/miniapps/weather/index.bundle',
+    version: '1.2.0',
+    updateStrategy: 'auto',
+  },
+}
+```
+
+The most noteworthy fields here are:
+
+- Whether it is installed
+- Whether the current mode is `development` or `production`
+- The current installed version
+- Update strategy
+- Local bundle path and source URL
+
+## Closing and Uninstalling
+
+### `closeMiniApp(appId)`
+
+Closes a running miniapp:
+
+```ts
+await NebulaAPI.closeMiniApp('com.example.weather');
+```
+
+This only affects the current runtime state and does not delete local installation files.
+
+### `uninstallMiniApp(appId)`
+
+Uninstalls a locally installed miniapp:
+
+```ts
+await NebulaAPI.uninstallMiniApp('com.example.weather');
+```
+
+Uninstallation deletes local installation data and recorded runtime information.
+
+## Update Management
+
+Beyond installation and opening, hosts often need to determine whether the currently installed version requires an update.
+
+### `NebulaAPI.checkMiniAppUpdate(appId)`
+
+Checks whether an update exists for an installed miniapp:
+
+```ts
+const updateInfo = await NebulaAPI.checkMiniAppUpdate('com.example.weather');
+```
+
+Example return value:
+
+```ts
+{
+  appId: 'com.example.weather',
+  currentVersion: '1.0.0',
+  latestVersion: '1.1.0',
+  hasUpdate: true,
+  updateStrategy: 'manual',
+  mode: 'production',
+  sourceUrl: 'https://cdn.example.com/miniapps/weather/index.bundle',
+}
+```
+
+### `NebulaAPI.applyMiniAppUpdate(appId)`
+
+Downloads and applies the latest version of the miniapp:
+
+```ts
+await NebulaAPI.applyMiniAppUpdate('com.example.weather');
+```
+
+#### Automatic Update
+
+When an installed miniapp has `updateStrategy = 'auto'`, `openMiniApp(...)` will attempt to automatically apply updates before officially opening.
+
+#### Manual Update
+
+When `updateStrategy = 'manual'`, the host can:
+
+- First call `checkMiniAppUpdate(...)`
+- Then decide when to call `applyMiniAppUpdate(...)`
+
+## Relationship with Update APIs in `@nebula-rn/client`
+
+You may also encounter:
+
+- `getMiniAppUpdateInfo()`
+- `applyMiniAppUpdate()`
+
+These two capabilities come from `@nebula-rn/client` and are better suited for the **miniapp itself** to initiate update checks and actions.
+The `NebulaAPI` discussed on this page is better suited for the **host** to manage miniapp lifecycle and version state.
+
+Think of it this way:
+
+- `NebulaAPI` — host manages miniapps
+- `@nebula-rn/client` — miniapp calls standard update capabilities provided by the host
+
+## Typical Management Flows
+
+### Production Mode: Check Installation Status Before Opening
+
+```ts
+const appId = 'com.example.weather';
+const installed = await NebulaAPI.getInstalledMiniAppInfo(appId);
+
+if (installed.installed) {
+  await NebulaAPI.openMiniApp(appId, { source: 'home' });
+} else {
+  await NebulaAPI.openMiniApp(appId, { source: 'home' }, 'release');
+}
+```
+
+### Development Mode: Directly Connect to Local Service
+
+```ts
+await NebulaAPI.openMiniAppWithBundleURL(
+  'com.example.weather',
+  'http://localhost:8082',
+  {},
+  true,
+);
+```
+
+### Preload When User Is About to Enter
+
+```ts
+await NebulaAPI.preloadMiniApp('com.example.weather');
+```
+
+### Manual Update
+
+```ts
+const updateInfo = await NebulaAPI.checkMiniAppUpdate('com.example.weather');
+
+if (updateInfo.hasUpdate) {
+  await NebulaAPI.applyMiniAppUpdate('com.example.weather');
+}
+```
+
+## Local Installation Paths
+
+Local installation paths vary by platform:
+
+| Platform | Path                                                     |
+| -------- | -------------------------------------------------------- |
+| iOS      | `Documents/MiniApps/{appId}/index.bundle`                |
+| Android  | `{Context.filesDir}/nebula/{appId}/index.android.bundle` |
+
+## Management Boundaries
+
+The core principles of miniapp management are:
+
+- The host controls installation, opening, closing, and updates
+- Miniapps are aware of their own version status but do not own host-level lifecycle control
+- Development and production modes should use different management semantics
+
+If you wish to further understand update strategies and version distribution, continue reading:
+
+- [Host Configuration](./configuration.mdx)
+- [Miniapp Versioning & Release](../miniapp/versioning.mdx)
+- [Nebula SDK Reference](../reference/nebula-sdk.mdx)

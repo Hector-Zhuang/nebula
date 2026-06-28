@@ -1,0 +1,12 @@
+{
+  "appId": "superapp-ride-hailing",
+  "updateStrategy": "manual",
+  "pages": ["home"],
+  "entryPagePath": "/home",
+  "window": {
+    "backgroundColor": "#f8fafc",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextColor": "#0f172a",
+    "visualEffectInBackground": "none"
+  }
+}

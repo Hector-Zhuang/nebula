@@ -1,0 +1,581 @@
+---
+title: 快速上手 Demo
+description: 使用 Nebula CLI 创建一个 Miniapp 项目，并把它改造成一个天气 Demo。
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+本教程通过一个**天气查询小程序 Demo**，带你快速掌握 Nebula Miniapp 的核心开发路径：
+
+- 用 CLI 创建一个 Miniapp
+- 在生成出来的 Miniapp 上实现天气页面
+- 用 Dev Runner 进行独立开发
+- 最后再用真实 Host 做额外联调
+
+## 你将学到
+
+- 如何用 CLI 创建 Miniapp 项目
+- Miniapp 项目结构（`app.json`、`page.config.ts`、页面组件）
+- 页面生命周期 Hooks（`usePageOnLoad`、`usePageOnShow`）
+- Host API 调用（`getLocation`、`getStorageItem`、`setStorageItem`）
+- 页面导航与参数传递（`navigateTo`、`navigateBack`、页面路径与查询参数）
+- Nebula 组件（`Swiper`、`SwiperItem`）
+- 如何把同一个 Demo 接到真实 Host 中验证
+
+## 前置条件
+
+- 已安装 Node.js 和 npm
+- React Native iOS 或 Android 开发环境
+- 可以通过 `npx` 使用 Nebula CLI
+
+<Steps>
+<Step>
+
+## Step 1: 创建 Miniapp 项目
+
+先创建一个 Miniapp：
+
+```bash
+npx nebula create miniapp weather-miniapp
+cd weather-miniapp
+npm install
+```
+
+这会生成一个**纯小程序工程**。你会看到：
+
+- `app.json`
+- `src/pages/home/index.tsx`
+- `src/pages/home/page.config.ts`
+
+不会看到：
+
+- `ios/`
+- `android/`
+
+这正是 Nebula Miniapp 的推荐形态。
+
+</Step>
+<Step>
+
+## Step 2: 修改 Miniapp 全局配置
+
+打开 `weather-miniapp/app.json`，把默认配置改成天气 Demo 的全局样式：
+
+```json
+{
+  "appId": "weather-app",
+  "pages": ["home"],
+  "entryPagePath": "/home",
+  "window": {
+    "backgroundColor": "#f0f9ff",
+    "navigationBarBackgroundColor": "#0ea5e9",
+    "navigationBarTextColor": "#ffffff",
+    "navigationBarTitleText": "天气查询"
+  }
+}
+```
+
+关键字段：
+
+- `appId`：小程序唯一标识
+- `pages`：页面路径数组
+- `entryPagePath`：启动页
+- `window`：全局导航栏和背景色配置
+
+</Step>
+<Step>
+
+## Step 3: 首页 — 天气信息 + Host API 调用
+
+### 页面配置
+
+将 `src/pages/home/page.config.ts` 改成：
+
+```ts
+import { definePageConfig } from '@nebula-rn/sdk';
+
+export default definePageConfig({
+  route: '/home',
+  backgroundColor: '#f0f9ff',
+  navigationBarBackgroundColor: '#0ea5e9',
+  navigationBarTextColor: '#ffffff',
+  navigationBarTitleText: '天气查询',
+  navigationStyle: 'default',
+});
+```
+
+### 页面组件
+
+将 `src/pages/home/index.tsx` 改成：
+
+```tsx
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, View, Button } from 'react-native';
+import { Miniapp, usePageOnLoad, usePageOnShow } from '@nebula-rn/sdk';
+import { getLocation, getStorageItem } from '@nebula-rn/client';
+
+export default function HomePage(props) {
+  const [weather, setWeather] = useState(null);
+  const [city, setCity] = useState('正在定位...');
+  const [loading, setLoading] = useState(true);
+
+  usePageOnLoad(() => {
+    loadWeather();
+  });
+
+  usePageOnShow(() => {
+    loadSavedCity();
+  });
+
+  const loadWeather = async () => {
+    try {
+      setLoading(true);
+      const location = await getLocation({ isHighAccuracy: false });
+      const savedCity = await getStorageItem('selectedCity');
+      setCity(
+        savedCity ||
+          `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`,
+      );
+      setWeather({
+        temp: 24,
+        condition: '晴',
+        humidity: 45,
+        wind: '东南风 3级',
+        
+        forecast: [
+          { day: '今天', high: 26, low: 18, condition: '晴' },
+          { day: '明天', high: 28, low: 19, condition: '多云' },
+          { day: '后天', high: 22, low: 16, condition: '小雨' },
+        ],
+      });
+    } catch (error) {
+      setCity('定位失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSavedCity = async () => {
+    const savedCity = await getStorageItem('selectedCity');
+    if (savedCity) setCity(savedCity);
+  };
+
+  const goToCityList = () => {
+    Miniapp.navigateTo(
+      `/city-list?current=${encodeURIComponent(city)}`,
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.loading}>加载中...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.cityName}>{city}</Text>
+        <Button title="切换城市" onPress={goToCityList} color="#0284c7" />
+      </View>
+
+      <View style={styles.weatherCard}>
+        <Text style={styles.temp}>{weather.temp}°</Text>
+        <Text style={styles.condition}>{weather.condition}</Text>
+        <Text style={styles.detail}>
+          湿度 {weather.humidity}% · {weather.wind}
+        </Text>
+      </View>
+
+      <View style={styles.forecastCard}>
+        <Text style={styles.cardTitle}>未来天气</Text>
+        {weather.forecast.map((item, index) => (
+          <View key={index} style={styles.forecastRow}>
+            <Text style={styles.forecastDay}>{item.day}</Text>
+            <Text style={styles.forecastCondition}>{item.condition}</Text>
+            <Text style={styles.forecastTemp}>
+              {item.low}° / {item.high}°
+            </Text>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { padding: 20, backgroundColor: '#f0f9ff' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loading: { fontSize: 16, color: '#64748b' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  cityName: { fontSize: 24, fontWeight: '700', color: '#0f172a' },
+  weatherCard: {
+    padding: 24,
+    borderRadius: 16,
+    backgroundColor: '#0ea5e9',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  temp: { fontSize: 64, fontWeight: '700', color: '#ffffff' },
+  condition: { fontSize: 20, color: '#e0f2fe', marginTop: 4 },
+  detail: { fontSize: 14, color: '#bae6fd', marginTop: 8 },
+  forecastCard: {
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e0f2fe',
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 12,
+  },
+  forecastRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  forecastDay: { fontSize: 14, color: '#334155', width: 60 },
+  forecastCondition: { fontSize: 14, color: '#64748b', flex: 1 },
+  forecastTemp: { fontSize: 14, color: '#0f172a', fontWeight: '500' },
+});
+```
+
+### 本步骤要点
+
+| 概念 | 说明 |
+|---|---|
+| `usePageOnLoad` | 页面首次加载时触发，适合初始化数据 |
+| `usePageOnShow` | 每次页面可见时触发，适合刷新数据 |
+| `getLocation()` | 从 `@nebula-rn/client` 导入，调用宿主的定位能力 |
+| `getStorageItem()` | 读取宿主提供的键值存储 |
+| `Miniapp.navigateTo()` | 使用页面路径导航到其他页面 |
+
+</Step>
+<Step>
+
+## Step 4: 城市列表页 — 导航参数 + Storage
+
+添加第二个页面，演示页面间的参数传递和数据共享。
+
+### 创建页面文件
+
+创建 `src/pages/city-list/page.config.ts`：
+
+```ts
+import { definePageConfig } from '@nebula-rn/sdk';
+
+export default definePageConfig({
+  route: '/city-list',
+  navigationBarTitleText: '选择城市',
+});
+```
+
+创建 `src/pages/city-list/index.tsx`：
+
+```tsx
+import React from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+} from 'react-native';
+import { Miniapp, usePageOnLoad } from '@nebula-rn/sdk';
+import { setStorageItem } from '@nebula-rn/client';
+
+const CITIES = ['北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '西安'];
+
+export default function CityListPage(props) {
+  const currentCity = props?.current
+    ? decodeURIComponent(String(props.current))
+    : '';
+
+  usePageOnLoad((params) => {
+    console.log('CityListPage loaded, params:', params);
+  });
+
+  const selectCity = async (city) => {
+    await setStorageItem('selectedCity', city);
+    Miniapp.navigateBack(1);
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>选择城市</Text>
+      {CITIES.map((city) => (
+        <TouchableOpacity
+          key={city}
+          style={[
+            styles.cityRow,
+            city === currentCity && styles.cityRowActive,
+          ]}
+          onPress={() => selectCity(city)}
+        >
+          <Text
+            style={[
+              styles.cityText,
+              city === currentCity && styles.cityTextActive,
+            ]}
+          >
+            {city}
+          </Text>
+          {city === currentCity ? <Text style={styles.checkmark}>✓</Text> : null}
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { padding: 20, backgroundColor: '#f8fafc' },
+  title: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 16,
+  },
+  cityRow: {
+    padding: 16,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  cityRowActive: { borderColor: '#0ea5e9', backgroundColor: '#f0f9ff' },
+  cityText: { fontSize: 16, color: '#334155' },
+  cityTextActive: { color: '#0284c7', fontWeight: '600' },
+  checkmark: { fontSize: 18, color: '#0ea5e9' },
+});
+```
+
+### 注册页面
+
+在 `app.json` 的 `pages` 数组中添加：
+
+```json
+{
+  "appId": "weather-app",
+  "pages": ["home", "city-list"],
+  "entryPagePath": "/home",
+  "window": { "...": "..." }
+}
+```
+
+### 本步骤要点
+
+| 概念 | 说明 |
+|---|---|
+| 新增页面三步 | `index.tsx` + `page.config.ts` + 在 `app.json` 注册 |
+| 导航参数 → props | `?current=北京` 自动注入为 `props.current` |
+| `Miniapp.navigateBack(1)` | 返回上一页 |
+| `setStorageItem()` | 写入键值存储，跨页面共享数据 |
+
+</Step>
+<Step>
+
+## Step 5: 使用 Swiper 组件
+
+将首页的天气预报列表替换为 `Swiper`，展示 `@nebula-rn/components` 的用法。
+
+在 `src/pages/home/index.tsx` 中添加导入并替换预报区域：
+
+```tsx
+import { Swiper, SwiperItem } from '@nebula-rn/components';
+
+<View style={styles.forecastCard}>
+  <Text style={styles.cardTitle}>未来天气</Text>
+  <Swiper
+    style={{ height: 120 }}
+    indicatorDots
+    indicatorColor="#cbd5e1"
+    indicatorActiveColor="#0ea5e9"
+    autoplay={false}
+  >
+    {weather.forecast.map((item, index) => (
+      <SwiperItem key={index}>
+        <View style={styles.swiperCard}>
+          <Text style={styles.swiperDay}>{item.day}</Text>
+          <Text style={styles.swiperTemp}>{item.high}°</Text>
+          <Text style={styles.swiperCondition}>{item.condition}</Text>
+          <Text style={styles.swiperRange}>
+            {item.low}° ~ {item.high}°
+          </Text>
+        </View>
+      </SwiperItem>
+    ))}
+  </Swiper>
+</View>
+```
+
+### 本步骤要点
+
+| 概念 | 说明 |
+|---|---|
+| `@nebula-rn/components` | Nebula 提供的扩展组件库 |
+| `Swiper` / `SwiperItem` | 轮播组件，支持指示器、自动播放等 |
+
+</Step>
+<Step>
+
+## Step 6: 启动开发服务器
+
+在 miniapp 项目中启动：
+
+```bash
+npx nebula miniapp dev
+```
+
+开发服务器启动后，CLI 会自动打开 Dev Runner 并加载当前小程序。
+
+</Step>
+</Steps>
+
+## 知识点总结
+
+| 知识点 | 本 Demo 中的体现 |
+|---|---|
+| **CLI 创建工程** | `npx nebula create miniapp` |
+| **项目结构** | `app.json` + `src/pages/` + `page.config.ts` |
+| **页面三件套** | `index.tsx` + `page.config.ts` + `app.json` 注册 |
+| **生命周期 Hooks** | `usePageOnLoad`、`usePageOnShow` |
+| **Host API** | `getLocation`、`getStorageItem`、`setStorageItem` |
+| **页面导航** | `navigateTo`、`navigateBack`、页面路径 |
+| **组件能力** | `Swiper` + `SwiperItem` |
+| **开发方式** | Dev Runner 独立开发 |
+
+## 额外步骤：在真实 Host 中打开这个 Demo
+
+如果你已经完成上面的 Miniapp Demo，并且想继续验证它在真实 Host 里的表现，可以继续做下面这些额外步骤。
+
+<Steps>
+<Step>
+
+### Step 7: 创建 Host 项目
+
+打开另一个终端，创建一个真实 Host：
+
+```bash
+npx nebula create host weather-host
+cd weather-host
+npm install
+```
+
+这个 Host 会作为后续联调环境使用。
+
+</Step>
+<Step>
+
+### Step 8: 让 Host 指向这个 Demo Miniapp
+
+打开 `weather-host/App.tsx`，先把 Host 里用于打开 demo 小程序的常量改成你的天气小程序：
+
+```ts
+const SAMPLE_MINI_APP_ID = 'weather-app';
+const SAMPLE_MINI_APP_DEV_SERVER_URL = 'http://<your-machine-ip>:8082';
+```
+
+其中：
+
+- `SAMPLE_MINI_APP_ID` 要和 `weather-miniapp/app.json` 里的 `appId` 一致
+- `SAMPLE_MINI_APP_DEV_SERVER_URL` 要指向当前 miniapp dev server
+
+如果你在 iOS Simulator 上调试，通常可以直接用 `localhost`。  
+如果你在 Android Emulator 或真机上调试，通常需要改成你的机器局域网 IP。
+
+这一步的意义是：让 Host 知道它应该打开哪个小程序，以及从哪里拿当前开发中的 bundle。
+
+然后，确认 Host 是通过 `NebulaAPI.openMiniAppWithBundleURL(...)` 来打开这个开发中的 miniapp。你可以直接使用下面这段代码：
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+
+const openWeatherMiniAppInDevMode = async () => {
+  await NebulaAPI.openMiniAppWithBundleURL(
+    SAMPLE_MINI_APP_ID,
+    SAMPLE_MINI_APP_DEV_SERVER_URL,
+    {},
+    true,
+  );
+};
+```
+
+这几个参数分别表示：
+
+- `SAMPLE_MINI_APP_ID`：要打开的小程序 ID
+- `SAMPLE_MINI_APP_DEV_SERVER_URL`：当前开发服务器地址
+- `{}`：这里没有额外的初始业务参数需要传递
+- `true`：表示这是一个连接 Metro 的开发态小程序，Nebula 会自动补全实际 bundle URL
+
+如果你想把它绑到一个按钮上，可以这样写：
+
+```tsx
+<Button
+  title="打开天气小程序（开发模式）"
+  onPress={openWeatherMiniAppInDevMode}
+/>
+```
+
+</Step>
+<Step>
+
+### Step 9: 启动 Host
+
+回到 Host 项目并启动：
+
+```bash
+cd ../weather-host
+npm run ios
+# 或 npm run android
+```
+
+这样你就同时拥有：
+
+- 用于快速迭代的 Dev Runner
+- 用于真实联调的 Host
+
+</Step>
+<Step>
+
+### Step 10: 从 Host 打开天气 Demo
+
+Host 启动后，在首页点击你刚才绑定的按钮，例如：
+
+- `打开天气小程序（开发模式）`
+
+这个按钮会调用 `NebulaAPI.openMiniAppWithBundleURL(...)`，使用你刚才配置的 `SAMPLE_MINI_APP_ID` 和 `SAMPLE_MINI_APP_DEV_SERVER_URL`，自动合成开发态 bundle URL 并打开当前天气 demo 小程序。
+
+如果一切正常，你会看到：
+
+- 在 Dev Runner 中可以独立开发天气 demo
+- 在真实 Host 中也能打开同一个天气 demo
+
+这就是 Nebula 最重要的体验之一：
+
+- Miniapp 可以独立开发
+- 同时又能在真实 Host 中验证集成效果
+
+</Step>
+</Steps>
+
+## 下一步
+
+- [小程序开发指南](/docs/miniapp/development)
+- [小程序目录结构](/docs/miniapp/directory-structure)
+- [小程序配置](/docs/miniapp/configuration)
+- [页面生命周期](/docs/miniapp/page-lifecycle)

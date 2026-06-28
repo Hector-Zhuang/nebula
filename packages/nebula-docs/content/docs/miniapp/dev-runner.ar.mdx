@@ -1,0 +1,93 @@
+---
+title: Dev Runner
+description: طوّر miniapps بشكل مستقل باستخدام Nebula Dev Runner من دون صيانة إعدادات المضيف داخل مشروع miniapp.
+---
+
+Nebula Dev Runner هو المضيف التطويري العام المستخدم لتطوير miniapp بشكل مستقل.
+
+بالنسبة لمطوري miniapp، يوجد مسار رئيسي واحد فقط:
+
+```bash
+npx nebula miniapp dev
+```
+
+يقوم CLI بتجهيز Dev Runner وفتحه ثم تحويله إلى miniapp الحالية. عادة لا يحتاج المطورون للاهتمام بتفاصيل تثبيت Dev Runner أو تشغيله.
+
+<Info title="ما هو Dev Runner؟">
+  Dev Runner هو أيضًا Host.
+
+  دوره ليس استبدال المضيف الحقيقي، بل توفير بيئة تطوير قابلة لإعادة الاستخدام لمطوري Host، كي يتمكن مطورو miniapp من تطوير الصفحات بشكل مستقل والاعتماد على mock لواجهات Host API مثل ملف المستخدم أو حالة الأذونات أو سياق العمل.
+
+  حرصًا على أمان الأعمال، لا ننصح بوضع منطق الأعمال الحقيقي أو بيانات الإنتاج أو سلوكيات المضيف الحساسة مباشرة داخل Dev Runner المشترك. Dev Runner أنسب لـ mock في مرحلة التطوير والسلوكيات الافتراضية ودعم التصحيح. أما التنفيذ الحقيقي فيجب أن يبقى في Host الرسمي أو عبر Runner مخصص ضمن بيئة مضبوطة.
+</Info>
+
+أهدافه هي:
+
+- إبقاء مشروع miniapp نظيفًا دون `ios/` أو `android/`
+- تمكين المطورين من تشغيل الصفحات وتصحيحها بشكل مستقل
+- توفير مضيف تطوير مدمج بالفعل مع `@nebula-rn/host-apis` لتقديم Host APIs الأساسية وسلوك التطوير الافتراضي
+
+## البدء السريع
+
+```bash
+# 1. إنشاء مشروع miniapp خالص
+npx nebula create miniapp hello-nebula
+
+cd hello-nebula
+
+# 2. بدء تطوير miniapp الحالية
+npx nebula miniapp dev
+```
+
+في التنفيذ الحالي:
+
+- `npx nebula miniapp dev` يعرِض عبر Metro:
+  - `/app.json`
+  - `index.bundle?...`
+- يقوم CLI تلقائيًا بـ:
+  - تشغيل Metro الخاص بالـ miniapp
+  - تجهيز Metro الخاص بـ Dev Runner
+  - تثبيت/فتح Dev Runner للمنصة المطلوبة
+  - تحويل Dev Runner إلى miniapp الحالية
+
+إذا كنت تريد تشغيل Metro للـ miniapp فقط دون تشغيل Runner تلقائيًا، استخدم:
+
+```bash
+npx nebula miniapp dev --no-runner
+```
+
+## قدرات Dev Runner المدمجة
+
+Dev Runner مدمج افتراضيًا مع `@nebula-rn/host-apis`، لذلك يمكن استخدام Host APIs الأساسية مباشرة دون إعدادات إضافية.
+
+على سبيل المثال:
+
+- `scanCode`
+- `previewImage`
+- `showToast`
+- `showModal`
+
+إذا كان لدى فريقك احتياجات API خاصة بالأعمال، مثل:
+
+- `getUserProfile`
+- `getTenantInfo`
+- `getFeatureFlags`
+
+فراجع [واجهات API والمكوّنات المخصصة](./custom-apis.mdx) لتوسيع Host APIs الخاصة بك.
+
+## Custom Runner
+
+إذا كان فريقك يحتاج قدرات تخصيص أعلى من Dev Runner الافتراضي، مثل:
+
+- واجهة بعلامة تجارية
+- وحدات أصلية مخصصة
+- سلوك أقرب للمضيف الحقيقي
+
+يمكنك استخدام:
+
+```bash
+npx nebula create runner my-runner
+```
+
+لتوليد مشروع Dev Runner قابل للتخصيص.
+

@@ -1,0 +1,111 @@
+---
+title: مكوّنات التطبيقات المصغّرة
+description: 'تعرّف على كيفية استخدام @nebula-rn/components داخل تطبيقات Nebula المصغّرة، وكيفية تقسيم المسؤولية بينها وبين المكوّنات الأساسية.'
+---
+
+توفّر `@nebula-rn/components` مكتبة مكوّنات متعددة المنصات مخصّصة لتطبيقات Nebula المصغّرة. وهي مبنية فوق المكوّنات الأساسية، وتقدّم مكوّنات أعلى مستوى مثل الشرائح والنصوص الغنية والفيديو والخريطة والكاميرا، بما يناسب سيناريوهات miniapp.
+
+في الاستخدام العملي، من الأفضل النظر إليها على أنها مكملة للمكوّنات الأساسية، لا بديلًا عنها:
+
+- يبقى هيكل الصفحة والتفاعل الأساسي معتمدًا على المكوّنات الأساسية
+- وعندما تحتاج الصفحة إلى قدرات UI أعلى مستوى أو مكوّنات مرتبطة بالمضيف، عندها تستخدم `@nebula-rn/components`
+
+تتضمن `@nebula-rn/components` حاليًا:
+
+- الشرائح: `Swiper`
+- التقدم: `Progress`
+- المقالات الغنية وقواعد الأنشطة: `RichText`
+- تشغيل الفيديو: `Video`
+- عرض الخرائط: `Map`
+- الكاميرا والمسح المدفوعان بقدرات المضيف: `Camera`
+- تضمين صفحات الويب: `WebView`
+
+هذه المكوّنات مهيأة بالفعل لنموذج التشغيل في Nebula، مما يقلل من تكلفة إعادة تغليف القدرات نفسها في miniapp.
+
+## التثبيت والاستيراد
+
+ثبّت مكتبة المكونات داخل مشروع التطبيق المصغّر:
+
+```bash
+npm install @nebula-rn/components
+```
+
+ثم استورد المكوّنات المطلوبة حسب الحاجة:
+
+```tsx
+import { Progress, Swiper, Video } from '@nebula-rn/components';
+```
+
+أما إذا كانت الصفحة تعتمد فقط على التخطيط والنصوص الأساسية، فاستمر باستخدام المكونات الأساسية:
+
+```tsx
+import { View, Text, ScrollView, Image } from 'react-native';
+```
+
+## مثال صفحة بسيطة
+
+يوضح المثال التالي طريقة تنظيم صفحة رئيسية نموذجية:
+
+- استخدام `Swiper` في الأعلى لعرض banner
+- استخدام المكوّنات الأساسية في الوسط للتخطيط والنصوص
+- استخدام `Progress` في الأسفل لعرض تقدم المهام
+
+```tsx
+import { Image, ScrollView, Text, View } from 'react-native';
+import { Progress, Swiper } from '@nebula-rn/components';
+
+const banners = [
+  'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200',
+  'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1200',
+];
+
+export default function HomePage() {
+  return (
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+      <View style={{ height: 180, borderRadius: 12, overflow: 'hidden' }}>
+        <Swiper autoplay circular indicatorDots>
+          {banners.map(uri => (
+            <Image
+              key={uri}
+              source={{ uri }}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
+          ))}
+        </Swiper>
+      </View>
+
+      <View style={{ gap: 8 }}>
+        <Text style={{ fontSize: 22, fontWeight: '700' }}>مرحبًا بك في Nebula</Text>
+        <Text style={{ color: '#475569', lineHeight: 22 }}>
+          استخدم المكوّنات الأساسية لبنية الصفحة، واستخدم @nebula-rn/components لمكوّنات المزايا الأقرب لتجربة miniapp.
+        </Text>
+      </View>
+
+      <Progress percent={68} showInfo active />
+    </ScrollView>
+  );
+}
+```
+
+## متطلبات على جانب المضيف
+
+تعتمد بعض المكونات على أن يكون المضيف قد دمج الوحدات الأصلية اللازمة مسبقًا، مثل:
+
+- `Camera`
+- `Video`
+- `Map`
+- `WebView`
+
+إذا لم يدمج المضيف هذه الوحدات الأصلية ثم استخدمتها miniapp مباشرة، فقد يحدث فشل وقت التشغيل.
+لذلك يجب على مطور المضيف توضيح نطاق قدرات المكوّنات المدعومة، وعلى مطور miniapp اختيار المكوّنات بناءً على قدرات المضيف الفعلية.
+
+## الخطوة التالية
+
+إذا كنت تريد الاطلاع على جميع Props والأحداث والفروقات بين المنصات لكل مكوّن، فانتقل إلى:
+
+- [@nebula-rn/components Reference](/docs/reference/nebula-components)
+
+وإذا كنت تريد فهم العلاقة بين قدرات المكونات والمضيف بشكل أعمق، فاقرأ أيضًا:
+
+- [بيئة تشغيل miniapp داخل المضيف](/docs/miniapp/host-environment)

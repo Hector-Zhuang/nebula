@@ -1,0 +1,45 @@
+{
+  "name": "@nebula-rn/dev-runner",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "root": "packages/dev-runner",
+  "sourceRoot": "packages/dev-runner",
+  "projectType": "application",
+  "targets": {
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/dev-runner",
+        "command": "npm run start"
+      }
+    },
+    "ios": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/dev-runner",
+        "command": "npm run ios"
+      }
+    },
+    "android": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/dev-runner",
+        "command": "npm run android"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/dev-runner",
+        "command": "npm run lint"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/dev-runner",
+        "command": "npm run test"
+      }
+    }
+  },
+  "tags": ["scope:runner", "type:app"]
+}

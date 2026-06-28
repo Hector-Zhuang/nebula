@@ -1,0 +1,101 @@
+---
+title: 小程序开发指南
+description: 了解 Nebula 小程序的开发模型、运行方式、组件、API、调试和发布流程。
+---
+
+Nebula 小程序提供了一套简单、高效的开发模型，以及组件、API、宿主运行时和云端分发能力，帮助开发者构建具有原生体验的小程序。
+
+本章会按主题介绍小程序开发的核心内容，包括项目创建、运行方式、宿主环境、目录结构、配置、组件、API、兼容性和版本发布，帮助开发者快速建立完整心智。
+
+如果你是第一次接触 Nebula，建议先体验一遍最短开发路径：
+
+```bash
+npx nebula create miniapp hello-nebula
+cd hello-nebula
+npm install
+npx nebula miniapp dev
+```
+
+这会生成一个纯小程序工程。你只需要关注页面、状态和 API 调用，不需要自己维护 `ios/` 或 `android/` 壳工程。
+
+## 核心概念
+
+Nebula 小程序开发可以先从这几个概念理解：
+
+- **Miniapp**：业务页面、状态和交互逻辑所在的工程。
+- **Host**：承载小程序运行的宿主应用，负责原生能力、容器和生命周期。
+- **Dev Runner**：开发期使用的通用宿主，帮助你独立运行和调试小程序。
+- **Nebula Cloud**：用于版本管理、分发、安装和更新的云端服务。
+
+需要特别注意的是，Dev Runner 虽然是默认开发路径，但它本质上仍然是一个开发期 Host。它更适合承接 mock Host API 和默认开发行为，而不是承载真实业务实现。
+
+## 开发方式
+
+Nebula 推荐的小程序开发方式是：
+
+- 使用 `npx nebula create miniapp` 创建纯小程序工程
+- 使用 `npx nebula miniapp dev` 启动开发
+- 在 Dev Runner 中独立开发和调试页面
+- 在需要真实集成验证时，再接入真实 Host
+
+常用命令：
+
+```bash
+# 创建小程序
+npx nebula create miniapp hello-nebula
+
+# 启动开发
+npx nebula miniapp dev
+
+# 构建生产产物
+npx nebula miniapp build
+
+# 上传到 Nebula Cloud
+npx nebula miniapp upload --version 1.0.0
+
+```
+
+## 推荐依赖
+
+通常你会接触这些包：
+
+- `@nebula-rn/client`
+  用于调用小程序基础 API 和 Host API。
+- `@nebula-rn/components`
+  用于使用 Nebula 提供的跨平台组件。
+- `@nebula-rn/sdk`
+  用于页面生命周期、运行时和宿主相关能力。
+
+## 继续阅读
+
+如果你想更具体地了解框架、组件、API、宿主环境或版本分发，请继续阅读下面这些文档：
+
+- [小程序的宿主环境](./host-environment.mdx)
+  了解小程序如何运行在 Host 中，以及与宿主交互的基本模型。
+- [Dev Runner](./dev-runner.mdx)
+  了解开发期宿主如何工作，以及 `npx nebula miniapp dev` 的运行方式。
+- [页面生命周期](./page-lifecycle.mdx)
+  了解页面的 `onLoad`、`onShow`、`onHide`、`onUnload` 等生命周期。
+- [页面导航](./navigation.mdx)
+  了解小程序页面之间如何跳转、返回和重定向。
+- [宿主通信](./host-communication.mdx)
+  了解小程序如何与 Host 双向通信。
+- [小程序版本与发布](./versioning.mdx)
+  了解 release / experience 版本、安装、更新和发布流程。
+- [小程序目录结构](./directory-structure.mdx)
+  了解推荐的目录组织方式。
+- [小程序配置](./configuration.mdx)
+  了解 `app.json` 和 `page.config.ts` 的配置方式。
+- [自定义 API](./custom-apis.mdx)
+  了解如何扩展业务自定义能力。
+- [基础库与版本兼容](./base-library-versioning.mdx)
+  了解如何做能力检测与兼容处理。
+
+## 相关参考文档
+
+- [Nebula SDK Reference](../reference/nebula-sdk.mdx)
+- [Host Configuration](../host/configuration.mdx)
+- [Host Configuration](../host/configuration.mdx)
+- [Native-side APIs](../host/native-apis.mdx)
+- [Nebula Cloud](../nebula-cloud/version-and-channels.mdx)
+- [CLI 参考](../reference/cli.mdx)

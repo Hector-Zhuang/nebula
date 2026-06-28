@@ -1,0 +1,1450 @@
+---
+title: '@nebula-rn/host-apis'
+description: 'Nebula 官方宿主特性实现包 API 参考，提供开箱即用的宿主 API 注册及每个 API 的详细参数说明。'
+---
+
+`@nebula-rn/host-apis` 提供了官方的宿主 API 特性实现。宿主 App 可以直接使用这些预构建的特性，通过 `NebulaAPI.wrap()` 注册到运行时。
+
+**版本：** 0.0.1
+
+---
+
+## 快速使用
+
+### 注册所有默认 API
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+export default NebulaAPI.wrap({
+  serverBaseURL: 'https://api.example.com',
+  hostApis: defaultHostApis,
+})(App);
+```
+
+### 按需注册
+
+```tsx
+import { scanCodeHostApi, previewImageHostApi } from '@nebula-rn/host-apis';
+
+NebulaAPI.wrap({
+  hostApis: [scanCodeHostApi, previewImageHostApi],
+})(App);
+```
+
+---
+
+## 导出
+
+| 导出名                | 类型                  | 描述                      |
+| --------------------- | --------------------- | ------------------------- |
+| `defaultHostApis`     | `NebulaHostFeature[]` | 包含所有默认 API 的数组。 |
+| `scanCodeHostApi`     | `NebulaHostFeature`   | 扫码 Modal API。          |
+| `previewImageHostApi` | `NebulaHostFeature`   | 图片预览 Modal API。      |
+| `coreHostApis`        | `NebulaHostFeature[]` | 核心功能 API 数组。       |
+| `downloadFileHostApi` | `NebulaHostFeature`   | 文件下载（Task API）。    |
+| `downloadFileHost`    | `function`            | 文件下载（纯函数）。      |
+| `uploadFileHostApi`   | `NebulaHostFeature`   | 文件上传（Task API）。    |
+| `uploadFileHost`      | `function`            | 文件上传（纯函数）。      |
+| `saveMediaHost`       | `function`            | 保存媒体到系统相册。      |
+
+`defaultHostApis` = `[scanCodeHostApi, previewImageHostApi, ...coreHostApis]`
+
+---
+
+## Modal API
+
+### scanCode
+
+打开宿主管理的扫码界面，支持二维码和条形码。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `scanCode`
+
+**版本：** 1.0
+
+**Payload：**
+
+| 参数             | 类型       | 必填 | 默认值                         | 描述             |
+| ---------------- | ---------- | ---- | ------------------------------ | ---------------- |
+| `scanType`       | `string[]` | 否   | `['qr', 'ean-13', 'code-128']` | 要识别的码类型。 |
+| `onlyFromCamera` | `boolean`  | 否   | —                              | 仅使用相机扫码。 |
+
+**返回值：**
+
+| 字段       | 类型                  | 描述             |
+| ---------- | --------------------- | ---------------- |
+| `result`   | `string \| undefined` | 扫码内容。       |
+| `scanType` | `string \| 'unknown'` | 识别到的码类型。 |
+| `rawData`  | `unknown`             | 原始扫码数据。   |
+
+**权限要求：** 相机权限。
+
+**平台差异：**
+
+|          | iOS                                                       | Android        |
+| -------- | --------------------------------------------------------- | -------------- |
+| 权限检查 | `onBeforeOpen` 中主动检查，未授权返回 `PERMISSION_DENIED` | 系统级自动处理 |
+
+**错误码：**
+
+| 错误码               | 描述                       |
+| -------------------- | -------------------------- |
+| `PERMISSION_DENIED`  | 相机权限未授权（仅 iOS）。 |
+| `USER_CANCELLED`     | 用户关闭扫码界面。         |
+| `UNSUPPORTED_SOURCE` | 设备不支持扫码。           |
+| `SCAN_FAILED`        | 扫码过程失败。             |
+
+---
+
+### previewImage
+
+打开全屏图片预览界面，支持多图浏览和保存。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `previewImage`
+
+**版本：** 1.0
+
+**Payload：**
+
+| 参数            | 类型       | 必填 | 默认值 | 描述                    |
+| --------------- | ---------- | ---- | ------ | ----------------------- |
+| `urls`          | `string[]` | 是   | —      | 图片 URL 列表。         |
+| `current`       | `string`   | 否   | —      | 初始显示的图片 URL。    |
+| `showMenu`      | `boolean`  | 否   | —      | 是否显示保存/菜单选项。 |
+| `saveMediaText` | `string`   | 否   | —      | 保存按钮的自定义文本。  |
+| `cancelText`    | `string`   | 否   | —      | 取消按钮的自定义文本。  |
+
+**返回值：** 同 Payload 结构。
+
+**权限要求：** 无。
+
+---
+
+## 设备与应用
+
+### getAppBaseInfo
+
+获取宿主应用的基本信息。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `getAppBaseInfo`
+
+**Payload：** `{}`（无参数）
+
+**返回值：**
+
+| 字段          | 类型      | 描述                                |
+| ------------- | --------- | ----------------------------------- |
+| `version`     | `string`  | 应用版本号。                        |
+| `language`    | `string`  | 设备语言。                          |
+| `enableDebug` | `boolean` | 是否启用调试模式。                  |
+| `theme`       | `string`  | 当前主题（`'light'` 或 `'dark'`）。 |
+
+---
+
+### getSystemInfo
+
+获取设备、屏幕和安全区域信息。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `getSystemInfo`
+
+**Payload：** `{}`（无参数）
+
+**返回值：**
+
+| 字段                | 类型       | 描述                                        |
+| ------------------- | ---------- | ------------------------------------------- |
+| `brand`             | `string`   | 设备品牌。                                  |
+| `model`             | `string`   | 设备型号。                                  |
+| `pixelRatio`        | `number`   | 屏幕像素比。                                |
+| `screenWidth`       | `number`   | 屏幕宽度（px）。                            |
+| `screenHeight`      | `number`   | 屏幕高度（px）。                            |
+| `windowWidth`       | `number`   | 窗口宽度。                                  |
+| `windowHeight`      | `number`   | 窗口高度。                                  |
+| `statusBarHeight`   | `number`   | 状态栏高度。                                |
+| `platform`          | `string`   | `'ios'` 或 `'android'`。                    |
+| `system`            | `string`   | 操作系统名+版本，如 `"iOS 17.0"`。          |
+| `version`           | `string`   | 系统版本号。                                |
+| `fontSizeSetting`   | `number`   | 字体缩放系数。                              |
+| `deviceOrientation` | `string`   | 设备方向（`'portrait'` 或 `'landscape'`）。 |
+| `safeArea`          | `SafeArea` | 安全区域。                                  |
+| `language`          | `null`     | 保留字段。                                  |
+| `SDKVersion`        | `null`     | 保留字段。                                  |
+
+**`SafeArea` 字段：**
+
+| 字段     | 类型     | 描述           |
+| -------- | -------- | -------------- |
+| `left`   | `number` | 左侧安全距离。 |
+| `right`  | `number` | 右侧安全距离。 |
+| `top`    | `number` | 顶部安全距离。 |
+| `bottom` | `number` | 底部安全距离。 |
+| `width`  | `number` | 安全区域宽度。 |
+| `height` | `number` | 安全区域高度。 |
+
+**平台差异：**
+
+|                   | Android                   | iOS               |
+| ----------------- | ------------------------- | ----------------- |
+| `statusBarHeight` | `StatusBar.currentHeight` | 安全区域 `top` 值 |
+
+---
+
+### getScreenBrightness
+
+获取当前屏幕亮度。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `getScreenBrightness`
+
+**Payload：** `{}`（无参数）
+
+**返回值：** `number`（亮度值 0-1）。
+
+---
+
+### makePhoneCall
+
+打开系统拨号器，填入指定号码。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `makePhoneCall`
+
+**Payload：**
+
+| 参数          | 类型     | 必填 | 描述       |
+| ------------- | -------- | ---- | ---------- |
+| `phoneNumber` | `string` | 是   | 电话号码。 |
+
+**返回值：** `boolean`（`true` 表示拨号成功发起，`false` 表示号码为空或失败）。
+
+---
+
+## 剪贴板
+
+### getClipboardData
+
+读取剪贴板文本内容。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `getClipboardData`
+
+**Payload：** `{}`（无参数）
+
+**返回值：** `string`（剪贴板文本）。
+
+---
+
+### setClipboardData
+
+写入文本到剪贴板。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `setClipboardData`
+
+**Payload：**
+
+| 参数   | 类型     | 必填 | 描述           |
+| ------ | -------- | ---- | -------------- |
+| `data` | `string` | 是   | 要复制的文本。 |
+
+**返回值：** `null`
+
+---
+
+## 位置
+
+### getLocation
+
+获取当前地理位置（一次性）。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `getLocation`
+
+**Payload：**
+
+| 参数                     | 类型      | 必填 | 默认值  | 描述               |
+| ------------------------ | --------- | ---- | ------- | ------------------ |
+| `isHighAccuracy`         | `boolean` | 否   | —       | 是否启用高精度。   |
+| `highAccuracyExpireTime` | `number`  | 否   | `10000` | 高精度超时（ms）。 |
+| `altitude`               | `boolean` | 否   | —       | 是否请求海拔数据。 |
+
+**返回值：**
+
+| 字段                 | 类型     | 描述          |
+| -------------------- | -------- | ------------- |
+| `latitude`           | `number` | 纬度。        |
+| `longitude`          | `number` | 经度。        |
+| `speed`              | `number` | 速度（m/s）。 |
+| `accuracy`           | `number` | 精度（米）。  |
+| `altitude`           | `number` | 海拔（米）。  |
+| `verticalAccuracy`   | `number` | 垂直精度。    |
+| `horizontalAccuracy` | `number` | 水平精度。    |
+
+**权限要求（Android）：** `ACCESS_FINE_LOCATION`，降级 `ACCESS_COARSE_LOCATION`。
+
+**错误码：**
+
+| 错误码            | 描述           |
+| ----------------- | -------------- |
+| `LOCATION_FAILED` | 定位请求失败。 |
+
+---
+
+### locationChange.subscribe
+
+开始持续监听位置变化。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `locationChange.subscribe`
+
+**Payload：**
+
+| 参数                 | 类型      | 必填 | 默认值 | 描述             |
+| -------------------- | --------- | ---- | ------ | ---------------- |
+| `enableHighAccuracy` | `boolean` | 否   | `true` | 是否启用高精度。 |
+
+**返回值：**
+
+| 字段             | 类型     | 描述                    |
+| ---------------- | -------- | ----------------------- |
+| `subscriptionId` | `string` | 订阅 ID，用于取消订阅。 |
+
+**订阅事件数据：**
+
+| 字段        | 类型     | 描述     |
+| ----------- | -------- | -------- |
+| `latitude`  | `number` | 纬度。   |
+| `longitude` | `number` | 经度。   |
+| `speed`     | `number` | 速度。   |
+| `accuracy`  | `number` | 精度。   |
+| `altitude`  | `number` | 海拔。   |
+| `timestamp` | `number` | 时间戳。 |
+
+**超时：** 10000ms。
+
+**distanceFilter：** 0（任何位移都触发回调）。
+
+---
+
+### locationChange.unsubscribe
+
+停止位置变化监听。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `locationChange.unsubscribe`
+
+**Payload：**
+
+| 参数             | 类型     | 必填 | 描述              |
+| ---------------- | -------- | ---- | ----------------- |
+| `subscriptionId` | `string` | 是   | 要取消的订阅 ID。 |
+
+**返回值：** `null`
+
+---
+
+## 媒体
+
+### chooseMedia
+
+打开媒体选择器，从相册或相机获取图片/视频。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `chooseMedia`
+
+**超时：** 120000ms
+
+**Payload：**
+
+| 参数          | 类型                              | 必填 | 默认值                       | 描述                 |
+| ------------- | --------------------------------- | ---- | ---------------------------- | -------------------- |
+| `count`       | `number`                          | 否   | `9`                          | 最大可选数量。       |
+| `mediaType`   | `('image' \| 'video' \| 'mix')[]` | 否   | `['image', 'video']`         | 媒体类型过滤。       |
+| `sourceType`  | `('album' \| 'camera')[]`         | 否   | `['album', 'camera']`        | 来源过滤。           |
+| `maxDuration` | `number`                          | 否   | `10`                         | 录制最大时长（秒）。 |
+| `sizeType`    | `('original' \| 'compressed')[]`  | 否   | `['original', 'compressed']` | 压缩选项。           |
+| `camera`      | `'back' \| 'front'`               | 否   | `'back'`                     | 默认摄像头。         |
+
+**返回值：**
+
+| 字段        | 类型                          | 描述           |
+| ----------- | ----------------------------- | -------------- |
+| `type`      | `'image' \| 'video' \| 'mix'` | 所选媒体类型。 |
+| `tempFiles` | `TempFile[]`                  | 文件列表。     |
+
+**`TempFile` 字段：**
+
+| 字段                | 类型                  | 描述                 |
+| ------------------- | --------------------- | -------------------- |
+| `tempFilePath`      | `string`              | 临时文件路径。       |
+| `size`              | `number`              | 文件大小（字节）。   |
+| `duration`          | `number \| undefined` | 视频时长（秒）。     |
+| `height`            | `number \| undefined` | 高度。               |
+| `width`             | `number \| undefined` | 宽度。               |
+| `thumbTempFilePath` | `string \| undefined` | 缩略图路径（视频）。 |
+| `fileType`          | `'image' \| 'video'`  | 文件类型。           |
+
+**压缩质量：** `compressed` 为 0.8，`original` 为 1.0。
+
+**错误码：**
+
+| 错误码                    | 描述         |
+| ------------------------- | ------------ |
+| `chooseMedia:fail cancel` | 用户取消。   |
+| `chooseMedia:fail {code}` | 选择器错误。 |
+
+---
+
+### getImageInfo
+
+获取图片的尺寸信息。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `getImageInfo`
+
+**Payload：**
+
+| 参数  | 类型     | 必填 | 描述                  |
+| ----- | -------- | ---- | --------------------- |
+| `src` | `string` | 是   | 图片 URL 或本地路径。 |
+
+**返回值：**
+
+| 字段          | 类型     | 描述                    |
+| ------------- | -------- | ----------------------- |
+| `width`       | `number` | 图片宽度（px）。        |
+| `height`      | `number` | 图片高度（px）。        |
+| `path`        | `string` | 图片路径。              |
+| `orientation` | `string` | 方向（固定为 `'up'`）。 |
+| `type`        | `string` | 图片类型。              |
+| `errMsg`      | `string` | `'getImageInfo:ok'`。   |
+
+---
+
+### compressImage
+
+压缩图片，输出 JPEG 格式。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `compressImage`
+
+**Payload：**
+
+| 参数               | 类型     | 必填 | 默认值 | 描述                |
+| ------------------ | -------- | ---- | ------ | ------------------- |
+| `src`              | `string` | 是   | —      | 原图路径。          |
+| `quality`          | `number` | 否   | `80`   | 压缩质量（0-100）。 |
+| `compressedWidth`  | `number` | 否   | —      | 目标宽度（px）。    |
+| `compressedHeight` | `number` | 否   | —      | 目标高度（px）。    |
+
+**返回值：** `string`（压缩后的图片 URI）。
+
+---
+
+### saveMedia
+
+保存图片或视频到系统相册。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `saveMedia`
+
+**Payload：**
+
+| 参数    | 类型                 | 必填 | 描述                 |
+| ------- | -------------------- | ---- | -------------------- |
+| `url`   | `string`             | 是   | 媒体文件路径或 URL。 |
+| `type`  | `'photo' \| 'video'` | 是   | 媒体类型。           |
+| `album` | `string`             | 否   | 目标相册名称。       |
+
+**返回值：** `string`（系统相册中的 URI/路径）。
+
+**实现：** 使用 CameraRoll 保存到系统媒体库。
+
+---
+
+## 存储
+
+基于 MMKV（Memory Mapped KV Store），ID 为 `nebula.host.api.storage`。
+
+### storage.setItem
+
+写入键值对。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `storage.setItem`
+
+**Payload：**
+
+| 参数   | 类型     | 必填 | 描述                          |
+| ------ | -------- | ---- | ----------------------------- |
+| `key`  | `string` | 是   | 键名。                        |
+| `data` | `string` | 是   | 已序列化的值（JSON 字符串）。 |
+
+**返回值：** `null`
+
+---
+
+### storage.getItem
+
+读取键值对。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `storage.getItem`
+
+**Payload：**
+
+| 参数  | 类型     | 必填 | 描述   |
+| ----- | -------- | ---- | ------ |
+| `key` | `string` | 是   | 键名。 |
+
+**返回值：**
+
+| 字段    | 类型             | 描述                          |
+| ------- | ---------------- | ----------------------------- |
+| `value` | `string \| null` | 存储的值，不存在时为 `null`。 |
+
+---
+
+### storage.removeItem
+
+删除键值对。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `storage.removeItem`
+
+**Payload：**
+
+| 参数  | 类型     | 必填 | 描述   |
+| ----- | -------- | ---- | ------ |
+| `key` | `string` | 是   | 键名。 |
+
+**返回值：** `null`
+
+---
+
+### storage.clearItems
+
+清空所有存储数据并释放内存。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `storage.clearItems`
+
+**Payload：** `{}`（无参数）
+
+**返回值：** `null`
+
+---
+
+### storage.getKeys
+
+获取所有已存储的键名。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `storage.getKeys`
+
+**Payload：** `{}`（无参数）
+
+**返回值：**
+
+| 字段   | 类型       | 描述           |
+| ------ | ---------- | -------------- |
+| `keys` | `string[]` | 所有键名数组。 |
+
+---
+
+### storage.getCurrentSize
+
+获取当前存储大小。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `storage.getCurrentSize`
+
+**Payload：** `{}`（无参数）
+
+**返回值：**
+
+| 字段   | 类型     | 描述                            |
+| ------ | -------- | ------------------------------- |
+| `size` | `number` | 已用大小（KB，保留 2 位小数）。 |
+
+---
+
+## 文件系统
+
+### fileSystem.access
+
+检查文件或目录是否存在。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `fileSystem.access`
+
+**Payload：**
+
+| 参数   | 类型     | 必填 | 描述             |
+| ------ | -------- | ---- | ---------------- |
+| `path` | `string` | 是   | 文件或目录路径。 |
+
+**返回值：** `null`
+
+**错误码：**
+
+| 错误码           | 描述         |
+| ---------------- | ------------ |
+| `FILE_NOT_FOUND` | 路径不存在。 |
+
+---
+
+### fileSystem.readFile
+
+读取文件内容。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `fileSystem.readFile`
+
+**Payload：**
+
+| 参数       | 类型                            | 必填 | 默认值   | 描述       |
+| ---------- | ------------------------------- | ---- | -------- | ---------- |
+| `filePath` | `string`                        | 是   | —        | 文件路径。 |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | 否   | `'utf8'` | 文件编码。 |
+
+**返回值：**
+
+| 字段   | 类型     | 描述       |
+| ------ | -------- | ---------- |
+| `data` | `string` | 文件内容。 |
+
+---
+
+### fileSystem.writeFile
+
+写入文件。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `fileSystem.writeFile`
+
+**Payload：**
+
+| 参数       | 类型                            | 必填 | 默认值   | 描述           |
+| ---------- | ------------------------------- | ---- | -------- | -------------- |
+| `filePath` | `string`                        | 是   | —        | 目标文件路径。 |
+| `data`     | `string`                        | 是   | —        | 要写入的内容。 |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | 否   | `'utf8'` | 文件编码。     |
+
+**返回值：** `null`
+
+---
+
+### fileSystem.appendFile
+
+追加内容到文件末尾。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `fileSystem.appendFile`
+
+**Payload：**
+
+| 参数       | 类型                            | 必填 | 默认值   | 描述           |
+| ---------- | ------------------------------- | ---- | -------- | -------------- |
+| `filePath` | `string`                        | 是   | —        | 目标文件路径。 |
+| `data`     | `string`                        | 是   | —        | 要追加的内容。 |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | 否   | `'utf8'` | 文件编码。     |
+
+**返回值：** `null`
+
+---
+
+### fileSystem.copyFile
+
+复制文件。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `fileSystem.copyFile`
+
+**Payload：**
+
+| 参数       | 类型     | 必填 | 描述         |
+| ---------- | -------- | ---- | ------------ |
+| `srcPath`  | `string` | 是   | 源文件路径。 |
+| `destPath` | `string` | 是   | 目标路径。   |
+
+**返回值：** `null`
+
+---
+
+### fileSystem.rename
+
+重命名或移动文件/目录。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `fileSystem.rename`
+
+**Payload：**
+
+| 参数      | 类型     | 必填 | 描述     |
+| --------- | -------- | ---- | -------- |
+| `oldPath` | `string` | 是   | 原路径。 |
+| `newPath` | `string` | 是   | 新路径。 |
+
+**返回值：** `null`
+
+---
+
+### fileSystem.unlink
+
+删除文件。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `fileSystem.unlink`
+
+**Payload：**
+
+| 参数       | 类型     | 必填 | 描述               |
+| ---------- | -------- | ---- | ------------------ |
+| `filePath` | `string` | 是   | 要删除的文件路径。 |
+
+**返回值：** `null`
+
+---
+
+### fileSystem.mkdir
+
+创建目录（递归）。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `fileSystem.mkdir`
+
+**Payload：**
+
+| 参数      | 类型     | 必填 | 描述       |
+| --------- | -------- | ---- | ---------- |
+| `dirPath` | `string` | 是   | 目录路径。 |
+
+**返回值：** `null`
+
+---
+
+### fileSystem.rmdir
+
+删除目录（递归）。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `fileSystem.rmdir`
+
+**Payload：**
+
+| 参数      | 类型     | 必填 | 描述       |
+| --------- | -------- | ---- | ---------- |
+| `dirPath` | `string` | 是   | 目录路径。 |
+
+**返回值：** `null`
+
+---
+
+### fileSystem.readdir
+
+列出目录内容。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `fileSystem.readdir`
+
+**Payload：**
+
+| 参数      | 类型     | 必填 | 描述       |
+| --------- | -------- | ---- | ---------- |
+| `dirPath` | `string` | 是   | 目录路径。 |
+
+**返回值：**
+
+| 字段    | 类型       | 描述                  |
+| ------- | ---------- | --------------------- |
+| `files` | `string[]` | 子文件/目录名称数组。 |
+
+---
+
+### fileSystem.saveFile
+
+保存临时文件到小程序沙箱。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `fileSystem.saveFile`
+
+**Payload：**
+
+| 参数           | 类型     | 必填 | 描述                         |
+| -------------- | -------- | ---- | ---------------------------- |
+| `tempFilePath` | `string` | 是   | 临时文件路径。               |
+| `filePath`     | `string` | 否   | 目标路径。不提供时自动生成。 |
+
+**返回值：**
+
+| 字段            | 类型     | 描述               |
+| --------------- | -------- | ------------------ |
+| `savedFilePath` | `string` | 保存后的文件路径。 |
+
+---
+
+### fileSystem.getFileInfo
+
+获取文件信息和摘要。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `fileSystem.getFileInfo`
+
+**Payload：**
+
+| 参数              | 类型                          | 必填 | 默认值  | 描述       |
+| ----------------- | ----------------------------- | ---- | ------- | ---------- |
+| `filePath`        | `string`                      | 是   | —       | 文件路径。 |
+| `digestAlgorithm` | `'md5' \| 'sha1' \| 'sha256'` | 否   | `'md5'` | 摘要算法。 |
+
+**返回值：**
+
+| 字段     | 类型     | 描述               |
+| -------- | -------- | ------------------ |
+| `size`   | `number` | 文件大小（字节）。 |
+| `digest` | `string` | 文件摘要。         |
+
+---
+
+### removeFile
+
+删除沙箱文件。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `removeFile`
+
+**Payload：**
+
+| 参数       | 类型     | 必填 | 描述               |
+| ---------- | -------- | ---- | ------------------ |
+| `filePath` | `string` | 是   | 要删除的文件路径。 |
+
+**返回值：** `null`
+
+**错误码：**
+
+| 错误码           | 描述         |
+| ---------------- | ------------ |
+| `FILE_NOT_FOUND` | 文件不存在。 |
+
+---
+
+## 路径解析规则
+
+- 以 `file://` 开头的路径会被标准化处理。
+- 小程序路径相对于 `/Documents/MiniApps/{appId}/` 解析。
+- 以 `/Documents/` 开头的路径解析为 `${RNFS.DocumentDirectoryPath}`。
+
+---
+
+## 网络
+
+### getNetworkType
+
+获取当前网络类型。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `getNetworkType`
+
+**Payload：** `{}`（无参数）
+
+**返回值：**
+
+| 字段          | 类型     | 描述                                            |
+| ------------- | -------- | ----------------------------------------------- |
+| `networkType` | `string` | 网络类型，如 `'wifi'`、`'cellular'`、`'none'`。 |
+
+---
+
+### networkStatusChange.subscribe
+
+开始监听网络状态变化。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `networkStatusChange.subscribe`
+
+**Payload：** `{}`（无参数）
+
+**返回值：**
+
+| 字段             | 类型     | 描述      |
+| ---------------- | -------- | --------- |
+| `subscriptionId` | `string` | 订阅 ID。 |
+
+**订阅事件数据：**
+
+| 字段          | 类型      | 描述           |
+| ------------- | --------- | -------------- |
+| `isConnected` | `boolean` | 是否联网。     |
+| `networkType` | `string`  | 当前网络类型。 |
+
+**实现：** 基于 NetInfo 实时推送。
+
+---
+
+### networkStatusChange.unsubscribe
+
+停止网络状态监听。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `networkStatusChange.unsubscribe`
+
+**Payload：**
+
+| 参数             | 类型     | 必填 | 描述              |
+| ---------------- | -------- | ---- | ----------------- |
+| `subscriptionId` | `string` | 是   | 要取消的订阅 ID。 |
+
+**返回值：** `null`
+
+---
+
+## 传感器
+
+所有传感器订阅 API 支持自定义采样间隔。
+
+### accelerometerChange.subscribe / unsubscribe
+
+加速度计数据监听。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `accelerometerChange.subscribe` / `accelerometerChange.unsubscribe`
+
+**Subscribe Payload：**
+
+| 参数       | 类型     | 必填 | 默认值 | 描述             |
+| ---------- | -------- | ---- | ------ | ---------------- |
+| `interval` | `number` | 否   | `100`  | 采样间隔（ms）。 |
+
+**订阅事件数据：**
+
+| 字段        | 类型                  | 描述         |
+| ----------- | --------------------- | ------------ |
+| `x`         | `number`              | X 轴加速度。 |
+| `y`         | `number`              | Y 轴加速度。 |
+| `z`         | `number`              | Z 轴加速度。 |
+| `timestamp` | `number \| undefined` | 时间戳。     |
+
+**Unsubscribe Payload：**
+
+| 参数             | 类型     | 必填 | 描述      |
+| ---------------- | -------- | ---- | --------- |
+| `subscriptionId` | `string` | 是   | 订阅 ID。 |
+
+---
+
+### gyroscopeChange.subscribe / unsubscribe
+
+陀螺仪数据监听。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `gyroscopeChange.subscribe` / `gyroscopeChange.unsubscribe`
+
+**Subscribe Payload / 事件数据：** 同加速度计。
+
+---
+
+### magnetometerChange.subscribe / unsubscribe
+
+磁力计数据监听。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `magnetometerChange.subscribe` / `magnetometerChange.unsubscribe`
+
+**Subscribe Payload / 事件数据：** 同加速度计。
+
+---
+
+### barometerChange.subscribe / unsubscribe
+
+气压计数据监听。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `barometerChange.subscribe` / `barometerChange.unsubscribe`
+
+**Subscribe Payload：** `{}`（不支持 interval 配置）
+
+**订阅事件数据：**
+
+| 字段       | 类型     | 描述                  |
+| ---------- | -------- | --------------------- |
+| `pressure` | `number` | 气压值（Pa 或 hPa）。 |
+
+---
+
+## 截屏事件
+
+### userCaptureScreen.subscribe / unsubscribe
+
+监听用户截屏操作。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `userCaptureScreen.subscribe` / `userCaptureScreen.unsubscribe`
+
+**Subscribe Payload：** `{}`（无参数）
+
+**返回值：**
+
+| 字段             | 类型     | 描述      |
+| ---------------- | -------- | --------- |
+| `subscriptionId` | `string` | 订阅 ID。 |
+
+**订阅事件数据：** `null`（仅通知截屏发生，无附加数据）。
+
+**实现：** 基于 `ScreenshotAware` 监听器。
+
+---
+
+## 小程序更新
+
+### getMiniAppUpdateInfo
+
+获取小程序的安装/可用版本信息。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `getMiniAppUpdateInfo`
+
+**超时：** 15000ms
+
+**Payload：** `{}`（无参数）
+
+**返回值：**
+
+| 字段             | 类型                 | 描述              |
+| ---------------- | -------------------- | ----------------- |
+| `appId`          | `string`             | 小程序 ID。       |
+| `currentVersion` | `string \| null`     | 当前安装版本。    |
+| `latestVersion`  | `string \| null`     | 远程最新版本。    |
+| `hasUpdate`      | `boolean`            | 是否有可用更新。  |
+| `updateStrategy` | `'auto' \| 'manual'` | 更新策略。        |
+| `mode`           | `string \| null`     | 运行时模式。      |
+| `sourceUrl`      | `string \| null`     | bundle 来源 URL。 |
+
+---
+
+### applyMiniAppUpdate
+
+下载并安装最新可用的 bundle。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `applyMiniAppUpdate`
+
+**超时：** 120000ms
+
+**Payload：** `{}`（无参数）
+
+**返回值：** 同 `getMiniAppUpdateInfo`。
+
+---
+
+## 文件传输（Task API）
+
+Task API 支持进度回调和中止操作。调用 `start` 返回 `taskId`，通过 `abort` 取消任务。
+
+### downloadFile.start
+
+开始文件下载任务。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `downloadFile.start`
+
+**Payload：**
+
+| 参数       | 类型                     | 必填 | 默认值   | 描述                               |
+| ---------- | ------------------------ | ---- | -------- | ---------------------------------- |
+| `url`      | `string`                 | 是   | —        | 下载 URL。                         |
+| `header`   | `Record<string, string>` | 否   | —        | 自定义 HTTP 请求头。               |
+| `timeout`  | `number`                 | 否   | `60000`  | 超时（ms）。                       |
+| `filePath` | `string`                 | 否   | 自动生成 | 保存路径。不提供时保存到临时目录。 |
+
+**返回值：**
+
+| 字段     | 类型     | 描述      |
+| -------- | -------- | --------- |
+| `taskId` | `string` | 任务 ID。 |
+
+**进度事件（channel: `task.progress`）：**
+
+| 字段                        | 类型     | 描述                  |
+| --------------------------- | -------- | --------------------- |
+| `progress`                  | `number` | 进度百分比（0-100）。 |
+| `totalBytesWritten`         | `number` | 已下载字节数。        |
+| `totalBytesExpectedToWrite` | `number` | 总字节数。            |
+
+**Header 事件（channel: `task.headers`）：**
+
+| 字段     | 类型                     | 描述     |
+| -------- | ------------------------ | -------- |
+| `header` | `Record<string, string>` | 响应头。 |
+
+**完成结果：**
+
+```ts
+// 成功
+{ ok: true, data: { tempFilePath: string, statusCode: number } }
+
+// 失败
+{ ok: false, error: { code: 'DOWNLOAD_FAILED', message: string } }
+```
+
+**自动路径生成：** `${TemporaryDirectoryPath}/${Date.now()}_download`
+
+**实现：** 基于 RNFS.downloadFile。
+
+---
+
+### downloadFile.abort
+
+中止下载任务。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `downloadFile.abort`
+
+**Payload：**
+
+| 参数     | 类型     | 必填 | 描述              |
+| -------- | -------- | ---- | ----------------- |
+| `taskId` | `string` | 是   | 要中止的任务 ID。 |
+
+**返回值：** `{ ok: true, data: null }`
+
+---
+
+### uploadFile.start
+
+开始文件上传任务。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `uploadFile.start`
+
+**Payload：**
+
+| 参数       | 类型                     | 必填 | 默认值  | 描述                 |
+| ---------- | ------------------------ | ---- | ------- | -------------------- |
+| `url`      | `string`                 | 是   | —       | 上传目标 URL。       |
+| `filePath` | `string`                 | 是   | —       | 要上传的文件路径。   |
+| `name`     | `string`                 | 是   | —       | 表单字段名。         |
+| `header`   | `Record<string, string>` | 否   | —       | 自定义 HTTP 请求头。 |
+| `formData` | `Record<string, string>` | 否   | —       | 附加表单字段。       |
+| `timeout`  | `number`                 | 否   | `60000` | 超时（ms）。         |
+
+**返回值：**
+
+| 字段     | 类型     | 描述      |
+| -------- | -------- | --------- |
+| `taskId` | `string` | 任务 ID。 |
+
+**进度事件（channel: `task.progress`）：**
+
+| 字段                       | 类型     | 描述                  |
+| -------------------------- | -------- | --------------------- |
+| `progress`                 | `number` | 进度百分比（0-100）。 |
+| `totalBytesSent`           | `number` | 已上传字节数。        |
+| `totalBytesExpectedToSend` | `number` | 总字节数。            |
+
+**完成结果：**
+
+```ts
+// 成功
+{ ok: true, data: { data: string, statusCode: number } }
+
+// 失败
+{ ok: false, error: { code: 'UPLOAD_FAILED', message: string } }
+```
+
+**HTTP 方法：** POST
+
+**实现：** 基于 RNFS.uploadFiles，文件名从 `filePath` 自动提取。
+
+---
+
+### uploadFile.abort
+
+中止上传任务。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+**API 名称：** `uploadFile.abort`
+
+**Payload：**
+
+| 参数     | 类型     | 必填 | 描述              |
+| -------- | -------- | ---- | ----------------- |
+| `taskId` | `string` | 是   | 要中止的任务 ID。 |
+
+**返回值：** `{ ok: true, data: null }`
+
+---
+
+## 纯函数导出
+
+以下函数可直接调用，不走 Task API 流程（无进度回调）。
+
+### downloadFileHost(options)
+
+简单文件下载。
+
+```ts
+async function downloadFileHost(options: {
+  url: string;
+  header?: Record<string, string>;
+  timeout?: number;
+  filePath?: string;
+}): Promise<{ tempFilePath: string; statusCode: number }>;
+```
+
+---
+
+### uploadFileHost(options)
+
+简单文件上传。
+
+```ts
+async function uploadFileHost(options: {
+  url: string;
+  filePath: string;
+  name: string;
+  header?: Record<string, string>;
+  formData?: Record<string, string>;
+  timeout?: number;
+}): Promise<{ data: string; statusCode: number }>;
+```
+
+---
+
+### saveMediaHost(payload)
+
+直接保存媒体到系统相册。
+
+```ts
+async function saveMediaHost(payload: {
+  url: string;
+  type: 'photo' | 'video';
+  album?: string;
+}): Promise<string>;
+```
+
+---
+
+## 通用错误格式
+
+所有失败的 API 调用返回统一格式：
+
+```ts
+{
+  ok: false,
+  error: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  }
+}
+```
+
+---
+
+## 超时默认值
+
+| 操作                             | 超时     |
+| -------------------------------- | -------- |
+| 一般 API                         | 15000ms  |
+| 媒体操作（chooseMedia）          | 120000ms |
+| 小程序更新（applyMiniAppUpdate） | 120000ms |
+| 文件传输（download/upload）      | 60000ms  |

@@ -1,0 +1,217 @@
+---
+title: دورة حياة الصفحة
+description: تعرّف إلى أحداث دورة حياة الصفحة في Nebula والـ hooks المقابلة لها.
+---
+
+لكل صفحة في Nebula miniapp دورة حياة كاملة، ويقوم مضيف التشغيل بتفعيلها عند إظهار الصفحة أو إخفائها أو تدميرها. يمكن للمطورين استخدام hooks الخاصة بدورة الحياة لتنفيذ تحميل البيانات أو حفظ الحالة في الوقت المناسب.
+
+## أحداث دورة الحياة
+
+```
+إنشاء الصفحة
+	│
+	▼
+onLoad ──── التحميل الأول، يمكن قراءة معاملات المسار
+	│
+	▼
+onShow ──── الصفحة مرئية (أول ظهور أو عودة من الخلفية)
+	│
+	▼
+onReady ─── اكتمال العرض الأول
+	│
+	│         ┌─────────────┐
+	│         │  الصفحة مُغطاة│
+	│         │  أو في الخلفية│
+	│         └──────┬──────┘
+	│                ▼
+	│          onHide ─── إخفاء الصفحة
+	│                │
+	│                ▼
+	│          onShow ─── ظهور الصفحة مجددًا
+	│                │
+	│               ... (قد يتكرر)
+	│
+	▼
+onUnload ── تدمير الصفحة
+```
+
+| الحدث | وقت التشغيل | التكرار |
+|------|-------------|---------|
+| `onLoad` | أول تحميل للصفحة | مرة واحدة |
+| `onShow` | الصفحة مرئية (أول ظهور أو عودة) | عدة مرات |
+| `onReady` | اكتمال العرض الأول | مرة واحدة |
+| `onHide` | إخفاء الصفحة (تغطية أو خلفية) | عدة مرات |
+| `onUnload` | تدمير الصفحة | مرة واحدة |
+
+## واجهات Hooks
+
+يوفر Nebula SDK Hook لكل حدث من أحداث دورة الحياة.
+
+### usePageOnLoad
+
+يعمل عند التحميل الأول ويمكنه قراءة معاملات المسار. مناسب لتحميل البيانات الأولية.
+
+```ts
+import { usePageOnLoad } from '@nebula-rn/sdk';
+
+usePageOnLoad((params) => {
+	console.log('تم تحميل الصفحة، معاملات المسار:', params);
+	// params: Record<string, unknown> من معاملات الاستعلام
+	fetchData(params.id);
+});
+```
+
+### usePageOnShow
+
+يعمل كلما أصبحت الصفحة مرئية. مناسب لتحديث البيانات الحساسة للوقت.
+
+```ts
+import { usePageOnShow } from '@nebula-rn/sdk';
+
+usePageOnShow(() => {
+	console.log('تم إظهار الصفحة');
+	refreshListData();
+});
+```
+
+### usePageOnReady
+
+يعمل بعد اكتمال العرض الأول (مع تأخير عبر `requestAnimationFrame`). مناسب للعمليات التي تتطلب جاهزية العرض.
+
+```ts
+import { usePageOnReady } from '@nebula-rn/sdk';
+
+usePageOnReady(() => {
+	console.log('اكتمل عرض الصفحة');
+	startAnimation();
+});
+```
+
+### usePageOnHide
+
+يعمل عند إخفاء الصفحة (مثل الانتقال لصفحة أخرى أو الذهاب للخلفية). مناسب لإيقاف المؤقتات أو حفظ الحالة المؤقتة.
+
+```ts
+import { usePageOnHide } from '@nebula-rn/sdk';
+
+usePageOnHide(() => {
+	console.log('تم إخفاء الصفحة');
+	pauseVideoPlayback();
+	saveScrollPosition();
+});
+```
+
+### usePageOnUnload
+
+يعمل عند تدمير الصفحة. مناسب للتنظيف النهائي للموارد.
+
+```ts
+import { usePageOnUnload } from '@nebula-rn/sdk';
+
+usePageOnUnload(() => {
+	console.log('تم تدمير الصفحة');
+	cancelPendingRequests();
+});
+```
+
+## مثال كامل
+
+```tsx
+import { View, Text } from 'react-native';
+import {
+	usePageOnLoad,
+	usePageOnShow,
+	usePageOnReady,
+	usePageOnHide,
+	usePageOnUnload,
+} from '@nebula-rn/sdk';
+import { useState } from 'react';
+
+export default function DetailPage() {
+	const [data, setData] = useState(null);
+
+	usePageOnLoad((params) => {
+		// التحميل الأول: جلب البيانات حسب معاملات المسار
+		fetchDetail(params.id).then(setData);
+	});
+
+	usePageOnShow(() => {
+		// كل ظهور: تحديث البيانات الحساسة للوقت
+		refreshTimestamp();
+	});
+
+	usePageOnReady(() => {
+		// اكتمال العرض: الإبلاغ عن مشاهدة الصفحة
+		reportPageView();
+	});
+
+	usePageOnHide(() => {
+		// إخفاء الصفحة: إيقاف التشغيل التلقائي
+		pauseAutoPlay();
+	});
+
+	usePageOnUnload(() => {
+		// تدمير الصفحة: إلغاء الطلبات المعلّقة
+		abortController.abort();
+	});
+
+	return (
+		<View>
+			<Text>{data?.title}</Text>
+		</View>
+	);
+}
+```
+
+## آلية الأحداث في الطبقات الداخلية
+
+### إطلاق الأحداث في الطبقة الأصلية
+
+تقوم حاوية المضيف بإطلاق أحداث دورة الحياة في الطبقة الأصلية:
+
+**iOS (NebulaContainerController):**
+
+- `viewWillAppear` -> إرسال إشعار `NebulaContainerWillAppear` -> يُطابق إلى `show`
+- `viewDidDisappear` -> إرسال إشعار `NebulaContainerDidDisappear` -> يُطابق إلى `hide`
+- `deinit` (تدمير المتحكم) -> إرسال إشعار `NebulaContainerDidUnload` -> يُطابق إلى `unload`
+
+**Android (NebulaActivity):**
+
+- `onResume` -> إطلاق `show`
+- `onPause` -> إطلاق `hide`
+- `onDestroy` -> إطلاق `unload`
+
+### الاستقبال في JavaScript
+
+تُجسر الأحداث الأصلية إلى JavaScript عبر EventEmitter الخاص بـ `NebulaNativeModule`، واسم الحدث هو `NebulaPageLifecycle`:
+
+```ts
+type PageLifecycleEvent = {
+	appId: string;       // معرّف miniapp
+	instanceId: string;  // معرّف مثيل الحاوية
+	routePath?: string;  // مسار الصفحة الحالية
+	type: 'show' | 'hide' | 'unload' | 'ready';
+};
+```
+
+### واجهة الاستماع منخفضة المستوى
+
+إلى جانب الـ Hooks، يمكنك استخدام واجهة منخفضة المستوى للاستماع إلى جميع أحداث دورة الحياة:
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+const unsubscribe = Miniapp.onPageLifecycle((event) => {
+	console.log(`[${event.type}] appId=${event.appId} route=${event.routePath}`);
+});
+
+// إيقاف الاستماع
+unsubscribe();
+```
+
+## ملاحظات
+
+- قد يتم إطلاق `onShow` / `onHide` عدة مرات، لذا اجعل المنطق idempotent
+- معاملات `onLoad` تأتي من معاملات الاستعلام أثناء التنقل (مثل `navigateTo('/detail?id=123')`)
+- يستخدم `onReady` `requestAnimationFrame` لضمان اكتمال العرض الأول
+- عند إطلاق `onUnload` تكون الصفحة على وشك التدمير، فلا تنفّذ تحديثات UI

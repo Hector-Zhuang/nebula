@@ -1,0 +1,133 @@
+---
+title: المكتبة الأساسية والتوافق بين الإصدارات
+description: افهم آلية إصدارات مكتبات Nebula الأساسية وكيفية التعامل مع التوافق بين المضيف والـ miniapp.
+---
+
+تشكل مكتبات Nebula الأساسية (`@nebula-rn/client` و`@nebula-rn/sdk`) سطح API الرئيسي لمطوري miniapp. وبما أن المضيف والـ miniapp قد يتطوران بشكل مستقل، توفر المكتبات آليات لاكتشاف القدرات والتوافق بين الإصدارات.
+
+## بنية حزم المكتبة الأساسية
+
+| الحزمة               | الدور                         | المستخدم المعتاد     |
+| -------------------- | ----------------------------- | -------------------- |
+| `@nebula-rn/sdk`        | طبقة runtime والبروتوكول      | مطورو المضيف والإطار |
+| `@nebula-rn/client`     | API مستقرة موجّهة للـ miniapp | مطورو miniapp        |
+| `@nebula-rn/host-apis`  | تطبيقات Host API الرسمية      | مطورو المضيف         |
+| `@nebula-rn/components` | مكوّنات واجهة مشتركة          | مطورو miniapp        |
+
+## آلية التوافق بين الإصدارات
+
+### تسجيل قدرات المضيف
+
+يُعلن كل Host API رقم الإصدار عند التسجيل:
+
+```ts
+createHostApiFeature({
+	apiName: 'getLocation',
+	version: '1.0',          // إصدار الـ API
+	supported: true,
+	handle: async (payload) => { ... },
+});
+```
+
+### فحص الإصدار من جانب miniapp
+
+يمكن للـ miniapp تحديد الحد الأدنى للإصدار عند الاستدعاء:
+
+```ts
+const result = await Miniapp.invokeHostApi(
+  'getLocation',
+  {},
+  '1.0', // الحد الأدنى للإصدار المطلوب
+  5000,
+);
+```
+
+### واجهة اكتشاف القدرات
+
+قبل الاستدعاء، يمكن للـ miniapp الكشف عن القدرات المدعومة وإصداراتها:
+
+```ts
+// الحصول على جميع قدرات المضيف
+const { bridgeVersion, capabilities } = await Miniapp.getCapabilities();
+
+// بنية capabilities:
+// {
+//   scanCode: { supported: true, version: '1.0' },
+//   getLocation: { supported: true, version: '1.0' },
+//   someNewApi: { supported: false, version: '0.0' },
+// }
+```
+
+```ts
+// التحقق من دعم API محدد لإصدار معين
+const supported = await Miniapp.isSupported('scanCode', '1.0');
+
+if (supported) {
+  const result = await scanCode();
+} else {
+  // معالجة بديلة
+  showUnsupportedTip();
+}
+```
+
+### الحصول على أوصاف APIs المتاحة
+
+```ts
+// الحصول على جميع APIs المسجّلة لدى المضيف مع وصفها
+const descriptions = await Miniapp.getHostApiDescriptions();
+
+// صيغة الإرجاع:
+// [
+//   {
+//     name: 'scanCode',
+//     version: '1.0',
+//     description: { summary: 'مسح', tags: ['camera'] }
+//   },
+//   ...
+// ]
+```
+
+## أفضل ممارسات التوافق
+
+### التحقق من القدرة قبل العرض
+
+بالنسبة للميزات الاختيارية، تحقّق من توفر القدرة قبل عرض زر الدخول:
+
+```tsx
+function ScanButton() {
+  const [supported, setSupported] = useState(false);
+
+  useEffect(() => {
+    Miniapp.isSupported('scanCode', '1.0').then(setSupported);
+  }, []);
+
+  if (!supported) return null;
+
+  return <Button onPress={() => scanCode()}>مسح</Button>;
+}
+```
+
+### معالجة استجابة UNSUPPORTED_API
+
+حتى بعد الكشف، يجب التعامل مع عدم الدعم وقت التشغيل:
+
+```ts
+const result = await scanCode();
+
+if (!result.ok && result.error?.code === 'UNSUPPORTED') {
+  // المضيف لا يدعم هذا API
+  showFallbackUI();
+}
+```
+
+### لا تفترض أن كل مضيف يدعم كل API
+
+قد تسجل تطبيقات المضيف مجموعات مختلفة من APIs. لذلك يجب على الـ miniapp:
+
+- التحقق قبل استخدام APIs الاختيارية
+- توفير بدائل واضحة للـ APIs غير المدعومة
+- فصل المسارات الأساسية عن القدرات الاختيارية
+
+### مقارنة الإصدارات
+
+تستخدم Nebula الإصدارات الدلالية للمقارنة. تُعيد `isSupported('api', '1.0')` القيمة `true` عندما يكون إصدار المضيف المعلن >= `1.0`.

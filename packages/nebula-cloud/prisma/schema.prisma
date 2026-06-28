@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String               @id @default(cuid())
+  email        String               @unique
+  passwordHash String
+  displayName  String
+  status       UserStatus           @default(ACTIVE)
+  notes        String?
+  avatarUrl    String?
+  lastLoginAt  DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  releases     DistributionRecord[]
+  createdApps  MiniApp[]            @relation("MiniAppCreator")
+  memberships  MiniAppMember[]
+  versions     MiniAppVersion[]     @relation("VersionCreator")
+  cliAuthSessions CliAuthSession[]
+  auditLogs    AuditLog[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model CliAuthSession {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  approvedById  String?
+  accessToken   String?
+  expiresAt     DateTime
+  approvedAt    DateTime?
+  consumedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  approvedBy    User?     @relation(fields: [approvedById], references: [id], onDelete: SetNull)
+}
+
+model MiniApp {
+  id          String           @id @default(cuid())
+  appId       String           @unique
+  name        String
+  description String?
+  iconUrl     String?
+  thumbnailUrl String?
+  createdById String
+  currentReleaseVersionId    String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  createdBy   User             @relation("MiniAppCreator", fields: [createdById], references: [id])
+  members     MiniAppMember[]
+  versions    MiniAppVersion[]
+  settings    MiniAppSettings?
+  currentReleaseVersion    MiniAppVersion? @relation("MiniAppReleaseVersion", fields: [currentReleaseVersionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+}
+
+model MiniAppMember {
+  id        String            @id @default(cuid())
+  miniAppId String
+  userId    String
+  createdAt DateTime          @default(now())
+  miniApp   MiniApp           @relation(fields: [miniAppId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([miniAppId, userId])
+}
+
+model MiniAppVersion {
+  id            String               @id @default(cuid())
+  miniAppId     String
+  createdById   String
+  version       String
+  buildNumber   Int                  @default(1)
+  changelog     String?
+  channel       String               @default("default")
+  bundleIosPath String
+  bundleAndroidPath String
+  manifestPath  String
+  bundleIosSize Int
+  bundleAndroidSize Int
+  assetsIosPath      String
+  assetsAndroidPath  String
+  assetsIosSize      Int
+  assetsAndroidSize  Int
+  status        VersionStatus        @default(DRAFT)
+  createdAt     DateTime             @default(now())
+  publishedAt   DateTime?
+  distributions DistributionRecord[]
+  createdBy     User                 @relation("VersionCreator", fields: [createdById], references: [id])
+  miniApp       MiniApp              @relation(fields: [miniAppId], references: [id], onDelete: Cascade)
+  releaseFor    MiniApp[]            @relation("MiniAppReleaseVersion")
+
+  @@unique([miniAppId, version])
+}
+
+model MiniAppSettings {
+  id                  String   @id @default(cuid())
+  miniAppId           String   @unique
+  requestDomains      String[]
+  socketDomains       String[]
+  uploadDomains       String[]
+  downloadDomains     String[]
+  businessDomains     String[]
+  sensitiveScopes     String[]
+  privacyContactName  String?
+  privacyContactEmail String?
+  remarks             String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  miniApp             MiniApp  @relation(fields: [miniAppId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String
+  targetType  String
+  targetId    String
+  action      String
+  summary     String?
+  metadataJson Json?
+  createdAt   DateTime @default(now())
+  actor       User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+}
+
+model DistributionRecord {
+  id           String         @id @default(cuid())
+  versionId    String
+  releasedById String
+  channel      String
+  notes        String?
+  createdAt    DateTime       @default(now())
+  releasedBy   User           @relation(fields: [releasedById], references: [id], onDelete: Cascade)
+  version      MiniAppVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+}
+
+enum VersionStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+}

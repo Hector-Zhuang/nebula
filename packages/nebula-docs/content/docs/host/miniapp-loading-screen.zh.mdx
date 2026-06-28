@@ -1,0 +1,153 @@
+---
+title: 小程序加载屏幕
+description: 为生产环境的小程序配置宿主自有的加载屏幕。
+---
+
+Nebula 支持为生产环境的小程序提供**宿主自有加载屏幕**。
+
+这个加载 UI 由宿主运行时渲染，而不是由小程序本身渲染。这使得它非常适合用于：
+
+- 生产环境下的启动过渡
+- bundle 安装或更新时的反馈提示
+- 由宿主应用控制的品牌化加载体验
+- 在小程序首屏准备就绪前避免白屏
+
+## 在 `NebulaAPI.wrap()` 中配置
+
+```tsx
+import React from 'react';
+import { Text, View } from 'react-native';
+import { NebulaAPI } from '@nebula-rn/sdk';
+import type { MiniappLoadingProps } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+function MiniappLoadingScreen({ appId, status }: MiniappLoadingProps) {
+  const message =
+    status === 'installing'
+      ? '正在安装最新 bundle...'
+      : status === 'error'
+        ? '加载小程序失败。'
+        : '准备小程序...';
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: 'rgba(15, 23, 42, 0.32)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+      }}
+    >
+      <View
+        style={{
+          width: '100%',
+          maxWidth: 320,
+          borderRadius: 24,
+          backgroundColor: '#fff',
+          paddingHorizontal: 24,
+          paddingVertical: 28,
+        }}
+      >
+        <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b' }}>
+          Nebula
+        </Text>
+        <Text
+          style={{
+            marginTop: 10,
+            fontSize: 24,
+            fontWeight: '700',
+            color: '#0f172a',
+          }}
+        >
+          {appId}
+        </Text>
+        <Text style={{ marginTop: 8, fontSize: 15, color: '#475569' }}>
+          {message}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+export default NebulaAPI.wrap({
+  hostApis: defaultHostApis,
+  miniappLoading: {
+    component: MiniappLoadingScreen,
+    delayMs: 600,
+    enterContentDelayMs: 160,
+  },
+})(App);
+```
+
+## 配置结构
+
+`NebulaAPI.wrap()` 现在支持：
+
+```ts
+type NebulaHostOptions = {
+  hostApis?: NebulaHostFeature[];
+  serverBaseURL?: string | null;
+  miniappLoading?: {
+    component: React.ComponentType<MiniappLoadingProps>;
+    delayMs?: number;
+    enterContentDelayMs?: number;
+    resolveProps?: (
+      context: MiniappLoadingResolveContext,
+    ) => MiniappLoadingResolvedProps;
+  };
+};
+```
+
+加载组件接收：
+
+```ts
+type MiniappLoadingProps = {
+  appId: string;
+  mode: 'development' | 'production';
+  status: 'installing' | 'loading' | 'ready' | 'error';
+  title?: string | null;
+  icon?: ReactNode;
+  extraData?: Record<string, unknown> | null;
+  errorMessage?: string | null;
+};
+```
+
+`resolveProps` 允许宿主使用特定于小程序的展示数据（如标题、图标或自定义 `extraData`）来丰富加载屏幕。
+
+`delayMs` 在小程序在技术上准备就绪后增加一个有意保持的延迟。当你希望在淡出动画开始前让加载提示保持可见稍长时间时，这非常有用。
+
+`enterContentDelayMs` 延迟小程序内容本身附加到加载屏幕之后的时间。当你希望加载动画先开始，然后让小程序稍晚一点进入时，这非常有用。
+
+## Nebula 何时显示它
+
+Nebula 仅对**生产环境的小程序**使用此加载屏幕。
+
+当前行为是：
+
+1. `openMiniApp()` 或 `openMiniAppWithBundleURL(..., initialProps, false)` 启动
+2. 如果需要，加载状态变为 `installing`
+3. 当生产环境的小程序容器正在准备时，状态变为 `loading`
+4. Nebula 等待配置的 `enterContentDelayMs`（如果有的话），然后将小程序内容附加到加载屏幕之后
+5. 原生容器检测到第一个小程序内容已就绪
+6. Nebula 等待配置的 `delayMs` 值（如果有的话）
+7. Nebula 隐藏 JS 中的宿主加载组件
+8. Nebula 保持 `240ms` 的延迟，以便任何宿主端退出动画（例如使用 `reanimated` 的淡出动画）有时间完成
+9. 移除原生覆盖容器
+
+开发环境的小程序不使用版本化的加载行为，也不参与此生产环境的加载流程。
+
+## 设计指导
+
+一个好的加载屏幕通常需要：
+
+- 清晰标识小程序或业务领域
+- 保持简短且聚焦于基础设施的消息
+- 避免依赖可能尚不可用的产品数据
+- 有品牌感，但不要过度动画
+
+避免将此层用于：
+
+- 属于小程序页面本身的骨架屏
+- 小程序已经就绪之后的业务特定加载状态
+- 应该显示来自小程序真实进度的长时间运行工作流

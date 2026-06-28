@@ -1,0 +1,13 @@
+{
+  "title": "وقت تشغيل المضيف",
+  "pages": [
+    "configuration",
+    "miniapp-management",
+    "preloading",
+    "sandbox-isolation",
+    "host-miniapp-messaging",
+    "native-apis",
+    "miniapp-loading-screen",
+    "ios-loading-screen"
+  ]
+}

@@ -1,0 +1,115 @@
+---
+title: 小程序组件
+description: '了解如何在 Nebula 小程序中使用 @nebula-rn/components，以及它与基础组件之间的职责划分。'
+---
+
+`@nebula-rn/components` 是 Nebula 面向小程序提供的跨平台组件库。它建立在基础组件之上，提供轮播、富文本、视频、地图、相机等更适合小程序场景的扩展组件。
+
+在实际开发中，建议将这套组件理解为对基础组件的补充，而不是替代：
+
+- 页面结构和基础交互，仍然以基础组件为主
+- 当页面需要更高层次的 UI 能力或宿主相关组件时，再引入 `@nebula-rn/components`
+
+`@nebula-rn/components` 目前包含以下组件：
+
+| 组件       | 说明                         |
+| ---------- | ---------------------------- |
+| `Camera`   | 相机组件，支持拍照和录制视频 |
+| `Map`      | 地图展示与交互               |
+| `Progress` | 进度条                       |
+| `RichText` | 富文本（HTML 内容）渲染      |
+| `Slider`   | 滑动选择器                   |
+| `Swiper`   | 图片轮播，支持分页指示器     |
+| `Video`    | 视频播放器                   |
+| `WebView`  | 嵌入式 Web 内容              |
+
+这些组件已经适配 Nebula 的运行时模型，能够减少在小程序侧重复封装同类能力的成本。
+
+## 安装与导入
+
+在小程序项目中安装组件库：
+
+```bash
+npm install @nebula-rn/components
+```
+
+在页面文件中按需导入组件：
+
+```tsx
+import { Progress, Swiper, Video } from '@nebula-rn/components';
+```
+
+如果页面只涉及基础布局与排版，则继续使用基础组件：
+
+```tsx
+import { View, Text, ScrollView, Image } from 'react-native';
+```
+
+## 一个最小页面示例
+
+下面的示例展示了一个典型首页的组件组织方式：
+
+- 顶部使用 `Swiper` 展示 Banner
+- 中间使用基础组件组织文案和布局
+- 底部使用 `Progress` 展示任务进度
+
+```tsx
+import { Image, ScrollView, Text, View } from 'react-native';
+import { Progress, Swiper } from '@nebula-rn/components';
+
+const banners = [
+  'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200',
+  'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1200',
+];
+
+export default function HomePage() {
+  return (
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+      <View style={{ height: 180, borderRadius: 12, overflow: 'hidden' }}>
+        <Swiper autoplay circular indicatorDots>
+          {banners.map(uri => (
+            <Image
+              key={uri}
+              source={{ uri }}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
+          ))}
+        </Swiper>
+      </View>
+
+      <View style={{ gap: 8 }}>
+        <Text style={{ fontSize: 22, fontWeight: '700' }}>欢迎使用 Nebula</Text>
+        <Text style={{ color: '#475569', lineHeight: 22 }}>
+          使用基础组件负责页面结构，使用 @nebula-rn/components
+          负责更贴近小程序体验的功能组件。
+        </Text>
+      </View>
+
+      <Progress percent={68} showInfo active />
+    </ScrollView>
+  );
+}
+```
+
+## 使用前的宿主前提
+
+部分组件依赖宿主已经集成对应的原生模块，例如：
+
+- `Camera`
+- `Video`
+- `Map`
+- `WebView`
+
+如果宿主未集成这些原生模块，而小程序直接使用相关组件，运行时可能失败。  
+因此，Host 开发者应当明确声明当前宿主支持的组件能力范围，小程序开发者也应基于宿主的实际能力选择组件。
+
+## 下一步
+
+如果你需要查看每个组件的完整 Props、事件和平台差异，请继续阅读：
+
+- [@nebula-rn/components Reference](/docs/reference/nebula-components)
+
+如果你希望进一步理解组件能力与宿主之间的边界关系，建议继续阅读：
+
+- [小程序的宿主环境](/docs/miniapp/host-environment)

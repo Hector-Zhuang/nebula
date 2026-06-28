@@ -1,0 +1,117 @@
+---
+title: Host Communication
+description: Understand the two-way message communication between a miniapp and the host app.
+---
+
+Nebula supports two-way custom message communication between a miniapp and the host app. This is useful for business events, state synchronization, and other scenarios that do not belong in a typed Host API.
+
+<Info title="For Host developers">
+  This page explains how to send and receive messages from the **miniapp developer** perspective.
+  If you are a host developer, see: [Host and miniapp messaging](../host/host-miniapp-messaging.mdx)
+</Info>
+
+## Communication flow
+
+```text
+Miniapp                          Host
+  │                                │
+  │ postMessageToHost(message) ──► │
+  │                                │
+  │ ◄──── onHostMessage(listener)  │
+  │                                │
+```
+
+## Miniapp → Host
+
+Use `Miniapp.postMessageToHost()` to send a custom message to the host:
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+await Miniapp.postMessageToHost({
+  type: 'miniapp.event',
+  action: 'purchase_complete',
+  orderId: '12345',
+  timestamp: Date.now(),
+});
+```
+
+The message payload can be any JSON-serializable object. The host defines the contract and handling logic.
+
+## Host → Miniapp
+
+Use `Miniapp.onHostMessage()` to listen for messages pushed by the host:
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+const unsubscribe = Miniapp.onHostMessage(event => {
+  console.log('message from host:', event.message);
+  // event.message is a JSON object sent by the host
+});
+
+// Stop listening
+unsubscribe();
+```
+
+## When messaging is a good fit
+
+### Notify the host to perform an action
+
+```ts
+// Ask the host to open a native payment screen
+Miniapp.postMessageToHost({
+  type: 'request',
+  action: 'open_native_payment',
+  amount: 99.9,
+  currency: 'CNY',
+});
+```
+
+### Receive state changes pushed by the host
+
+```tsx
+import React, { useState, useEffect } from 'react';
+import { Text, View } from 'react-native';
+import { Miniapp } from '@nebula-rn/sdk';
+
+export default function StatusPage() {
+  const [loginStatus, setLoginStatus] = useState('unknown');
+
+  useEffect(() => {
+    const unsubscribe = Miniapp.onHostMessage(event => {
+      if (event.message?.type === 'login_status_changed') {
+        setLoginStatus(event.message.isLoggedIn ? 'Logged in' : 'Logged out');
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  return (
+    <View>
+      <Text>Login status: {loginStatus}</Text>
+    </View>
+  );
+}
+```
+
+## Differences from Host APIs
+
+|              | Custom messaging                         | Host API                                           |
+| ------------ | ---------------------------------------- | -------------------------------------------------- |
+| **Use case** | Business events, loose coordination       | Structured capability calls (e.g. location, scan)  |
+| **Call**     | `postMessageToHost` / `onHostMessage`     | `Miniapp.invokeHostApi()` or `@nebula-rn/client` APIs |
+| **Return**   | No direct return (fire-and-forget)        | Promise with a structured result                   |
+| **Register** | Host listens on its own                  | Host registers via `createHostApiFeature`          |
+| **Typing**   | Contract agreed by both sides             | `NebulaHostApiDescription` metadata                |
+
+If you want to extend structured Host APIs instead of continuing with custom messaging, see [Custom APIs](./custom-apis.mdx).
+
+If you want to understand how the host listens to miniapp messages or pushes messages proactively, see [Host and miniapp messaging](../host/host-miniapp-messaging.mdx).
+
+## Notes
+
+- Message payloads must be JSON-serializable objects
+- `postMessageToHost` is one-way and does not return host results
+- Use Host APIs (`createHostApiFeature`) if you need request/response behavior
+- Call the unsubscribe function from `onHostMessage` on unmount to avoid leaks

@@ -1,0 +1,227 @@
+---
+title: Compliance
+description: Platform store policies, and how Nebula helps you meet compliance requirements for mini-app distribution.
+---
+
+Nebula enables host apps to dynamically load and run mini-apps — JavaScript bundles that are not embedded in the app binary. Both Apple and Google classify this type of software under specific review policies, and **the host app developer is fully responsible** for every mini-app distributed through their app.
+
+This page covers the three compliance dimensions you must address:
+
+1. **Apple App Store** — Guideline 4.7 and related rules
+2. **Google Play Store** — Developer Program Policies for dynamically loaded code
+
+<Warning title="Nebula is not a hot update development framework">
+  From a platform compliance perspective, Nebula is better understood as a miniapp distribution and runtime mechanism that is strictly governed by the host, rather than a development framework that allows business teams to arbitrarily hot update or arbitrarily deliver code.
+
+Host developers should maintain clear control over which miniapps can be distributed, the capability boundaries that can be exposed, release channels, and should strictly scrutinize every miniapp version before it goes live.
+
+</Warning>
+
+---
+
+## Apple App Store — Guideline 4.7
+
+### Overview
+
+> Apps may offer certain software that is not embedded in the binary, specifically HTML5 and JavaScript mini apps and mini games, streaming games, chatbots, and plug-ins. Additionally, retro game console and PC emulator apps can offer to download games. You are responsible for all such software offered in your app, including ensuring that such software complies with these Guidelines and all applicable laws. Software that does not comply with one or more guidelines will lead to the rejection of your app.
+
+Nebula mini-apps fall squarely under this guideline. Non-compliance with any sub-rule **will result in rejection of your host app**.
+
+### 4.7.1 — Privacy, Content Moderation, and Payments
+
+Software offered in apps under this rule must:
+
+- Follow all privacy guidelines, including but not limited to the rules set forth in Guideline 5.1 concerning collection, use, and sharing of data, and sensitive data (such as health and personal data from kids).
+- Include a method for filtering objectionable material, a mechanism to report content and timely responses to concerns, and the ability to block abusive users.
+- Follow Guideline 3.1 in order to offer digital goods or services to end users.
+
+### 4.7.2 — Native API Restrictions (ASR & NR)
+
+Your app may not extend or expose native platform APIs or technologies to the software without prior permission from Apple.
+
+### 4.7.3 — Data Sharing Requires Consent (ASR & NR)
+
+Your app may not share data or privacy permissions to any individual software offered in your app without explicit user consent in each instance.
+
+### 4.7.4 — Index and Universal Links
+
+You must provide an index of software and metadata available in your app. It must include universal links that lead to all of the software offered in your app.
+
+### 4.7.5 — Age Restrictions (ASR & NR)
+
+Your app must provide a way for users to identify software that exceeds the app's age rating, and use an age restriction mechanism based on verified or declared age to limit access by underage users.
+
+---
+
+## Google Play Store Policies
+
+Google Play does not have a single guideline number equivalent to Apple 4.7, but enforces similar requirements through multiple policies:
+
+### Code Transparency and Dynamic Delivery
+
+Google Play requires that all executable code delivered to users comes from a trusted source. Dynamically loaded JavaScript (which Nebula uses for mini-app bundles) must:
+
+- Come from verified, developer-controlled servers
+- Not alter the core behavior of the app in ways that violate Play policies
+- Not be used to bypass Play Store review processes
+
+Nebula's Nebula Cloud provides a centralized, auditable distribution channel that satisfies the "trusted source" requirement when properly configured.
+
+### User Data and Privacy
+
+Google Play's [User Data policy](https://support.google.com/googleplay/android-developer/answer/10144311) requires:
+
+- **Disclosure:** Clearly disclose what data each mini-app collects, how it is used, and with whom it is shared
+- **Consent:** Obtain affirmative consent before collecting sensitive data (location, contacts, camera, microphone, etc.)
+- **Data safety section:** If mini-apps collect or share data, this must be reflected in the Play Console Data Safety form for the host app
+- **Deletion requests:** Provide a mechanism for users to request deletion of their data
+
+### Families and Minors
+
+If your host app targets families or may be used by children, the [Families Policy](https://support.google.com/googleplay/android-developer/answer/9893335) requires:
+
+- Compliance with applicable children's privacy laws (COPPA, etc.)
+- No behavioral advertising to children
+- Age-appropriate content in all mini-apps accessible to minors
+- Teacher Approved program requirements if applicable
+
+### Content Policies
+
+All mini-app content must comply with Google Play's [content policies](https://support.google.com/googleplay/android-developer/topic/9877467), including restrictions on:
+
+- Hate speech, violence, and sexually explicit material
+- Gambling and real-money games (regulated by jurisdiction)
+- Deceptive behavior and misleading content
+- Intellectual property and impersonation
+
+---
+
+## How Nebula Stays Compliant
+
+Nebula's architecture is designed with compliance in mind. The following table maps compliance requirements to the specific Nebula features that address them:
+
+### Sandbox Isolation
+
+**Addresses:** 4.7.3 (data sharing consent), GDPR data minimization, general data protection
+
+Each mini-app runs in a fully isolated sandbox with its own filesystem and storage at `/Documents/MiniApps/{appId}/`. Mini-apps cannot access each other's data, and they cannot access the host app's private storage.
+
+```
+Documents/MiniApps/
+├── app-a/           # App A's sandbox (isolated)
+│   ├── index.bundle
+│   ├── app.json
+│   └── storage/
+├── app-b/           # App B's sandbox (isolated)
+│   ├── index.bundle
+│   ├── app.json
+│   └── storage/
+```
+
+This enforced isolation means a compromised or malicious mini-app cannot exfiltrate data from other mini-apps — a requirement across virtually all data protection regimes.
+
+### Controlled API Surface
+
+**Addresses:** 4.7.2 (native API restrictions), 4.7.3 (consent per data sharing), platform permission policies
+
+The Host API system gives you explicit control over which native capabilities are exposed to mini-apps. Only APIs you register via `NebulaAPI.wrap()` are accessible:
+
+```ts
+import { NebulaAPI } from '@nebula-rn/sdk';
+
+export default NebulaAPI.wrap({
+  hostApis: [
+    // Only register APIs that have been reviewed
+    storageApi, // Sandboxed storage — low risk
+    networkApi, // Network requests — audit target domains
+    locationApi, // Location — sensitive, requires user consent
+    // cameraApi,     // Camera — not yet reviewed, do not register
+  ],
+  serverBaseURL: 'https://api.example.com',
+})(App);
+```
+
+Mini-apps can discover available capabilities at runtime via `Miniapp.getCapabilities()` and `Miniapp.isSupported()`, so they degrade gracefully when APIs are restricted.
+
+### Mini-App Index and Deep Linking
+
+**Addresses:** 4.7.4 (index and universal links)
+
+The Nebula Cloud API provides a queryable index of all registered mini-apps:
+
+```
+GET /api/v1/miniapps
+```
+
+Use this to generate your Universal Links (iOS) and App Links (Android) index:
+
+```ts
+// Handle deep links in the host app
+const appId = extractAppIdFromURL(incomingLink);
+await NebulaAPI.openMiniApp(appId);
+```
+
+Configure your Apple App Site Association (AASA) file and Android `assetlinks.json` to map `https://yourdomain.com/miniapp/{appId}` to your host app.
+
+### Content Reporting Infrastructure
+
+**Addresses:** 4.7.1 (content moderation), DSA notice-and-action, India IT Rules
+
+Register a reporting Host API so mini-apps can trigger reports, and inject a global report button into the mini-app container:
+
+```ts
+const reportApi = createHostApiFeature({
+  name: 'report',
+  methods: {
+    reportContent: async (params: {
+      contentType: 'text' | 'image' | 'video';
+      contentId: string;
+      reason: string;
+    }) => {
+      await submitReport(params);
+      return { success: true };
+    },
+    reportUser: async (params: { userId: string; reason: string }) => {
+      await submitUserReport(params);
+      return { success: true };
+    },
+  },
+});
+```
+
+### Age Rating Metadata
+
+**Addresses:** 4.7.5 (age restrictions), Google Play Families Policy, regional child protection laws
+
+Include age rating fields in your mini-app manifest (`app.json`):
+
+```json
+{
+  "appId": "com.example.game",
+  "name": "Example Game",
+  "version": "1.0.0",
+  "ageRating": "17+",
+  "contentDescriptors": [
+    "InfrequentMildViolence",
+    "InfrequentSimulatedGambling"
+  ]
+}
+```
+
+At runtime, compare the declared age rating against the user's verified or declared age, and restrict access accordingly.
+
+---
+
+## Compliance Infrastructure Summary
+
+| Requirement         | Nebula Provides                                                                      | You Must Implement                                |
+| ------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| Data isolation      | [Sandbox isolation](./host/sandbox-isolation.mdx) — per-app filesystem and storage   | Audit mini-apps for sandbox escape attempts       |
+| API governance      | [Host API system](./host/host-miniapp-messaging.mdx) — register only approved APIs   | Assess privacy impact of each API                 |
+| Release control     | [Version management](./nebula-cloud/version-and-channels.mdx) — draft/publish workflow | Implement your own review and approval process before publishing |
+| Mini-app index      | [Nebula Cloud API](./reference/nebula-cloud-api.mdx) — registry and metadata         | Universal Links (iOS) and App Links (Android)     |
+| Content moderation  | Host API for reporting (example above)                                               | Filtering pipeline, moderation team, response SLA |
+| Age restrictions    | Manifest metadata fields                                                             | Verification mechanism, runtime enforcement       |
+| Privacy disclosures | Per-app isolated data boundaries                                                     | Privacy policy, consent flows, data safety forms  |
+
+---

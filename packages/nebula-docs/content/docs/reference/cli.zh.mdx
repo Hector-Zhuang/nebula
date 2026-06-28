@@ -1,0 +1,329 @@
+---
+title: CLI
+description: Nebula CLI 的详细命令参考。
+---
+
+Nebula CLI 是 Nebula 的命令行入口，用于创建项目、配置 Nebula Cloud 地址、完成 CLI 登录、启动小程序、构建生产产物，以及把版本上传到 Nebula Cloud。
+
+## 适用范围
+
+当前公开支持的 CLI 能力主要分为五类：
+
+- 项目创建
+- 服务端地址配置
+- CLI 登录与退出
+- 小程序开发与构建
+- 小程序上传
+
+## 命令总览
+
+| 命令 | 用途 |
+|------|------|
+| `npx nebula create host <name>` | 创建 Host 工程 |
+| `npx nebula create miniapp <name>` | 创建小程序工程 |
+| `npx nebula create runner <name>` | 创建自定义 Runner 工程 |
+| `npx nebula config server` | 查看、设置或清除保存的 Nebula Cloud 地址 |
+| `npx nebula auth login` | 启动 CLI 登录流程 |
+| `npx nebula auth logout` | 清除保存的登录状态 |
+| `npx nebula miniapp dev` | 启动小程序开发模式 |
+| `npx nebula miniapp build` | 构建小程序生产产物 |
+| `npx nebula miniapp upload` | 构建并上传小程序版本到 Nebula Cloud |
+
+## `create`
+
+使用 `create` 从模板包生成新项目。
+
+### 语法
+
+```bash
+npx nebula create <host|miniapp|runner> <name> [options]
+```
+
+### 支持的项目类型
+
+| 类型 | 结果 |
+|------|------|
+| `host` | 宿主应用工程 |
+| `miniapp` | 独立小程序工程 |
+| `runner` | 自定义开发 Runner 工程 |
+
+### 参数
+
+| 参数 | 含义 |
+|------|------|
+| `--directory <path>` | 指定输出目录，而不是默认使用 `<name>` |
+| `--app-id <id>` | 覆盖默认生成的小程序 `appId` |
+| `--display-name <name>` | 覆盖默认生成的显示名称 |
+| `--bundle-id <id>` | 覆盖默认生成的原生 bundle identifier |
+
+### 示例
+
+```bash
+npx nebula create miniapp hello-nebula
+npx nebula create host my-host
+npx nebula create runner my-runner
+npx nebula create miniapp checkout --directory ./examples/checkout
+npx nebula create host enterprise-host --bundle-id com.company.enterprise
+```
+
+### 说明
+
+- 目标目录必须为空。
+- 生成项目时会使用当前模板或本地 workspace 中的 Nebula 包版本。
+- `runner` 更适合 Host 团队在需要定制开发宿主时使用。
+
+## `config server`
+
+使用 `config server` 管理保存的 Nebula Cloud API 地址。
+
+### 语法
+
+```bash
+npx nebula config server [--url <url>]
+npx nebula config server <url>
+npx nebula config server --clear
+```
+
+### 行为
+
+| 写法 | 结果 |
+|------|------|
+| `npx nebula config server` | 输出当前保存的 server 地址 |
+| `npx nebula config server <url>` | 保存 server 地址 |
+| `npx nebula config server --url <url>` | 保存 server 地址 |
+| `npx nebula config server --clear` | 清除保存的 server 地址和登录状态 |
+
+### 示例
+
+```bash
+npx nebula config server
+npx nebula config server http://localhost:3001/api
+npx nebula config server --url https://cloud.example.com/api
+npx nebula config server --clear
+```
+
+### 重要行为
+
+如果保存的 server 地址发生变化，CLI 会自动清除原有登录状态，避免旧 token 被错误地复用到另一套服务。
+
+## `auth login`
+
+使用 `auth login` 让 CLI 登录到 Nebula Cloud。
+
+### 语法
+
+```bash
+npx nebula auth login [--server <url>] [--open false]
+```
+
+### 行为
+
+CLI 登录流程会：
+
+1. 向 Nebula Cloud 申请一个设备授权会话
+2. 输出浏览器验证地址和授权码
+3. 可选地自动打开浏览器
+4. 持续轮询，直到授权成功或会话过期
+
+### 参数
+
+| 参数 | 含义 |
+|------|------|
+| `--server <url>` | 本次登录时临时覆盖保存的 server 地址 |
+| `--open false` | 不自动打开浏览器 |
+
+### 示例
+
+```bash
+npx nebula auth login
+npx nebula auth login --server http://localhost:3001/api
+npx nebula auth login --open false
+```
+
+## `auth logout`
+
+使用 `auth logout` 清除保存的 access token 和用户信息。
+
+### 语法
+
+```bash
+npx nebula auth logout
+```
+
+## `miniapp dev`
+
+使用 `miniapp dev` 启动小程序本地开发模式。
+
+### 语法
+
+```bash
+npx nebula miniapp dev [options]
+```
+
+### 行为
+
+`miniapp dev` 会：
+
+1. 读取 `app.json`
+2. 在 `.nebula/generated/` 下生成运行时文件
+3. 启动端口为 `8082` 的 Metro
+4. 默认自动拉起共享 Dev Runner
+
+### 参数
+
+| 参数 | 含义 |
+|------|------|
+| `--platform ios` | 使用 iOS 打开 Dev Runner |
+| `--platform android` | 使用 Android 打开 Dev Runner |
+| `--no-runner true` | 只启动小程序开发服务，不自动打开 Runner |
+
+### 示例
+
+```bash
+npx nebula miniapp dev
+npx nebula miniapp dev --platform ios
+npx nebula miniapp dev --platform android
+npx nebula miniapp dev --no-runner true
+```
+
+### 生成文件
+
+开发模式会在下列目录生成运行时文件：
+
+```text
+.nebula/generated/
+  app.json
+  index.js
+  metro.config.cjs
+```
+
+这些文件属于生成产物，不建议手工维护。
+
+## `miniapp build`
+
+使用 `miniapp build` 构建当前小程序的生产产物。
+
+### 语法
+
+```bash
+npx nebula miniapp build
+```
+
+## `miniapp upload`
+
+使用 `miniapp upload` 构建当前小程序，并把生成的 bundles 与 manifest 上传到 Nebula Cloud。
+
+### 语法
+
+```bash
+npx nebula miniapp upload [options]
+```
+
+### 前置条件
+
+上传前请先确保：
+
+1. 已配置 Nebula Cloud server
+2. 已完成 CLI 登录
+3. Nebula Cloud 中已经创建了同 `appId` 的目标小程序
+
+### 行为
+
+`miniapp upload` 会：
+
+1. 读取 `app.json`
+2. 构建 iOS 和 Android 生产 bundle
+3. 生成运行时 manifest
+4. 把 bundles 和 manifest 上传到 Nebula Cloud
+
+### 参数
+
+| 参数 | 含义 |
+|------|------|
+| `--server <url>` | 本次上传时临时覆盖保存的 Nebula Cloud 地址 |
+| `--version <version>` | 覆盖 `package.json` 中的版本号 |
+| `--changelog <text>` | 为上传版本附带 changelog 文本 |
+
+### 当前上传行为
+
+当前 CLI 上传流程固定会按以下方式上传：
+
+- channel: `stable`
+- release type: `RELEASE`
+
+审核和正式发布仍然在上传后通过 Nebula Cloud 或 Console 流程完成。
+
+### 示例
+
+```bash
+npx nebula config server http://localhost:3001/api
+npx nebula auth login
+npx nebula miniapp upload --version 1.2.0 --changelog "Fix checkout flow"
+```
+
+### 行为
+
+`miniapp build` 会：
+
+1. 生成 `.nebula/generated/`
+2. 分别构建 iOS 和 Android bundle
+3. 把最终产物写入 `build/`
+
+### 输出
+
+| 文件 | 用途 |
+|------|------|
+| `build/app.json` | 生成后的运行时 manifest |
+| `build/main.ios.jsbundle` | iOS 生产 bundle |
+| `build/main.android.bundle` | Android 生产 bundle |
+
+### 示例
+
+```bash
+npx nebula miniapp build
+```
+
+## 典型工作流
+
+### 创建并启动一个小程序
+
+```bash
+npx nebula create miniapp hello-nebula
+cd hello-nebula
+npm install
+npx nebula miniapp dev
+```
+
+### 构建一个可分发的小程序产物
+
+```bash
+npx nebula miniapp build
+```
+
+### 构建并上传一个小程序版本
+
+```bash
+npx nebula config server http://localhost:3001/api
+npx nebula auth login
+npx nebula miniapp upload --version 1.2.0 --changelog "Fix checkout flow"
+```
+
+### 配置并登录 CLI
+
+```bash
+npx nebula config server http://localhost:3001/api
+npx nebula auth login
+```
+
+## 当前不在支持范围内的内容
+
+Nebula CLI 当前**不**提供以下能力：
+
+- 在 CLI 中完成审核流转
+- 在 CLI 中完成发布流转
+- 通过 CLI 管理 Nebula Cloud 的完整后台能力
+
+如需了解版本、更新和分发模型，请继续阅读：
+
+- [小程序版本与发布](../miniapp/versioning.mdx)
+- [Nebula Cloud API](./nebula-cloud-api.mdx)

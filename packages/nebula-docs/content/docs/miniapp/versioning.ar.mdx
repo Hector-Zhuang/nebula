@@ -1,0 +1,140 @@
+---
+title: الإصدارات والنشر
+description: تعرّف إلى كيفية إدارة الإصدارات وآلية التحديث في Nebula miniapps، بما في ذلك التحديث التلقائي واليدوي.
+---
+
+تتحكم Nebula في إدارة الإصدارات وسلوك التحديث عبر معلومات الإصدار في `app.json` وإعداد `updateStrategy`.
+
+## إعلان الإصدار
+
+تُكتب معلومات الإصدار في ملف manifest `app.json` أثناء البناء:
+
+```json
+{
+  "appId": "my-miniapp",
+  "version": "1.2.0",
+  "updateStrategy": "auto",
+  "pages": ["home", "detail"],
+  "entryPagePath": "/home"
+}
+```
+
+يتبع الإصدار معيار الإصدارات الدلالية (مثل `1.0.0`). بشكل افتراضي يُقرأ الإصدار من `package.json`، ويمكن للـ CLI استبداله عند الرفع.
+
+## استراتيجية التحديث (`updateStrategy`)
+
+يحدد `updateStrategy` سلوك التحديث عند فتح miniapp، مع وضعين:
+
+### `auto` - تحديث تلقائي
+
+عند ضبط `updateStrategy` على `auto`، يتحقق المضيف تلقائيًا من التحديثات ويطبقها قبل كل فتح:
+
+```
+فتح المستخدم للـ miniapp
+    │
+    ▼
+التحقق من وجود تثبيت محلي
+    │
+    ├── مثبتة وليست في وضع التطوير
+    │       │
+    │       ▼
+    │   جلب manifest عن بُعد (app.json)
+    │       │
+    │       ▼
+    │   مقارنة الإصدارات
+    │       │
+    │       ├── إصدار جديد -> تنزيل وتثبيت bundle جديد -> فتح miniapp
+    │       └── لا يوجد تحديث -> فتح miniapp مباشرة
+    │
+    └── غير مثبتة -> تثبيت ثم فتح
+```
+
+يناسب وضع `auto` الحالات التي تريد فيها بقاء المستخدم على أحدث إصدار دائمًا. لاحظ أن التحديث يتم قبل الفتح، وقد يضيف تأخيرًا بسيطًا.
+
+### `manual` - تحديث يدوي
+
+عند ضبط `updateStrategy` على `manual`، لا يتحقق المضيف تلقائيًا عند فتح miniapp. عادةً تتحقق miniapp وتطبق التحديث في الوقت المناسب.
+
+تستخدم هذه العملية عادةً واجهتين:
+
+- `getMiniAppUpdateInfo()`
+  - تتحقق من توفر تحديث
+  - تعيد معلومات مثل:
+    - الإصدار الحالي
+    - أحدث إصدار
+    - وجود تحديث من عدمه
+    - استراتيجية التحديث
+
+- `applyMiniAppUpdate()`
+  - تنزّل أحدث bundle وتثبّته بعد التأكيد
+  - تعيد حالة التحديث بعد التطبيق
+
+<Info title="لماذا تأتي هذه الواجهات من @nebula-rn/client؟">
+  `getMiniAppUpdateInfo()` و`applyMiniAppUpdate()` يتم تصديرهما حاليًا من `@nebula-rn/client` وليس مباشرة من `Miniapp`.
+
+  ذلك لأنهما يُعتبران في البنية الحالية **أغلفة قياسية فوق Host APIs**:
+
+  - ما زالت miniapp تتواصل مع المضيف عبر `Miniapp.invokeHostApi(...)`
+  - يوفّر `@nebula-rn/client` وظائف API أسهل للاستخدام مثل `scanCode` و`getLocation` و`getMiniAppUpdateInfo`
+
+  بمعنى آخر، `Miniapp` أقرب لقدرات runtime منخفضة المستوى، بينما `@nebula-rn/client` هو مجموعة API الشائعة لمطوري miniapp.
+</Info>
+
+استخدام نموذجي:
+
+```ts
+import { getMiniAppUpdateInfo, applyMiniAppUpdate } from '@nebula-rn/client';
+
+// التحقق من وجود تحديث
+const updateInfo = await getMiniAppUpdateInfo();
+
+if (updateInfo.hasUpdate) {
+  console.log('تم العثور على إصدار جديد:', updateInfo.latestVersion);
+
+  // يقرر المطور ما إذا كان سيتم التحديث (مثل عرض حوار للمستخدم)
+  const confirmed = await showUpdateDialog(updateInfo);
+
+  if (confirmed) {
+    // تطبيق التحديث (تنزيل وتثبيت bundle جديد)
+    const result = await applyMiniAppUpdate();
+    console.log('اكتمل التحديث:', result);
+  }
+}
+```
+
+يناسب وضع `manual` الحالات التي تحتاج فيها للتحكم بتوقيت التحديث، مثل تنبيه المستخدم في صفحة أو وقت محدد.
+
+## تفاصيل آلية التحديث
+
+### مسار فحص الإصدار
+
+1. الحصول على `sourceUrl` للـ miniapp المثبتة
+2. اشتقاق عنوان manifest عن بُعد من `sourceUrl` (استبدال اسم ملف bundle بـ `app.json`)
+3. طلب manifest عن بُعد وقراءة حقل `version`
+4. مقارنة الإصدار المثبت محليًا وفق الإصدارات الدلالية
+5. إذا كان الإصدار البعيد أكبر من المحلي، يتم اعتبار التحديث متاحًا
+
+### مسار تثبيت الإصدار
+
+1. تنزيل bundle جديد من المصدر البعيد
+2. حفظ bundle في مجلد sandbox الخاص بالـ miniapp
+3. تنزيل ملف manifest الجديد وحفظه
+4. تحديث سجل التثبيت المحلي
+
+### سلوك وضع التطوير
+
+في وضع التطوير (`mode: 'development'`)، لا يتم تشغيل فحوصات التحديث التلقائي. يتم تحميل bundle من خادم التطوير دائمًا.
+
+## مسار النشر
+
+استخدم Nebula CLI للبناء والرفع:
+
+```bash
+# بناء miniapp
+nebula miniapp build
+
+# الرفع إلى Nebula Cloud
+nebula miniapp upload
+```
+
+بعد الرفع، يصبح هذا الإصدار هو إصدار التجربة الحالي. بعد ذلك يمكن تقديمه للمراجعة ثم نشره من لوحة إدارة Nebula Cloud. راجع [إدارة ونشر Nebula Cloud](/docs/nebula-cloud/deployment) لمزيد من التفاصيل.

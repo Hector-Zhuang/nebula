@@ -1,0 +1,148 @@
+---
+title: 小程序配置
+description: Nebula 小程序的全局配置和页面配置项详解。
+---
+
+Nebula 小程序通过 `app.json`（全局配置）和 `page.config.ts`（页面配置）控制应用行为和样式。
+
+## 全局配置（app.json）
+
+`app.json` 位于小程序项目的根目录，是小程序的 manifest 文件。
+
+### 完整配置项
+
+| 字段 | 类型 | 必填 | 默认值 | 示例 | 说明 |
+|------|------|------|--------|------|------|
+| `appId` | `string` | 是 | — | `'my-miniapp'` | 小程序的唯一标识。 |
+| `pages` | `string[]` | 是 | — | `['home', 'detail']` | 页面路径列表。 |
+| `entryPagePath` | `string` | 否 | `pages` 数组第一项 | `'/home'` | 入口页面路径。 |
+| `updateStrategy` | `'auto' \| 'manual'` | 否 | `'manual'` | `'auto'` | 小程序更新策略。 |
+| `window` | `WindowConfig` | 否 | — | `{ navigationBarTitleText: '我的小程序' }` | 全局窗口样式。 |
+
+### 示例
+
+```json
+{
+  "appId": "my-miniapp",
+  "updateStrategy": "auto",
+  "pages": ["home", "detail", "settings", "components/media"],
+  "entryPagePath": "/home",
+  "window": {
+    "backgroundColor": "#f8fafc",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextColor": "#0f172a",
+    "navigationBarTitleText": "我的小程序",
+    "navigationStyle": "default",
+    "visualEffectInBackground": "none"
+  }
+}
+```
+
+### appId
+
+小程序的唯一标识，在整个平台中必须唯一。用于安装、打开、预加载等操作的小程序识别。
+
+### pages
+
+声明小程序包含的所有页面路径。路径相对于 `src/pages/` 目录，无需包含文件扩展名。
+
+```json
+{
+  "pages": ["home", "detail", "components/media", "components/swiper"]
+}
+```
+
+### updateStrategy
+
+控制小程序的更新行为，详见 [小程序版本与发布](/docs/miniapp/versioning)。
+
+- `auto`：打开时自动检查并应用更新
+- `manual`：由开发者代码控制更新时机
+
+## 窗口配置（WindowConfig）
+
+窗口配置可以在 `app.json` 的 `window` 字段中设置全局默认值，也可以在 `page.config.ts` 中按页面覆盖。
+
+### 配置项
+
+| 字段 | 类型 | 必填 | 默认值 | 示例 | 说明 |
+|------|------|------|--------|------|------|
+| `backgroundColor` | `string` | 否 | — | `'#f8fafc'` | 页面背景色（十六进制）。 |
+| `navigationBarBackgroundColor` | `string` | 否 | — | `'#ffffff'` | 导航栏背景色。 |
+| `navigationBarTextColor` | `string` | 否 | — | `'#0f172a'` | 导航栏文字颜色。 |
+| `navigationBarTitleText` | `string` | 否 | — | `'我的小程序'` | 导航栏标题文字。 |
+| `navigationStyle` | `'default' \| 'custom'` | 否 | `'default'` | `'custom'` | 导航栏样式。 |
+| `visualEffectInBackground` | `'blur' \| 'none'` | 否 | `'none'` | `'blur'` | 进入后台时的视觉效果，仅 iOS 支持。 |
+
+### navigationStyle
+
+- `default`：显示系统默认导航栏，包含返回按钮和标题
+- `custom`：隐藏系统导航栏，由小程序自行实现导航 UI
+
+## 页面配置（page.config.ts）
+
+每个页面可以通过 `page.config.ts` 文件覆盖全局窗口配置。
+
+```ts
+import { definePageConfig } from '@nebula-rn/sdk';
+
+export default definePageConfig({
+  route: '/detail',
+  backgroundColor: '#ffffff',
+  navigationBarBackgroundColor: '#1e40af',
+  navigationBarTextColor: '#ffffff',
+  navigationBarTitleText: '详情',
+  navigationStyle: 'default',
+  visualEffectInBackground: 'blur', // 仅 iOS
+});
+```
+
+### definePageConfig 参数详解
+
+| 字段 | 类型 | 必填 | 默认值 | 示例 | 说明 |
+|------|------|------|--------|------|------|
+| `route` | `string` | 否 | — | `'/detail'` | 页面路由路径。通常建议与页面目录结构保持一致，例如 `src/pages/detail` 对应 `/detail`。 |
+| `backgroundColor` | `string` | 否 | — | `'#ffffff'` | 页面内容区域背景色。 |
+| `navigationBarBackgroundColor` | `string` | 否 | — | `'#1e40af'` | 导航栏背景色。 |
+| `navigationBarTextColor` | `string` | 否 | — | `'#0f172a'` | 导航栏标题和前景元素颜色。 |
+| `navigationBarTitleText` | `string` | 否 | — | `'详情'` | 导航栏标题文字。 |
+| `navigationStyle` | `'default' \| 'custom'` | 否 | `'default'` | `'custom'` | 导航栏样式。`default` 使用宿主默认导航栏；`custom` 隐藏默认导航栏，由小程序自己实现顶部导航 UI。 |
+| `visualEffectInBackground` | `'blur' \| 'none'` | 否 | `'none'` | `'blur'` | 应用进入后台时的视觉效果。仅 iOS 支持。适合隐私信息、交易信息等敏感页面。 |
+
+### 参数示例
+
+#### 只配置标题
+
+```ts
+export default definePageConfig({
+  navigationBarTitleText: '订单详情',
+});
+```
+
+#### 配置品牌色导航栏
+
+```ts
+export default definePageConfig({
+  navigationBarBackgroundColor: '#1d4ed8',
+  navigationBarTextColor: '#ffffff',
+  navigationBarTitleText: '会员中心',
+});
+```
+
+#### 隐藏默认导航栏
+
+```ts
+export default definePageConfig({
+  navigationStyle: 'custom',
+});
+```
+
+## 配置优先级
+
+页面配置的优先级从高到低：
+
+1. `page.config.ts` 中的页面级配置
+2. `app.json` 中的 `window` 全局配置
+3. 系统默认值
+
+宿主在渲染页面时，会将全局配置作为 base，然后用页面级配置进行覆盖合并。

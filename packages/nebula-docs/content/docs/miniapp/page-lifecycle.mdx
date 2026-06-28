@@ -1,0 +1,217 @@
+---
+title: Page Lifecycle
+description: Understand Nebula miniapp page lifecycle events and their corresponding React Hooks.
+---
+
+Each page in a Nebula miniapp has a full lifecycle. The host container triggers lifecycle events when a page shows, hides, or is destroyed. Developers can use lifecycle hooks to load data, save state, and more at the right time.
+
+## Lifecycle events
+
+```
+Page created
+  │
+  ▼
+onLoad ──── first load, can access route params
+  │
+  ▼
+onShow ──── page becomes visible (first show or resume)
+  │
+  ▼
+onReady ─── first render completed
+  │
+  │         ┌─────────────┐
+  │         │  page covered│
+  │         │  or background│
+  │         └──────┬──────┘
+  │                ▼
+  │          onHide ─── page hidden
+  │                │
+  │                ▼
+  │          onShow ─── page shown again
+  │                │
+  │               ... (repeat)
+  │
+  ▼
+onUnload ── page destroyed
+```
+
+| Event | When it fires | Times |
+|------|---------------|-------|
+| `onLoad` | First page load | Once |
+| `onShow` | Page visible (first show or resume) | Many |
+| `onReady` | First render complete | Once |
+| `onHide` | Page hidden (covered or backgrounded) | Many |
+| `onUnload` | Page destroyed | Once |
+
+## Hooks API
+
+Nebula SDK provides a React Hook for each lifecycle event.
+
+### usePageOnLoad
+
+Fires on first load and can read route params. Good for initial data loading.
+
+```ts
+import { usePageOnLoad } from '@nebula-rn/sdk';
+
+usePageOnLoad((params) => {
+  console.log('page loaded, route params:', params);
+  // params: Record<string, unknown> from query params
+  fetchData(params.id);
+});
+```
+
+### usePageOnShow
+
+Fires every time the page becomes visible. Good for refreshing time-sensitive data.
+
+```ts
+import { usePageOnShow } from '@nebula-rn/sdk';
+
+usePageOnShow(() => {
+  console.log('page shown');
+  refreshListData();
+});
+```
+
+### usePageOnReady
+
+Fires after the first render completes (delayed with `requestAnimationFrame`). Good for view-ready actions.
+
+```ts
+import { usePageOnReady } from '@nebula-rn/sdk';
+
+usePageOnReady(() => {
+  console.log('page rendered');
+  startAnimation();
+});
+```
+
+### usePageOnHide
+
+Fires when the page is hidden (e.g., navigate away or background). Good for pausing timers or saving transient state.
+
+```ts
+import { usePageOnHide } from '@nebula-rn/sdk';
+
+usePageOnHide(() => {
+  console.log('page hidden');
+  pauseVideoPlayback();
+  saveScrollPosition();
+});
+```
+
+### usePageOnUnload
+
+Fires when the page is destroyed. Good for final cleanup.
+
+```ts
+import { usePageOnUnload } from '@nebula-rn/sdk';
+
+usePageOnUnload(() => {
+  console.log('page unloaded');
+  cancelPendingRequests();
+});
+```
+
+## Full example
+
+```tsx
+import { View, Text } from 'react-native';
+import {
+  usePageOnLoad,
+  usePageOnShow,
+  usePageOnReady,
+  usePageOnHide,
+  usePageOnUnload,
+} from '@nebula-rn/sdk';
+import { useState } from 'react';
+
+export default function DetailPage() {
+  const [data, setData] = useState(null);
+
+  usePageOnLoad((params) => {
+    // first load: request data based on route params
+    fetchDetail(params.id).then(setData);
+  });
+
+  usePageOnShow(() => {
+    // every show: refresh time-sensitive data
+    refreshTimestamp();
+  });
+
+  usePageOnReady(() => {
+    // render complete: report page view
+    reportPageView();
+  });
+
+  usePageOnHide(() => {
+    // page hidden: pause auto play
+    pauseAutoPlay();
+  });
+
+  usePageOnUnload(() => {
+    // page destroyed: cancel pending requests
+    abortController.abort();
+  });
+
+  return (
+    <View>
+      <Text>{data?.title}</Text>
+    </View>
+  );
+}
+```
+
+## Underlying event mechanism
+
+### Native event emission
+
+Lifecycle events are triggered by the host container at the native layer:
+
+**iOS (NebulaContainerController):**
+
+- `viewWillAppear` -> send `NebulaContainerWillAppear` notification -> mapped to `show`
+- `viewDidDisappear` -> send `NebulaContainerDidDisappear` notification -> mapped to `hide`
+- `deinit` (controller destroy) -> send `NebulaContainerDidUnload` notification -> mapped to `unload`
+
+**Android (NebulaActivity):**
+
+- `onResume` -> emit `show`
+- `onPause` -> emit `hide`
+- `onDestroy` -> emit `unload`
+
+### JavaScript reception
+
+Native events are bridged to JavaScript via `NebulaNativeModule` EventEmitter, with event name `NebulaPageLifecycle`:
+
+```ts
+type PageLifecycleEvent = {
+  appId: string;       // miniapp ID
+  instanceId: string;  // container instance ID
+  routePath?: string;  // current route
+  type: 'show' | 'hide' | 'unload' | 'ready';
+};
+```
+
+### Low-level listener API
+
+In addition to hooks, you can listen to all page lifecycle events with the low-level API:
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+const unsubscribe = Miniapp.onPageLifecycle((event) => {
+  console.log(`[${event.type}] appId=${event.appId} route=${event.routePath}`);
+});
+
+// Stop listening
+unsubscribe();
+```
+
+## Notes
+
+- `onShow` / `onHide` may fire multiple times, ensure the logic is idempotent
+- `onLoad` params come from navigation query params (e.g. `navigateTo('/detail?id=123')`)
+- `onReady` uses `requestAnimationFrame` to ensure the first render completes
+- Do not perform UI updates when `onUnload` fires because the page is about to be destroyed

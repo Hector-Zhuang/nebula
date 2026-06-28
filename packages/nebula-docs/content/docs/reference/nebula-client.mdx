@@ -1,0 +1,1054 @@
+---
+title: '@nebula-rn/client'
+description: 'Nebula miniapp client API reference, providing detailed interface documentation for device, media, storage, network, sensor, and other capabilities.'
+---
+
+`@nebula-rn/client` is the main API package for miniapp developers, providing a stable interface for calling host capabilities. All APIs communicate with the host through the Nebula protocol layer.
+
+---
+
+## QR Code / Barcode Scanning
+
+### scanCode(options?)
+
+Opens the host-managed scanning UI and returns the scan result. The interface automatically closes and returns data upon successful scan; throws an exception on failure.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function scanCode(options?: ScanCodeOptions): Promise<ScanCodeData>;
+```
+
+**Parameters `ScanCodeOptions`:**
+
+| Parameter        | Type       | Required | Default                        | Description                                                       |
+| ---------------- | ---------- | -------- | ------------------------------ | ----------------------------------------------------------------- |
+| `scanType`       | `string[]` | No       | `['qr', 'ean-13', 'code-128']` | List of barcode types to recognize.                               |
+| `onlyFromCamera` | `boolean`  | No       | `false`                        | When `true`, only uses the camera; disables selection from album. |
+
+**Return value `ScanCodeData`:**
+
+| Field      | Type                  | Description                                                                |
+| ---------- | --------------------- | -------------------------------------------------------------------------- |
+| `result`   | `string \| undefined` | The scanned content string.                                                |
+| `scanType` | `string`              | Recognized barcode type, e.g., `'QR_CODE'`. `'unknown'` if not recognized. |
+| `rawData`  | `unknown`             | Raw scan data.                                                             |
+
+**Timeout:** 120000ms
+
+**Error codes:**
+
+| Error code           | Description                           |
+| -------------------- | ------------------------------------- |
+| `PERMISSION_DENIED`  | Camera permission not granted.        |
+| `USER_CANCELLED`     | User closed the scan interface.       |
+| `UNSUPPORTED_SOURCE` | Requested scan source is unavailable. |
+| `SCAN_FAILED`        | An error occurred during scanning.    |
+
+### scanCodeSafe(options?)
+
+Same functionality as `scanCode`, but does not throw exceptions. Returns a Result type instead, suitable for scenarios where you want to handle both success and failure uniformly at the call site.
+
+```ts
+function scanCodeSafe(options?: ScanCodeOptions): Promise<ScanCodeResult>;
+```
+
+**Return value `ScanCodeResult`:**
+
+```ts
+// Success
+{ ok: true, data: ScanCodeData }
+
+// Failure
+{ ok: false, error: { code: ScanCodeErrorCode, message: string } }
+```
+
+---
+
+## Media
+
+### chooseMedia(options?)
+
+Selects images/videos from the album or camera.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function chooseMedia(options?: ChooseMediaOption): Promise<ChooseMediaResult>;
+```
+
+**Parameters `ChooseMediaOption`:**
+
+| Parameter     | Type                              | Required | Default                      | Description                                                                      |
+| ------------- | --------------------------------- | -------- | ---------------------------- | -------------------------------------------------------------------------------- |
+| `count`       | `number`                          | No       | `9`                          | Maximum number of files to select.                                               |
+| `mediaType`   | `('image' \| 'video' \| 'mix')[]` | No       | `['image', 'video']`         | Allowed media types.                                                             |
+| `sourceType`  | `('album' \| 'camera')[]`         | No       | `['album', 'camera']`        | File source. If only `'camera'` is included, opens the camera directly.          |
+| `maxDuration` | `number`                          | No       | `10`                         | Maximum recording duration for video (seconds).                                  |
+| `sizeType`    | `('original' \| 'compressed')[]`  | No       | `['original', 'compressed']` | Image size types. When `'compressed'` is included, quality is compressed to 0.8. |
+| `camera`      | `'back' \| 'front'`               | No       | `'back'`                     | Default camera direction.                                                        |
+
+**Return value `ChooseMediaResult`:**
+
+| Field       | Type                          | Description                     |
+| ----------- | ----------------------------- | ------------------------------- |
+| `tempFiles` | `ChooseMediaFile[]`           | List of selected files.         |
+| `type`      | `'image' \| 'video' \| 'mix'` | The actual selected media type. |
+
+**`ChooseMediaFile` structure:**
+
+| Field               | Type                 | Description                           |
+| ------------------- | -------------------- | ------------------------------------- |
+| `tempFilePath`      | `string`             | Temporary local path of the file.     |
+| `size`              | `number`             | File size in bytes.                   |
+| `fileType`          | `'image' \| 'video'` | File type.                            |
+| `duration`          | `number`             | (Optional) Video duration in seconds. |
+| `width`             | `number`             | (Optional) Width in pixels.           |
+| `height`            | `number`             | (Optional) Height in pixels.          |
+| `thumbTempFilePath` | `string`             | (Optional) Video thumbnail path.      |
+
+**Timeout:** 120000ms
+
+### previewImages(options)
+
+Opens a full-screen image preview interface, supporting browsing multiple images and saving.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function previewImages(options: PreviewImageOptions): Promise<void>;
+```
+
+**Parameters `PreviewImageOptions`:**
+
+| Parameter       | Type       | Required | Default   | Description                        |
+| --------------- | ---------- | -------- | --------- | ---------------------------------- |
+| `urls`          | `string[]` | Yes      | -         | List of image URLs to preview.     |
+| `current`       | `string`   | No       | `urls[0]` | The currently displayed image URL. |
+| `showMenu`      | `boolean`  | No       | `false`   | Whether to show save/share menu.   |
+| `saveMediaText` | `string`   | No       | -         | Custom text for the save button.   |
+| `cancelText`    | `string`   | No       | -         | Custom text for the cancel button. |
+
+**Timeout:** 120000ms
+
+### getImageInfo(option)
+
+Gets image dimensions, type, and other information.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getImageInfo(
+  option: GetImageInfoOption,
+): Promise<GetImageInfoSuccessResult>;
+```
+
+**Parameters `GetImageInfoOption`:**
+
+| Parameter | Type     | Required | Description        |
+| --------- | -------- | -------- | ------------------ |
+| `src`     | `string` | Yes      | Image path or URL. |
+
+**Return value `GetImageInfoSuccessResult`:**
+
+| Field         | Type     | Description              |
+| ------------- | -------- | ------------------------ |
+| `width`       | `number` | Image width in pixels.   |
+| `height`      | `number` | Image height in pixels.  |
+| `path`        | `string` | Local path of the image. |
+| `orientation` | `string` | Image orientation.       |
+| `type`        | `string` | Image format.            |
+
+### compressImage(options)
+
+Compresses and scales an image, outputting in JPEG format.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function compressImage(options: CompressImageOption): Promise<string>;
+```
+
+**Parameters `CompressImageOption`:**
+
+| Parameter          | Type     | Required | Default | Description                                    |
+| ------------------ | -------- | -------- | ------- | ---------------------------------------------- |
+| `src`              | `string` | Yes      | -       | Source image path.                             |
+| `quality`          | `number` | No       | `80`    | Compression quality (0-100).                   |
+| `compressedWidth`  | `number` | No       | `0`     | Target width. `0` means scale proportionally.  |
+| `compressedHeight` | `number` | No       | `0`     | Target height. `0` means scale proportionally. |
+
+**Return value:** `Promise<string>` — Path to the compressed image.
+
+### saveMedia(url, type, options?)
+
+Saves an image or video to the system photo album.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function saveMedia(
+  url: string,
+  type: MediaType,
+  options?: SaveMediaOptions,
+): Promise<string>;
+```
+
+**Parameters:**
+
+| Parameter       | Type                 | Required | Description                     |
+| --------------- | -------------------- | -------- | ------------------------------- |
+| `url`           | `string`             | Yes      | Path to the media file to save. |
+| `type`          | `'photo' \| 'video'` | Yes      | Media type.                     |
+| `options.album` | `string`             | No       | Target album name.              |
+
+**Return value:** `Promise<string>` — System resource URI after saving.
+
+---
+
+## Location
+
+### getLocation(options?)
+
+Gets the current device geographic location.
+
+| Platform | Support | Notes                                                                                               |
+| -------- | ------- | --------------------------------------------------------------------------------------------------- |
+| iOS      | ✅      | Requires location permission configuration in Info.plist.                                           |
+| Android  | ✅      | Automatically requests `ACCESS_FINE_LOCATION` or `ACCESS_COARSE_LOCATION` permission on first call. |
+
+```ts
+function getLocation(options?: GetLocationOption): Promise<GetLocationResult>;
+```
+
+**Parameters `GetLocationOption`:**
+
+| Parameter                | Type      | Required | Default | Description                                       |
+| ------------------------ | --------- | -------- | ------- | ------------------------------------------------- |
+| `altitude`               | `boolean` | No       | `false` | Whether to request altitude data.                 |
+| `isHighAccuracy`         | `boolean` | No       | `false` | Whether to use high-accuracy positioning.         |
+| `highAccuracyExpireTime` | `number`  | No       | `10000` | High-accuracy positioning timeout (milliseconds). |
+
+**Return value `GetLocationResult`:**
+
+| Field                | Type     | Description                    |
+| -------------------- | -------- | ------------------------------ |
+| `latitude`           | `number` | Latitude (-90 to 90).          |
+| `longitude`          | `number` | Longitude (-180 to 180).       |
+| `speed`              | `number` | Speed in meters per second.    |
+| `accuracy`           | `number` | Accuracy in meters.            |
+| `altitude`           | `number` | Altitude in meters.            |
+| `verticalAccuracy`   | `number` | Vertical accuracy in meters.   |
+| `horizontalAccuracy` | `number` | Horizontal accuracy in meters. |
+
+### onLocationChange(enableHighAccuracy, onSuccess, onError?)
+
+Subscribes to location change events, continuously receiving location updates.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function onLocationChange(
+  enableHighAccuracy: boolean,
+  onSuccess: (data: LocationData) => void,
+  onError?: (error: unknown) => void,
+): () => void;
+```
+
+**Parameters:**
+
+| Parameter            | Type                           | Required | Default | Description                                                                 |
+| -------------------- | ------------------------------ | -------- | ------- | --------------------------------------------------------------------------- |
+| `enableHighAccuracy` | `boolean`                      | No       | `true`  | Whether to enable high accuracy.                                            |
+| `onSuccess`          | `(data: LocationData) => void` | Yes      | -       | Callback invoked on each location update. Receives a `LocationData` object. |
+| `onError`            | `(error: unknown) => void`     | No       | -       | Callback invoked when location acquisition fails.                           |
+
+**Callback parameter `LocationData`:**
+
+| Field       | Type             | Description                                        |
+| ----------- | ---------------- | -------------------------------------------------- |
+| `latitude`  | `number`         | Latitude.                                          |
+| `longitude` | `number`         | Longitude.                                         |
+| `accuracy`  | `number`         | Accuracy in meters.                                |
+| `altitude`  | `number \| null` | Altitude in meters, `null` if unavailable.         |
+| `speed`     | `number \| null` | Speed in meters per second, `null` if unavailable. |
+| `timestamp` | `number`         | Timestamp.                                         |
+
+**Return value:** `() => void` — Call this function to unsubscribe.
+
+---
+
+## Storage
+
+### setStorage(options)
+
+Writes data to local key-value storage. Values are serialized to JSON strings. Uses the MMKV storage engine under the hood.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function setStorage(options: SetStorageOption): Promise<void>;
+```
+
+**Parameters `SetStorageOption`:**
+
+| Parameter | Type      | Required | Description                                 |
+| --------- | --------- | -------- | ------------------------------------------- |
+| `key`     | `string`  | Yes      | Storage key.                                |
+| `data`    | `unknown` | Yes      | Data to store; any JSON-serializable value. |
+
+### getStorage\<T\>(key)
+
+Reads data from local storage. Values are deserialized from JSON strings to their original types.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getStorage<T>(key: string): Promise<T>;
+```
+
+**Parameters:**
+
+| Parameter | Type     | Required | Description  |
+| --------- | -------- | -------- | ------------ |
+| `key`     | `string` | Yes      | Storage key. |
+
+**Return value:** `Promise<T>` — Deserialized data.
+
+**Exception:** Throws an `Error` if the key does not exist, with message `'getStorage:fail data not found'`.
+
+### getStorageInfo()
+
+Gets storage usage information.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getStorageInfo(): Promise<GetStorageInfoResult>;
+```
+
+**Return value `GetStorageInfoResult`:**
+
+| Field         | Type       | Description                              |
+| ------------- | ---------- | ---------------------------------------- |
+| `keys`        | `string[]` | All keys in the current storage.         |
+| `currentSize` | `number`   | Current used storage size in KB.         |
+| `limitSize`   | `number`   | Storage limit, fixed at `10240` (10 MB). |
+
+---
+
+## Device
+
+### getSystemInfo()
+
+Gets system information including device hardware, screen dimensions, and safe areas.
+
+| Platform | Support | Notes                                                     |
+| -------- | ------- | --------------------------------------------------------- |
+| iOS      | ✅      | Status bar height calculated via safe-area insets.        |
+| Android  | ✅      | Status bar height obtained via `StatusBar.currentHeight`. |
+
+```ts
+function getSystemInfo(): Promise<SystemInfo>;
+```
+
+**Return value `SystemInfo`:**
+
+| Field               | Type                        | Description                                                       |
+| ------------------- | --------------------------- | ----------------------------------------------------------------- |
+| `brand`             | `string`                    | Device brand.                                                     |
+| `model`             | `string`                    | Device model.                                                     |
+| `pixelRatio`        | `number`                    | Screen pixel density.                                             |
+| `screenWidth`       | `number`                    | Screen width in pixels.                                           |
+| `screenHeight`      | `number`                    | Screen height in pixels.                                          |
+| `windowWidth`       | `number`                    | Available window width.                                           |
+| `windowHeight`      | `number`                    | Available window height.                                          |
+| `statusBarHeight`   | `number`                    | Status bar height.                                                |
+| `safeArea`          | `SafeArea`                  | Safe area information.                                            |
+| `system`            | `string`                    | Operating system and version, e.g., `'ios 17.0'`, `'android 14'`. |
+| `platform`          | `string`                    | Platform identifier: `'ios'` or `'android'`.                      |
+| `fontSizeSetting`   | `number`                    | System font scale factor.                                         |
+| `deviceOrientation` | `'portrait' \| 'landscape'` | Current device orientation.                                       |
+
+**`SafeArea` structure:**
+
+| Field    | Type     | Description             |
+| -------- | -------- | ----------------------- |
+| `left`   | `number` | Safe area left inset.   |
+| `right`  | `number` | Safe area right inset.  |
+| `top`    | `number` | Safe area top inset.    |
+| `bottom` | `number` | Safe area bottom inset. |
+| `width`  | `number` | Safe area width.        |
+| `height` | `number` | Safe area height.       |
+
+### getAppBaseInfo()
+
+Gets basic information about the host application.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getAppBaseInfo(): Promise<AppBaseInfo>;
+```
+
+**Return value `AppBaseInfo`:**
+
+| Field         | Type      | Description                                       |
+| ------------- | --------- | ------------------------------------------------- |
+| `version`     | `string`  | Device operating system version.                  |
+| `language`    | `string`  | Language setting.                                 |
+| `enableDebug` | `boolean` | Whether in debug mode (corresponds to `__DEV__`). |
+| `theme`       | `string`  | Current theme, currently fixed to `'light'`.      |
+
+### getScreenBrightness()
+
+Gets the current screen brightness.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getScreenBrightness(): Promise<number>;
+```
+
+**Return value:** `Promise<number>` — Brightness value ranging from 0 (darkest) to 1 (brightest).
+
+### makePhoneCall(phoneNumber)
+
+Brings up the system dialer interface.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function makePhoneCall(phoneNumber: string): Promise<boolean>;
+```
+
+**Parameters:**
+
+| Parameter     | Type     | Required | Description           |
+| ------------- | -------- | -------- | --------------------- |
+| `phoneNumber` | `string` | Yes      | Phone number to call. |
+
+**Return value:** `Promise<boolean>` — Whether the dialer was successfully invoked.
+
+---
+
+## Clipboard
+
+### getClipboardData()
+
+Reads text content from the system clipboard.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getClipboardData(): Promise<string>;
+```
+
+**Return value:** `Promise<string>` — Text content from the clipboard.
+
+### setClipboardData(data)
+
+Writes text to the system clipboard.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function setClipboardData(data: string): Promise<void>;
+```
+
+**Parameters:**
+
+| Parameter | Type     | Required | Description                     |
+| --------- | -------- | -------- | ------------------------------- |
+| `data`    | `string` | Yes      | Text to write to the clipboard. |
+
+---
+
+## File Transfer
+
+### downloadFile(options)
+
+Downloads a file to a local temporary path. Returns a Task object that supports aborting the download and listening for progress.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function downloadFile(options: DownloadFileOption): DownloadTask;
+```
+
+**Parameters `DownloadFileOption`:**
+
+| Parameter  | Type                     | Required | Default | Description                                                              |
+| ---------- | ------------------------ | -------- | ------- | ------------------------------------------------------------------------ |
+| `url`      | `string`                 | Yes      | -       | Download URL.                                                            |
+| `header`   | `Record<string, string>` | No       | -       | Custom HTTP request headers.                                             |
+| `timeout`  | `number`                 | No       | `60000` | Timeout in milliseconds.                                                 |
+| `filePath` | `string`                 | No       | -       | Destination save path. If not specified, saves to a temporary directory. |
+
+**Return value `DownloadTask`:**
+
+`DownloadTask` is both a Promise and a Task object. You can `await` it for the result, or call methods to control the download.
+
+| Method                         | Description                                                                      |
+| ------------------------------ | -------------------------------------------------------------------------------- |
+| `abort()`                      | Aborts the download. Returns `Promise<void>`.                                    |
+| `onProgressUpdate(callback)`   | Registers a download progress callback. See table below for callback parameters. |
+| `offProgressUpdate(callback)`  | Unregisters a previously registered progress callback.                           |
+| `onHeadersReceived(callback)`  | Registers a response headers received callback.                                  |
+| `offHeadersReceived(callback)` | Unregisters a previously registered headers callback.                            |
+
+**Progress callback parameters `DownloadProgressRes`:**
+
+| Field                       | Type     | Description                 |
+| --------------------------- | -------- | --------------------------- |
+| `progress`                  | `number` | Download progress (0-100).  |
+| `totalBytesWritten`         | `number` | Number of bytes downloaded. |
+| `totalBytesExpectedToWrite` | `number` | Total expected bytes.       |
+
+**Final return value `DownloadFileResult`:**
+
+| Field          | Type     | Description                        |
+| -------------- | -------- | ---------------------------------- |
+| `tempFilePath` | `string` | Local path of the downloaded file. |
+| `statusCode`   | `number` | HTTP status code.                  |
+
+### uploadFile(options)
+
+Uploads a local file to a server. Returns a Task object that supports aborting the upload and listening for progress.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function uploadFile(options: UploadFileOption): UploadTask;
+```
+
+**Parameters `UploadFileOption`:**
+
+| Parameter  | Type                     | Required | Description                                   |
+| ---------- | ------------------------ | -------- | --------------------------------------------- |
+| `url`      | `string`                 | Yes      | Upload target URL.                            |
+| `filePath` | `string`                 | Yes      | Local path of the file to upload.             |
+| `name`     | `string`                 | Yes      | Form field name for the file.                 |
+| `header`   | `Record<string, string>` | No       | Custom HTTP request headers.                  |
+| `formData` | `Record<string, string>` | No       | Additional form data to submit with the file. |
+
+**Return value `UploadTask`:**
+
+Same structure as `DownloadTask`, supporting `abort()`, `onProgressUpdate()`, `onHeadersReceived()`, etc.
+
+**Progress callback parameters `UploadProgressRes`:**
+
+| Field                      | Type     | Description               |
+| -------------------------- | -------- | ------------------------- |
+| `progress`                 | `number` | Upload progress (0-100).  |
+| `totalBytesSent`           | `number` | Number of bytes uploaded. |
+| `totalBytesExpectedToSend` | `number` | Total expected bytes.     |
+
+**Final return value `UploadFileResult`:**
+
+| Field        | Type     | Description           |
+| ------------ | -------- | --------------------- |
+| `data`       | `string` | Server response body. |
+| `statusCode` | `number` | HTTP status code.     |
+
+### removeFile(options)
+
+Deletes a file from the sandbox.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function removeFile(options: { filePath: string }): Promise<void>;
+```
+
+**Parameters:**
+
+| Parameter  | Type     | Required | Description                 |
+| ---------- | -------- | -------- | --------------------------- |
+| `filePath` | `string` | Yes      | Path of the file to delete. |
+
+**Exception:** Throws a `FILE_NOT_FOUND` error if the file does not exist.
+
+---
+
+## File System
+
+### getFileSystemManager()
+
+Gets the file system manager singleton, providing complete sandbox file operations. All file paths are automatically resolved relative to the miniapp sandbox directory.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getFileSystemManager(): FileSystemManager;
+```
+
+#### FileSystemManager.access(options)
+
+Checks whether a file or directory exists. Resolves if it exists, rejects with a `FILE_NOT_FOUND` error if it does not.
+
+```ts
+access(options: { path: string }): Promise<void>
+```
+
+| Parameter | Type     | Required | Description                             |
+| --------- | -------- | -------- | --------------------------------------- |
+| `path`    | `string` | Yes      | Path of the file or directory to check. |
+
+#### FileSystemManager.readFile(options)
+
+Reads file content.
+
+```ts
+readFile(options: FileReadOption): Promise<{ data: string }>
+```
+
+| Parameter  | Type                            | Required | Default  | Description                            |
+| ---------- | ------------------------------- | -------- | -------- | -------------------------------------- |
+| `filePath` | `string`                        | Yes      | -        | File path.                             |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | No       | `'utf8'` | File encoding.                         |
+| `position` | `number`                        | No       | -        | Starting position for reading (bytes). |
+| `length`   | `number`                        | No       | -        | Length to read (bytes).                |
+
+#### FileSystemManager.writeFile(options)
+
+Writes to a file. If the file already exists, it will be overwritten.
+
+```ts
+writeFile(options: FileWriteOption): Promise<void>
+```
+
+| Parameter  | Type                            | Required | Default  | Description       |
+| ---------- | ------------------------------- | -------- | -------- | ----------------- |
+| `filePath` | `string`                        | Yes      | -        | File path.        |
+| `data`     | `string`                        | Yes      | -        | Content to write. |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | No       | `'utf8'` | File encoding.    |
+
+#### FileSystemManager.appendFile(options)
+
+Appends content to the end of a file.
+
+```ts
+appendFile(options: { filePath: string; data: string; encoding?: string }): Promise<void>
+```
+
+| Parameter  | Type                            | Required | Default  | Description        |
+| ---------- | ------------------------------- | -------- | -------- | ------------------ |
+| `filePath` | `string`                        | Yes      | -        | File path.         |
+| `data`     | `string`                        | Yes      | -        | Content to append. |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | No       | `'utf8'` | File encoding.     |
+
+#### FileSystemManager.copyFile(options)
+
+Copies a file.
+
+```ts
+copyFile(options: { srcPath: string; destPath: string }): Promise<void>
+```
+
+| Parameter  | Type     | Required | Description            |
+| ---------- | -------- | -------- | ---------------------- |
+| `srcPath`  | `string` | Yes      | Source file path.      |
+| `destPath` | `string` | Yes      | Destination file path. |
+
+#### FileSystemManager.rename(options)
+
+Renames or moves a file/directory.
+
+```ts
+rename(options: { oldPath: string; newPath: string }): Promise<void>
+```
+
+| Parameter | Type     | Required | Description    |
+| --------- | -------- | -------- | -------------- |
+| `oldPath` | `string` | Yes      | Original path. |
+| `newPath` | `string` | Yes      | New path.      |
+
+#### FileSystemManager.unlink(options)
+
+Deletes a file.
+
+```ts
+unlink(options: { filePath: string }): Promise<void>
+```
+
+| Parameter  | Type     | Required | Description                 |
+| ---------- | -------- | -------- | --------------------------- |
+| `filePath` | `string` | Yes      | Path of the file to delete. |
+
+#### FileSystemManager.mkdir(options)
+
+Creates a directory.
+
+```ts
+mkdir(options: { dirPath: string; recursive?: boolean }): Promise<void>
+```
+
+| Parameter   | Type      | Required | Default | Description                                       |
+| ----------- | --------- | -------- | ------- | ------------------------------------------------- |
+| `dirPath`   | `string`  | Yes      | -       | Directory path.                                   |
+| `recursive` | `boolean` | No       | `false` | Whether to create parent directories recursively. |
+
+#### FileSystemManager.rmdir(options)
+
+Deletes a directory.
+
+```ts
+rmdir(options: { dirPath: string; recursive?: boolean }): Promise<void>
+```
+
+| Parameter   | Type      | Required | Default | Description                             |
+| ----------- | --------- | -------- | ------- | --------------------------------------- |
+| `dirPath`   | `string`  | Yes      | -       | Directory path.                         |
+| `recursive` | `boolean` | No       | `false` | Whether to delete contents recursively. |
+
+#### FileSystemManager.readdir(options)
+
+Lists files and subdirectories in a directory.
+
+```ts
+readdir(options: { dirPath: string }): Promise<{ files: string[] }>
+```
+
+| Parameter | Type     | Required | Description     |
+| --------- | -------- | -------- | --------------- |
+| `dirPath` | `string` | Yes      | Directory path. |
+
+#### FileSystemManager.saveFile(options)
+
+Saves a temporary file to the sandbox. If `filePath` is not specified, automatically generates a name using a timestamp.
+
+```ts
+saveFile(options: { tempFilePath: string; filePath?: string }): Promise<{ savedFilePath: string }>
+```
+
+| Parameter      | Type     | Required | Description                                              |
+| -------------- | -------- | -------- | -------------------------------------------------------- |
+| `tempFilePath` | `string` | Yes      | Temporary file path.                                     |
+| `filePath`     | `string` | No       | Destination save path. If not specified, auto-generates. |
+
+#### FileSystemManager.getFileInfo(options)
+
+Gets file size and hash digest.
+
+```ts
+getFileInfo(options: GetFileInfoOption): Promise<GetFileInfoResult>
+```
+
+| Parameter         | Type                          | Required | Default | Description       |
+| ----------------- | ----------------------------- | -------- | ------- | ----------------- |
+| `filePath`        | `string`                      | Yes      | -       | File path.        |
+| `digestAlgorithm` | `'md5' \| 'sha1' \| 'sha256'` | No       | `'md5'` | Digest algorithm. |
+
+**Return value `GetFileInfoResult`:**
+
+| Field    | Type     | Description         |
+| -------- | -------- | ------------------- |
+| `size`   | `number` | File size in bytes. |
+| `digest` | `string` | File hash digest.   |
+
+---
+
+## Network
+
+### getNetworkType()
+
+Gets the current network connection type.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getNetworkType(): Promise<string>;
+```
+
+**Return value:** `Promise<string>` — Network type, such as `'wifi'`, `'cellular'`, `'none'`, or `'unknown'`.
+
+### onNetworkStatusChange(callback)
+
+Subscribes to network status change events.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function onNetworkStatusChange(
+  callback: (res: NetworkStatusChangeResult) => void,
+): () => void;
+```
+
+**Parameters:**
+
+| Parameter  | Type                                       | Required | Description                                                                                                   |
+| ---------- | ------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------- |
+| `callback` | `(res: NetworkStatusChangeResult) => void` | Yes      | Callback invoked when network status changes. Receives an object with `isConnected` and `networkType` fields. |
+
+**Callback parameter `NetworkStatusChangeResult`:**
+
+| Field         | Type      | Description                                            |
+| ------------- | --------- | ------------------------------------------------------ |
+| `isConnected` | `boolean` | Whether there is currently a network connection.       |
+| `networkType` | `string`  | Network type (`'wifi'`, `'cellular'`, `'none'`, etc.). |
+
+**Return value:** `() => void` — Call this function to unsubscribe.
+
+---
+
+## Sensors
+
+All sensor APIs return an unsubscribe function. After subscription, they continuously receive data updates until the unsubscribe function is called.
+
+### onAccelerometerChange(callback, interval?)
+
+Subscribes to accelerometer data changes.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function onAccelerometerChange(
+  callback: (data: SensorData) => void,
+  interval?: number,
+): () => void;
+```
+
+**Parameters:**
+
+| Parameter  | Type                         | Required | Default | Description                                                                                      |
+| ---------- | ---------------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `callback` | `(data: SensorData) => void` | Yes      | -       | Callback invoked on each data update. Receives an object with `x`, `y`, `z` acceleration values. |
+| `interval` | `number`                     | No       | `100`   | Data sampling interval in milliseconds.                                                          |
+
+**Callback parameter `SensorData`:**
+
+| Field       | Type     | Description           |
+| ----------- | -------- | --------------------- |
+| `x`         | `number` | X-axis value.         |
+| `y`         | `number` | Y-axis value.         |
+| `z`         | `number` | Z-axis value.         |
+| `timestamp` | `number` | (Optional) Timestamp. |
+
+**Return value:** `() => void` — Call this function to unsubscribe.
+
+### onGyroscopeChange(callback, interval?)
+
+Subscribes to gyroscope data changes. Parameter and return value structure is the same as `onAccelerometerChange`.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function onGyroscopeChange(
+  callback: (data: SensorData) => void,
+  interval?: number,
+): () => void;
+```
+
+### onMagnetometerChange(callback, interval?)
+
+Subscribes to magnetometer data changes. Parameter and return value structure is the same as `onAccelerometerChange`.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function onMagnetometerChange(
+  callback: (data: SensorData) => void,
+  interval?: number,
+): () => void;
+```
+
+### onBarometerChange(callback)
+
+Subscribes to barometer data changes.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function onBarometerChange(callback: (data: BarometerData) => void): () => void;
+```
+
+**Parameters:**
+
+| Parameter  | Type                            | Required | Description                                                                       |
+| ---------- | ------------------------------- | -------- | --------------------------------------------------------------------------------- |
+| `callback` | `(data: BarometerData) => void` | Yes      | Callback invoked on each data update. Receives an object with a `pressure` field. |
+
+**Callback parameter `BarometerData`:**
+
+| Field      | Type     | Description           |
+| ---------- | -------- | --------------------- |
+| `pressure` | `number` | Atmospheric pressure. |
+
+**Return value:** `() => void` — Call this function to unsubscribe.
+
+---
+
+## Screenshot Listener
+
+### onUserCaptureScreen(callback)
+
+Listens for user screenshot events.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function onUserCaptureScreen(callback: () => void): () => void;
+```
+
+**Parameters:**
+
+| Parameter  | Type         | Required | Description                                        |
+| ---------- | ------------ | -------- | -------------------------------------------------- |
+| `callback` | `() => void` | Yes      | Callback invoked when the user takes a screenshot. |
+
+**Return value:** `() => void` — Call this function to stop listening.
+
+---
+
+## Miniapp Update
+
+### getMiniAppUpdateInfo()
+
+Checks whether an update is available for the current miniapp. Does not require any parameters; automatically uses the `appId` of the currently running miniapp.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getMiniAppUpdateInfo(): Promise<MiniAppUpdateInfo>;
+```
+
+**Return value `MiniAppUpdateInfo`:**
+
+| Field           | Type                                         | Description                      |
+| --------------- | -------------------------------------------- | -------------------------------- |
+| `hasUpdate`     | `boolean`                                    | Whether an update is available.  |
+| `latestVersion` | `string \| undefined`                        | Latest version number.           |
+| `sourceUrl`     | `string \| undefined`                        | Download URL for the new bundle. |
+| `mode`          | `'development' \| 'production' \| undefined` | Current installation mode.       |
+
+**Timeout:** 15000ms
+
+### applyMiniAppUpdate()
+
+Downloads and installs the latest version of the bundle. Typically called after confirming an update via `getMiniAppUpdateInfo()`.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function applyMiniAppUpdate(): Promise<MiniAppUpdateInfo>;
+```
+
+**Return value:** Same `MiniAppUpdateInfo` object as `getMiniAppUpdateInfo`, reflecting the state after the update.
+
+**Timeout:** 120000ms
+
+---
+
+## Common Conventions
+
+### Timeouts
+
+| Category               | Default Timeout |
+| ---------------------- | --------------- |
+| General APIs           | 15000ms         |
+| Media/Scanning related | 120000ms        |
+| File transfer          | 60000ms         |
+
+### File Paths
+
+- All file paths are automatically resolved relative to the miniapp sandbox directory
+- `/Documents/` paths are mapped to `DocumentDirectoryPath`
+- The `file://` protocol prefix is automatically stripped
+- Miniapp path prefix is `/Documents/MiniApps/{appId}`
+
+### Subscription Pattern
+
+All subscription APIs (sensors, network, location, screenshot) follow a unified pattern:
+
+```ts
+// Subscribe
+const unsubscribe = onXxxChange(callback);
+
+// Unsubscribe
+unsubscribe();
+```

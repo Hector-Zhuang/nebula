@@ -1,0 +1,787 @@
+---
+title: '@nebula-rn/components'
+description: 'Nebula cross-platform UI component library API reference, including complete Props, event callbacks, and platform differences for each component.'
+---
+
+`@nebula-rn/components` provides a set of cross-platform React Native components for miniapp developers. It also re-exports basic React Native components.
+
+**Peer Dependencies:** `react >= 18`, `react-native >= 0.83`
+
+---
+
+## Camera
+
+Camera component supporting photo capture and QR code scanning modes. Based on `react-native-vision-camera`.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```tsx
+import { Camera } from '@nebula-rn/components';
+```
+
+**Example:**
+
+```tsx
+import { useState } from 'react';
+import { Alert, View } from 'react-native';
+import { Camera } from '@nebula-rn/components';
+
+export default function ScanCodeDemo() {
+  const [mode, setMode] = useState<'normal' | 'scanCode'>('scanCode');
+
+  return (
+    <View style={{ height: 240, borderRadius: 12, overflow: 'hidden' }}>
+      <Camera
+        mode={mode}
+        devicePosition="back"
+        flash="auto"
+        onScanCode={event => {
+          Alert.alert('Scan Result', event.result);
+          setMode('normal');
+        }}
+        onError={error => {
+          Alert.alert('Camera Error', error.message);
+        }}
+      />
+    </View>
+  );
+}
+```
+
+**Props:**
+
+| Parameter        | Type                                 | Required | Default    | Description                                            |
+| ---------------- | ------------------------------------ | -------- | ---------- | ------------------------------------------------------ |
+| `id`             | `string`                             | No       | —          | Component ID.                                          |
+| `className`      | `string`                             | No       | —          | CSS class name.                                        |
+| `style`          | `StyleProp<ViewStyle>`               | No       | —          | Custom styles.                                         |
+| `mode`           | `'normal' \| 'scanCode'`             | No       | `'normal'` | Camera mode. `'scanCode'` enables QR/barcode scanning. |
+| `resolution`     | `'low' \| 'medium' \| 'high'`        | No       | —          | Camera resolution.                                     |
+| `devicePosition` | `'front' \| 'back'`                  | No       | `'back'`   | Front or back camera.                                  |
+| `flash`          | `'auto' \| 'on' \| 'off' \| 'torch'` | No       | —          | Flash mode.                                            |
+
+**Event Callbacks:**
+
+| Callback     | Type                                         | Description                                  |
+| ------------ | -------------------------------------------- | -------------------------------------------- |
+| `onInitDone` | `(event: CameraInitEventDetail) => void`     | Camera initialization complete.              |
+| `onReady`    | `(event: CameraInitEventDetail) => void`     | Camera ready.                                |
+| `onScanCode` | `(event: CameraScanCodeEventDetail) => void` | QR code scanned (only in `mode='scanCode'`). |
+| `onError`    | `(error: CameraError) => void`               | Error occurred.                              |
+
+**`CameraInitEventDetail`:**
+
+| Field     | Type     | Description                           |
+| --------- | -------- | ------------------------------------- |
+| `maxZoom` | `number` | Maximum zoom supported by the device. |
+
+**`CameraScanCodeEventDetail`:**
+
+| Field        | Type                    | Description                   |
+| ------------ | ----------------------- | ----------------------------- |
+| `result`     | `string`                | Scanned result text.          |
+| `fullResult` | `string`                | Full scan result.             |
+| `rawData`    | `string`                | Raw data.                     |
+| `charSet`    | `string`                | Character encoding.           |
+| `type`       | `CodeType \| 'unknown'` | Code type (e.g., QR, EAN-13). |
+
+**`CameraError`:**
+
+| Field         | Type                  | Description                                                    |
+| ------------- | --------------------- | -------------------------------------------------------------- |
+| `message`     | `string`              | Error message.                                                 |
+| `code`        | `string \| undefined` | Error code, e.g., `'PERMISSION_DENIED'`, `'PERMISSION_ERROR'`. |
+| `nativeError` | `unknown`             | Native error object.                                           |
+
+**Permission Required:** Camera permission (automatically requested when component mounts).
+
+**Default Size:** 300x300, `overflow: hidden`, black background.
+
+**Supported Code Types:** QR Code, EAN-13 barcode.
+
+**Native Dependency:** `react-native-vision-camera` v4.7.3
+
+---
+
+## Map
+
+Map display and interaction component. Based on `react-native-maps`.
+
+<Warning title="Warning for Android">
+If you intend to use the Map component on the Android platform, please refer to the `react-native-maps` documentation beforehand to learn how to configure an API Key for Android. Otherwise, your app may crash.
+
+https://github.com/react-native-maps/react-native-maps/blob/master/docs/installation.md#android
+</Warning>
+
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```tsx
+import { Map } from '@nebula-rn/components';
+```
+
+**Example:**
+
+```tsx
+import { Map } from '@nebula-rn/components';
+
+const markers = [
+  {
+    id: 1,
+    latitude: 31.2304,
+    longitude: 121.4737,
+    title: 'Shanghai Office',
+    iconPath: 'https://example.com/marker.png',
+    callout: {
+      content: 'Click for details',
+      display: 'BYCLICK',
+      bgColor: '#ffffff',
+      padding: 8,
+    },
+  },
+];
+
+export default function OfficeMap() {
+  return (
+    <Map
+      latitude={31.2304}
+      longitude={121.4737}
+      scale={14}
+      markers={markers}
+      showCompass
+      enableZoom
+      enableScroll
+      style={{ height: 280, borderRadius: 12 }}
+    />
+  );
+}
+```
+
+**Props:**
+
+| Parameter           | Type             | Required | Default | Description                              |
+| ------------------- | ---------------- | -------- | ------- | ---------------------------------------- |
+| `latitude`          | `number`         | Yes      | —       | Center latitude.                         |
+| `longitude`         | `number`         | Yes      | —       | Center longitude.                        |
+| `scale`             | `number`         | No       | —       | Zoom level.                              |
+| `markers`           | `MarkerItem[]`   | No       | —       | List of markers.                         |
+| `polyline`          | `PolylineItem[]` | No       | —       | List of polylines.                       |
+| `polygons`          | `PolygonItem[]`  | No       | —       | List of polygons.                        |
+| `circles`           | `CircleItem[]`   | No       | —       | List of circle overlays.                 |
+| `includePoints`     | `Coordinate[]`   | No       | —       | Coordinates to include within viewport.  |
+| `showLocation`      | `boolean`        | No       | `false` | Whether to show user's current location. |
+| `subkey`            | `string`         | No       | —       | Map service subkey.                      |
+| `enable3D`          | `boolean`        | No       | —       | Enable 3D map.                           |
+| `showCompass`       | `boolean`        | No       | `true`  | Show compass.                            |
+| `enableOverlooking` | `boolean`        | No       | —       | Allow overlooking (pitch/tilt).          |
+| `enableZoom`        | `boolean`        | No       | `true`  | Allow zooming.                           |
+| `enableScroll`      | `boolean`        | No       | `true`  | Allow scrolling.                         |
+| `enableRotate`      | `boolean`        | No       | `true`  | Allow rotation.                          |
+
+**Event Callbacks:**
+
+| Callback         | Type                                 | Description                |
+| ---------------- | ------------------------------------ | -------------------------- |
+| `onMarkerClick`  | `(markerId: number) => void`         | Marker clicked.            |
+| `onCalloutClick` | `(markerId: number) => void`         | Marker callout clicked.    |
+| `onControlClick` | `(controlId?: number) => void`       | Control clicked.           |
+| `onRegionChange` | `(event: RegionChangeEvent) => void` | Map region changed.        |
+| `onClick`        | `(coordinate: Coordinate) => void`   | Empty area of map clicked. |
+| `onUpdated`      | `() => void`                         | Map update complete.       |
+| `onPoiClick`     | `(event: any) => void`               | Point of interest clicked. |
+
+**`MarkerItem`:**
+
+| Field       | Type                       | Required | Description            |
+| ----------- | -------------------------- | -------- | ---------------------- |
+| `id`        | `number`                   | Yes      | Unique ID.             |
+| `latitude`  | `number`                   | Yes      | Latitude.              |
+| `longitude` | `number`                   | Yes      | Longitude.             |
+| `title`     | `string`                   | No       | Title text.            |
+| `iconPath`  | `string`                   | Yes      | Icon URI.              |
+| `rotate`    | `number`                   | No       | Rotation angle.        |
+| `alpha`     | `number`                   | No       | Opacity.               |
+| `callout`   | `CalloutItem`              | No       | Callout configuration. |
+| `anchor`    | `{ x: number; y: number }` | No       | Icon anchor point.     |
+
+**`CalloutItem`:**
+
+| Field          | Type                            | Required | Description                                                          |
+| -------------- | ------------------------------- | -------- | -------------------------------------------------------------------- |
+| `content`      | `string`                        | No       | Callout content text.                                                |
+| `color`        | `string`                        | No       | Text color.                                                          |
+| `fontSize`     | `number`                        | No       | Font size.                                                           |
+| `borderRadius` | `number`                        | No       | Border radius.                                                       |
+| `borderWidth`  | `number`                        | No       | Border width.                                                        |
+| `borderColor`  | `string`                        | No       | Border color.                                                        |
+| `bgColor`      | `string`                        | No       | Background color.                                                    |
+| `padding`      | `number`                        | No       | Padding.                                                             |
+| `display`      | `'BYCLICK' \| 'ALWAYS'`         | No       | Display mode. `'BYCLICK'` shows on click, `'ALWAYS'` always visible. |
+| `textAlign`    | `'left' \| 'right' \| 'center'` | No       | Text alignment.                                                      |
+
+**`PolylineItem`:**
+
+| Field    | Type           | Required | Description                 |
+| -------- | -------------- | -------- | --------------------------- |
+| `points` | `Coordinate[]` | Yes      | Polyline coordinate points. |
+| `color`  | `string`       | No       | Line color.                 |
+| `width`  | `number`       | No       | Line width.                 |
+
+**`PolygonItem`:**
+
+| Field         | Type           | Required | Description                |
+| ------------- | -------------- | -------- | -------------------------- |
+| `points`      | `Coordinate[]` | Yes      | Polygon coordinate points. |
+| `strokeWidth` | `number`       | No       | Border width.              |
+| `strokeColor` | `string`       | No       | Border color.              |
+| `fillColor`   | `string`       | No       | Fill color.                |
+
+**`CircleItem`:**
+
+| Field         | Type     | Required | Description       |
+| ------------- | -------- | -------- | ----------------- |
+| `latitude`    | `number` | Yes      | Center latitude.  |
+| `longitude`   | `number` | Yes      | Center longitude. |
+| `radius`      | `number` | Yes      | Radius in meters. |
+| `color`       | `string` | No       | Border color.     |
+| `fillColor`   | `string` | No       | Fill color.       |
+| `strokeWidth` | `number` | No       | Border width.     |
+
+**`RegionChangeEvent`:**
+
+| Field       | Type                            | Description    |
+| ----------- | ------------------------------- | -------------- |
+| `type`      | `'begin' \| 'end'`              | Change stage.  |
+| `timeStamp` | `number`                        | Timestamp.     |
+| `causedBy`  | `'scale' \| 'drag' \| 'update'` | Trigger cause. |
+
+**Zoom Constraints:** Minimum 5, maximum 18.
+
+**Default Viewport:** `LATITUDE_DELTA = 0.0922`.
+
+**Native Dependency:** `react-native-maps`
+
+---
+
+## Progress
+
+Progress bar component with animation support.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```tsx
+import { Progress } from '@nebula-rn/components';
+```
+
+**Example:**
+
+```tsx
+import { View } from 'react-native';
+import { Progress } from '@nebula-rn/components';
+
+export default function UploadProgress() {
+  return (
+    <View style={{ gap: 12 }}>
+      <Progress percent={32} showInfo />
+      <Progress
+        percent={76}
+        active
+        activeMode="forwards"
+        strokeWidth={8}
+        borderRadius={999}
+        activeColor="#2563eb"
+        backgroundColor="#dbeafe"
+      />
+    </View>
+  );
+}
+```
+
+**Props:**
+
+| Parameter         | Type                        | Required | Default       | Description                                   |
+| ----------------- | --------------------------- | -------- | ------------- | --------------------------------------------- |
+| `percent`         | `number`                    | Yes      | —             | Progress percentage (0-100).                  |
+| `showInfo`        | `boolean`                   | No       | `false`       | Whether to show percentage text on the right. |
+| `strokeWidth`     | `number \| string`          | No       | `6`           | Progress bar height (px).                     |
+| `activeColor`     | `string`                    | No       | `'#09BB07'`   | Color of the completed portion.               |
+| `backgroundColor` | `string`                    | No       | `'#EBEBEB'`   | Background color of the incomplete portion.   |
+| `borderRadius`    | `number \| string`          | No       | `0`           | Border radius.                                |
+| `fontSize`        | `number \| string`          | No       | —             | Percentage text font size.                    |
+| `active`          | `boolean`                   | No       | —             | Whether to enable animation.                  |
+| `activeMode`      | `'backwards' \| 'forwards'` | No       | `'backwards'` | Animation mode.                               |
+| `style`           | `StyleProp<ViewStyle>`      | No       | —             | Custom styles.                                |
+
+**Event Callbacks:**
+
+| Callback      | Type                                   | Description               |
+| ------------- | -------------------------------------- | ------------------------- |
+| `onActiveEnd` | `(event: { percent: number }) => void` | Progress animation ended. |
+
+**Animation Modes:**
+
+| Mode        | Behavior                                             |
+| ----------- | ---------------------------------------------------- |
+| `backwards` | Resets to zero first, then animates to target value. |
+| `forwards`  | Animates from current value to target value.         |
+
+**Animation Duration:** `(percent / 100) * 1000` ms, linear easing.
+
+---
+
+## RichText
+
+Rich text rendering component that uses WebView to render HTML content with automatic height adjustment.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```tsx
+import { RichText } from '@nebula-rn/components';
+```
+
+**Example:**
+
+```tsx
+import { RichText } from '@nebula-rn/components';
+
+const article = `
+  <h1 style="font-size: 20px; color: #0f172a;">Welcome to Nebula</h1>
+  <p style="color: #475569; line-height: 1.7;">
+    RichText is suitable for rendering operational articles, activity rules, service agreements, and other HTML content.
+  </p>
+  <ul>
+    <li>Supports basic tags</li>
+    <li>Supports inline styles</li>
+    <li>Automatically adjusts height</li>
+  </ul>
+`;
+
+export default function RichArticle() {
+  return <RichText html={article} style={{ backgroundColor: '#fff' }} />;
+}
+```
+
+**Props:**
+
+| Parameter | Type                   | Required | Default | Description             |
+| --------- | ---------------------- | -------- | ------- | ----------------------- |
+| `html`    | `string`               | Yes      | —       | HTML content to render. |
+| `style`   | `StyleProp<ViewStyle>` | No       | —       | Custom styles.          |
+
+**Features:**
+
+- Automatically calculates and adjusts content height (via injected JS to get `scrollHeight`).
+- Internal scrolling disabled.
+- Transparent background.
+- Default font: `-apple-system, system-ui`.
+- Viewport configuration: `width=device-width, initial-scale=1, user-scalable=0`.
+
+**Native Dependency:** `react-native-webview`
+
+---
+
+## Slider
+
+Slider selector component, supporting both controlled and uncontrolled modes.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```tsx
+import { Slider } from '@nebula-rn/components';
+```
+
+**Example:**
+
+```tsx
+import { useState } from 'react';
+import { Text, View } from 'react-native';
+import { Slider } from '@nebula-rn/components';
+
+export default function VolumeSlider() {
+  const [value, setValue] = useState(40);
+
+  return (
+    <View style={{ gap: 8 }}>
+      <Text>Volume: {value}</Text>
+      <Slider
+        min={0}
+        max={100}
+        step={5}
+        value={value}
+        showValue
+        activeColor="#2563eb"
+        onChanging={event => setValue(event.value)}
+        onChange={event => setValue(event.value)}
+      />
+    </View>
+  );
+}
+```
+
+**Props:**
+
+| Parameter         | Type                   | Required | Default     | Description                                            |
+| ----------------- | ---------------------- | -------- | ----------- | ------------------------------------------------------ |
+| `min`             | `number`               | No       | `0`         | Minimum value.                                         |
+| `max`             | `number`               | No       | `100`       | Maximum value.                                         |
+| `step`            | `number`               | No       | `1`         | Step increment.                                        |
+| `value`           | `number`               | No       | —           | Controlled value. Passing this enters controlled mode. |
+| `defaultValue`    | `number`               | No       | —           | Uncontrolled initial value.                            |
+| `disabled`        | `boolean`              | No       | —           | Disable interaction.                                   |
+| `activeColor`     | `string`               | No       | `'#1aad19'` | Color of the selected track area.                      |
+| `backgroundColor` | `string`               | No       | `'#e9e9e9'` | Color of the unselected track area.                    |
+| `blockColor`      | `string`               | No       | `'#fff'`    | Thumb color.                                           |
+| `showValue`       | `boolean`              | No       | `false`     | Whether to show current value on the right.            |
+| `name`            | `string`               | No       | —           | Form field name.                                       |
+| `style`           | `StyleProp<ViewStyle>` | No       | —           | Custom styles.                                         |
+
+**Event Callbacks:**
+
+| Callback     | Type                                 | Description                             |
+| ------------ | ------------------------------------ | --------------------------------------- |
+| `onChange`   | `(event: { value: number }) => void` | Triggered when dragging ends.           |
+| `onChanging` | `(event: { value: number }) => void` | Triggered continuously during dragging. |
+
+**Controlled Mode Sync Interval:** 50ms debounce.
+
+**Native Dependency:** `@react-native-community/slider`
+
+---
+
+## Swiper
+
+Image/content carousel component supporting autoplay, looping, and pagination indicators.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```tsx
+import { Swiper } from '@nebula-rn/components';
+```
+
+**Example:**
+
+```tsx
+import { Image, View } from 'react-native';
+import { Swiper } from '@nebula-rn/components';
+
+const banners = [
+  'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200',
+  'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1200',
+  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200',
+];
+
+export default function BannerSwiper() {
+  return (
+    <View style={{ height: 180, borderRadius: 12, overflow: 'hidden' }}>
+      <Swiper autoplay circular indicatorDots interval={3000}>
+        {banners.map(uri => (
+          <Image
+            key={uri}
+            source={{ uri }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+          />
+        ))}
+      </Swiper>
+    </View>
+  );
+}
+```
+
+**Props:**
+
+| Parameter              | Type                   | Required | Default             | Description                            |
+| ---------------------- | ---------------------- | -------- | ------------------- | -------------------------------------- |
+| `indicatorDots`        | `boolean`              | No       | —                   | Whether to show pagination indicators. |
+| `indicatorColor`       | `string`               | No       | `'rgba(0,0,0,0.3)'` | Inactive indicator color.              |
+| `indicatorActiveColor` | `string`               | No       | `'#000'`            | Active indicator color.                |
+| `autoplay`             | `boolean`              | No       | —                   | Whether to autoplay.                   |
+| `current`              | `number`               | No       | `0`                 | Currently displayed slide index.       |
+| `interval`             | `number`               | No       | `5000`              | Autoplay interval (ms).                |
+| `circular`             | `boolean`              | No       | —                   | Whether to loop (infinite scrolling).  |
+| `vertical`             | `boolean`              | No       | —                   | Whether to scroll vertically.          |
+| `style`                | `StyleProp<ViewStyle>` | No       | —                   | Custom styles.                         |
+
+**Event Callbacks:**
+
+| Callback            | Type                                   | Description                                |
+| ------------------- | -------------------------------------- | ------------------------------------------ |
+| `onChange`          | `(event: { current: number }) => void` | Triggered when slide changes.              |
+| `onAnimationFinish` | `(event: { current: number }) => void` | Triggered after slide animation completes. |
+
+**Child Components:**
+
+```tsx
+<Swiper autoplay circular indicatorDots>
+  <Swiper.Item>
+    <Image source={img1} />
+  </Swiper.Item>
+  <Swiper.Item>
+    <Image source={img2} />
+  </Swiper.Item>
+</Swiper>
+```
+
+**Indicator Style:** Dots 8x8, borderRadius 8, inactive `#999`, active `#333`.
+
+**Native Dependencies:** `react-native-reanimated-carousel` v4.0.3, `react-native-reanimated` v4.2.3
+
+---
+
+## Video
+
+Video player component supporting fullscreen, poster image, and playback controls.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```tsx
+import { Video } from '@nebula-rn/components';
+```
+
+**Example:**
+
+```tsx
+import { Video } from '@nebula-rn/components';
+
+export default function CourseVideo() {
+  return (
+    <Video
+      src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+      poster="https://peach.blender.org/wp-content/uploads/title_anouncement.jpg?x11217"
+      controls
+      objectFit="cover"
+      style={{ height: 220, borderRadius: 12, backgroundColor: '#000' }}
+      onError={event => {
+        console.error('video error', event.errMsg);
+      }}
+    />
+  );
+}
+```
+
+**Props:**
+
+| Parameter           | Type                             | Required | Default     | Description                              |
+| ------------------- | -------------------------------- | -------- | ----------- | ---------------------------------------- |
+| `src`               | `string`                         | Yes      | —           | Video resource URI.                      |
+| `duration`          | `number`                         | No       | —           | Video duration (ms).                     |
+| `controls`          | `boolean`                        | No       | `true`      | Whether to show playback controls.       |
+| `autoplay`          | `boolean`                        | No       | `false`     | Whether to autoplay.                     |
+| `loop`              | `boolean`                        | No       | `false`     | Whether to loop.                         |
+| `muted`             | `boolean`                        | No       | `false`     | Whether to mute.                         |
+| `initialTime`       | `number`                         | No       | `0`         | Initial playback position (ms).          |
+| `objectFit`         | `'contain' \| 'fill' \| 'cover'` | No       | `'contain'` | Video scaling mode.                      |
+| `poster`            | `string`                         | No       | —           | Poster image URI, shown before playback. |
+| `showCenterPlayBtn` | `boolean`                        | No       | `true`      | Whether to show center play button.      |
+| `style`             | `StyleProp<ViewStyle>`           | No       | —           | Custom styles.                           |
+| `children`          | `ReactNode`                      | No       | —           | Content to overlay on the video.         |
+
+**Event Callbacks:**
+
+| Callback             | Type                                          | Description                |
+| -------------------- | --------------------------------------------- | -------------------------- |
+| `onLoad`             | `() => void`                                  | Video loaded.              |
+| `onPlay`             | `() => void`                                  | Playback started.          |
+| `onPause`            | `() => void`                                  | Playback paused.           |
+| `onEnded`            | `() => void`                                  | Playback ended.            |
+| `onError`            | `(event: { errMsg: string }) => void`         | Playback error.            |
+| `onTimeUpdate`       | `(event: VideoTimeUpdateEvent) => void`       | Playback progress updated. |
+| `onFullscreenChange` | `(event: VideoFullscreenChangeEvent) => void` | Fullscreen state changed.  |
+| `onLoadedMetaData`   | `(event: VideoMetaDataEvent) => void`         | Video metadata loaded.     |
+
+**`VideoTimeUpdateEvent`:**
+
+| Field         | Type     | Description                     |
+| ------------- | -------- | ------------------------------- |
+| `currentTime` | `number` | Current playback position (ms). |
+| `duration`    | `number` | Total video duration (ms).      |
+
+**`VideoFullscreenChangeEvent`:**
+
+| Field        | Type                         | Description                   |
+| ------------ | ---------------------------- | ----------------------------- |
+| `fullScreen` | `boolean`                    | Whether fullscreen is active. |
+| `direction`  | `'vertical' \| 'horizontal'` | Fullscreen direction.         |
+
+**`VideoMetaDataEvent`:**
+
+| Field      | Type     | Description          |
+| ---------- | -------- | -------------------- |
+| `width`    | `number` | Video width (px).    |
+| `height`   | `number` | Video height (px).   |
+| `duration` | `number` | Video duration (ms). |
+
+**ObjectFit Mapping:**
+
+| `objectFit` | React Native `ResizeMode` |
+| ----------- | ------------------------- |
+| `'contain'` | `ResizeMode.CONTAIN`      |
+| `'fill'`    | `ResizeMode.STRETCH`      |
+| `'cover'`   | `ResizeMode.COVER`        |
+
+**Default Size:** Width 100%, height 225px, black background.
+
+**Progress Update Frequency:** 250ms.
+
+**Native Dependency:** `react-native-video` v6.19.1
+
+---
+
+## WebView
+
+Embedded web content component, extending all functionality of `react-native-webview`.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```tsx
+import { WebView } from '@nebula-rn/components';
+```
+
+**Example:**
+
+```tsx
+import { Alert } from 'react-native';
+import { WebView } from '@nebula-rn/components';
+
+const html = `
+  <html>
+    <body style="font-family: -apple-system; padding: 24px;">
+      <h2>Local HTML Content</h2>
+      <button onclick="window.ReactNativeWebView.postMessage('clicked')">
+        Send message to miniapp
+      </button>
+    </body>
+  </html>
+`;
+
+export default function EmbeddedPage() {
+  return (
+    <WebView
+      html={html}
+      style={{ height: 320, borderRadius: 12, overflow: 'hidden' }}
+      onMessage={event => {
+        Alert.alert('Message received', event.nativeEvent.data);
+      }}
+    />
+  );
+}
+```
+
+**Props:**
+
+| Parameter | Type                   | Required | Description                                                        |
+| --------- | ---------------------- | -------- | ------------------------------------------------------------------ |
+| `src`     | `string`               | No       | URL to load.                                                       |
+| `html`    | `string`               | No       | HTML content to render. Takes precedence over `src` when provided. |
+| `style`   | `StyleProp<ViewStyle>` | No       | Custom styles.                                                     |
+| `...rest` | `RNWebViewProps`       | No       | All native `react-native-webview` props can be used.               |
+
+**Default Configuration:**
+
+- `originWhitelist`: `['*']` (all sources allowed).
+
+**Native Dependency:** `react-native-webview`
+
+---
+
+## Basic Components
+
+Miniapps can directly use React Native basic components, imported from `react-native`:
+
+```tsx
+import { View, Text, ScrollView, Image, Button } from 'react-native';
+```
+
+**Example:**
+
+```tsx
+import { Button, Image, ScrollView, Text, View } from 'react-native';
+
+export default function BasicLayout() {
+  return (
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+      <Image
+        source={{
+          uri: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1200',
+        }}
+        style={{ width: '100%', height: 180, borderRadius: 12 }}
+      />
+      <View style={{ gap: 6 }}>
+        <Text style={{ fontSize: 20, fontWeight: '700' }}>
+          Component Library Home
+        </Text>
+        <Text style={{ color: '#475569' }}>
+          React Native basic components are still the core for building page
+          layouts.
+        </Text>
+      </View>
+      <Button title="Get Started" onPress={() => {}} />
+    </ScrollView>
+  );
+}
+```
+
+Below are the commonly used basic components in miniapps:
+
+| Component                    | Description           |
+| ---------------------------- | --------------------- |
+| `View`                       | Basic container       |
+| `Text`                       | Text                  |
+| `ScrollView`                 | Scrollable container  |
+| `Image`                      | Image                 |
+| `Button`                     | Button                |
+| `Input`                      | Text input            |
+| `Textarea`                   | Multi-line text input |
+| `Block`                      | Layout block          |
+| `Checkbox` / `CheckboxGroup` | Multiple selection    |
+| `Radio` / `RadioGroup`       | Single selection      |
+| `Form`                       | Form                  |
+| `Icon`                       | Icon                  |
+| `Label`                      | Label                 |
+| `Navigator`                  | Navigation            |
+| `Picker` / `PickerView`      | Picker                |
+| `Switch`                     | Switch                |
+| `CoverImage` / `CoverView`   | Overlay views         |
+| `PageContainer`              | Page container        |
+| `SwiperItem`                 | Carousel item         |
+
+---
+
+## Native Dependencies
+
+When using modules that contain native components, the corresponding native dependencies need to be installed in the host project:
+
+| Dependency                         | Version | Used For            |
+| ---------------------------------- | ------- | ------------------- |
+| `react-native-vision-camera`       | ^4.7.3  | Camera              |
+| `react-native-video`               | ^6.19.1 | Video               |
+| `react-native-reanimated`          | ^4.2.3  | Swiper animation    |
+| `react-native-reanimated-carousel` | ^4.0.3  | Swiper              |
+| `react-native-gesture-handler`     | ^2.30.0 | Gesture interaction |
+| `react-native-webview`             | —       | RichText, WebView   |
+| `react-native-maps`                | —       | Map                 |
+| `@react-native-community/slider`   | —       | Slider              |

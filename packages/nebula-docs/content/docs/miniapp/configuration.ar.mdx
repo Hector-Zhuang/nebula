@@ -1,0 +1,160 @@
+---
+title: إعدادات miniapp
+description: شرح إعدادات miniapp العامة وإعدادات الصفحات في Nebula.
+---
+
+تتحكم Nebula في سلوك التطبيق وتنسيقه عبر `app.json` (إعدادات عامة) و`page.config.ts` (إعدادات الصفحة).
+
+## الإعدادات العامة (`app.json`)
+
+يقع `app.json` في جذر المشروع ويعمل كملف manifest للـ miniapp.
+
+### الحقول الكاملة
+
+| الحقل | النوع | مطلوب | الافتراضي | مثال | الوصف |
+|------|------|-------|-----------|------|------|
+| `appId` | `string` | نعم | — | `'my-miniapp'` | المعرّف الفريد للـ miniapp |
+| `pages` | `string[]` | نعم | — | `['home', 'detail']` | مسارات الصفحات المعلنة |
+| `entryPagePath` | `string` | لا | أول عنصر في `pages` | `'/home'` | مسار صفحة الدخول |
+| `updateStrategy` | `'auto' \| 'manual'` | لا | `'manual'` | `'auto'` | استراتيجية التحديث |
+| `window` | `WindowConfig` | لا | — | `{ navigationBarTitleText: 'تطبيقي' }` | نمط النافذة العام |
+
+### مثال
+
+```json
+{
+  "appId": "my-miniapp",
+  "updateStrategy": "auto",
+  "pages": ["home", "detail", "settings", "components/media"],
+  "entryPagePath": "/home",
+  "window": {
+    "backgroundColor": "#f8fafc",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextColor": "#0f172a",
+    "navigationBarTitleText": "تطبيقي المصغّر",
+    "navigationStyle": "default",
+    "visualEffectInBackground": "none"
+  }
+}
+```
+
+### appId
+
+المعرّف الفريد للـ miniapp عبر المنصة، ويُستخدم في التثبيت والفتح والتحميل المسبق وغيرها من العمليات.
+
+### pages
+
+تعريف جميع مسارات الصفحات في الـ miniapp. المسارات نسبية إلى `src/pages/` ولا تتضمن امتداد الملف.
+
+```json
+{
+  "pages": ["home", "detail", "components/media", "components/swiper"]
+}
+```
+
+### updateStrategy
+
+تحدد سلوك التحديث. راجع [الإصدارات والنشر](/docs/miniapp/versioning).
+
+- `auto`: التحقق والتحديث تلقائيًا عند الفتح
+- `manual`: يتحكم المطور بوقت التحديث عبر الكود
+
+## إعدادات النافذة (`WindowConfig`)
+
+يمكن ضبط إعدادات النافذة بشكل عام في حقل `window` داخل `app.json`، أو تجاوزها لكل صفحة في `page.config.ts`.
+
+| الحقل | النوع | مطلوب | الافتراضي | مثال | الوصف |
+|------|------|-------|-----------|------|------|
+| `backgroundColor` | `string` | لا | — | `'#f8fafc'` | لون خلفية الصفحة (hex) |
+| `navigationBarBackgroundColor` | `string` | لا | — | `'#ffffff'` | لون خلفية شريط التنقل |
+| `navigationBarTextColor` | `string` | لا | — | `'#0f172a'` | لون نص شريط التنقل |
+| `navigationBarTitleText` | `string` | لا | — | `'تطبيقي'` | عنوان شريط التنقل |
+| `navigationStyle` | `'default' \| 'custom'` | لا | `'default'` | `'custom'` | نمط شريط التنقل |
+| `visualEffectInBackground` | `'blur' \| 'none'` | لا | `'none'` | `'blur'` | تأثير بصري عند الانتقال للخلفية، iOS فقط |
+
+### navigationStyle
+
+- `default`: إظهار شريط التنقل الافتراضي مع زر الرجوع والعنوان
+- `custom`: إخفاء شريط التنقل الافتراضي وبناء واجهة تنقل مخصصة
+
+## إعدادات الصفحة (`page.config.ts`)
+
+يمكن لكل صفحة تجاوز إعدادات النافذة العامة عبر `page.config.ts`.
+
+```ts
+import { definePageConfig } from '@nebula-rn/sdk';
+
+export default definePageConfig({
+  route: '/detail',
+  backgroundColor: '#ffffff',
+  navigationBarBackgroundColor: '#1e40af',
+  navigationBarTextColor: '#ffffff',
+  navigationBarTitleText: 'التفاصيل',
+  navigationStyle: 'default',
+  visualEffectInBackground: 'blur', // iOS فقط
+});
+```
+
+### حقول definePageConfig
+
+| الحقل | النوع | مطلوب | الافتراضي | مثال | الوصف |
+|------|------|-------|-----------|------|------|
+| `route` | `string` | لا | — | `'/detail'` | مسار الصفحة. يُنصح بمطابقته لبنية المجلدات، مثل `src/pages/detail` -> `/detail`. |
+| `backgroundColor` | `string` | لا | — | `'#ffffff'` | خلفية محتوى الصفحة |
+| `navigationBarBackgroundColor` | `string` | لا | — | `'#1e40af'` | خلفية شريط التنقل |
+| `navigationBarTextColor` | `string` | لا | — | `'#0f172a'` | لون النص والعناصر الأمامية في شريط التنقل |
+| `navigationBarTitleText` | `string` | لا | — | `'التفاصيل'` | عنوان شريط التنقل |
+| `navigationStyle` | `'default' \| 'custom'` | لا | `'default'` | `'custom'` | `default` يستخدم شريط المضيف، و`custom` يخفيه لتطبيق واجهة مخصصة |
+| `visualEffectInBackground` | `'blur' \| 'none'` | لا | `'none'` | `'blur'` | تأثير بصري عند دخول التطبيق الخلفية، iOS فقط |
+
+### أمثلة على الإعدادات
+
+#### ضبط العنوان فقط
+
+```ts
+export default definePageConfig({
+  navigationBarTitleText: 'تفاصيل الطلب',
+});
+```
+
+#### شريط تنقل بلون العلامة التجارية
+
+```ts
+export default definePageConfig({
+  navigationBarBackgroundColor: '#1d4ed8',
+  navigationBarTextColor: '#ffffff',
+  navigationBarTitleText: 'مركز العضوية',
+});
+```
+
+#### إخفاء شريط التنقل الافتراضي
+
+```ts
+export default definePageConfig({
+  navigationStyle: 'custom',
+});
+```
+
+## أولوية الإعدادات
+
+ترتيب الأولوية من الأعلى إلى الأدنى:
+
+1. إعدادات الصفحة في `page.config.ts`
+2. إعدادات `window` العامة في `app.json`
+3. القيم الافتراضية للنظام
+
+عند عرض الصفحة، يستخدم المضيف الإعدادات العامة كقاعدة ويطبق إعدادات الصفحة فوقها.
+
+## `definePageConfig`
+
+تُستخدم داخل `page.config.ts` لإعداد الصفحة الواحدة:
+
+```ts
+import { definePageConfig } from '@nebula-rn/sdk/page-config';
+
+export default definePageConfig({
+  route: '/home',
+  navigationBarTitleText: 'Home',
+});
+```
+

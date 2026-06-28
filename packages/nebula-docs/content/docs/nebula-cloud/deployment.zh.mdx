@@ -1,0 +1,127 @@
+---
+title: 部署与管理
+description: 部署 Nebula Cloud 参考实现，了解 API 契约，或构建自己的后端服务。
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="info">
+  Nebula Cloud
+  是一个**参考实现**，仅提供最基础的用户管理和版本管理功能。生产环境中，你需要根据业务需求自行扩展，或完全自建后端。无论哪种方式，你的服务必须实现
+  [Nebula Cloud API](/docs/reference/nebula-cloud-api)
+  中定义的**运行时必需接口**，Nebula 运行时才能正常下载和安装小程序。
+</Callout>
+
+## Nebula Cloud 提供什么
+
+Nebula Cloud 基于 NestJS + Prisma 构建，包含以下基础功能：
+
+| 功能          | 说明                                   |
+| ------------- | -------------------------------------- |
+| 用户注册/登录 | 邮箱密码认证，JWT Token                |
+| CLI 设备授权  | OAuth 设备流，支持 `nebula auth login` |
+| 小程序注册    | 创建小程序、管理元数据                 |
+| 版本上传      | 接收 CLI 上传的 bundle 和 manifest     |
+| 版本发布      | DRAFT → PUBLISHED 直接发布             |
+| 渠道发布      | test / stable 渠道分离                 |
+| Bundle 分发   | 提供下载接口供运行时拉取               |
+
+### Nebula Cloud **不**提供
+
+- CDN 分发
+- 自动化审核
+- 团队权限
+- 监控和分析
+- 内容过滤
+- 灰度发布
+- Webhook / 通知
+- 多租户
+
+## 部署 Nebula Cloud
+
+### 方式一：Docker Compose（推荐）
+
+项目已包含 `docker-compose.yml`，内置 PostgreSQL 和应用服务。
+
+```bash
+git clone https://github.com/Hector-Zhuang/nebula.git
+cd nebula/packages/nebula-cloud
+docker compose up -d
+```
+
+服务启动后：
+
+- API 地址：`http://localhost:3001/api`
+- 默认管理员：`admin@nebula.local` / `password123`
+
+<Callout type="warning">
+  生产环境请务必修改 `docker-compose.yml` 中的 `JWT_SECRET`、数据库密码和管理员凭据。
+</Callout>
+
+#### 常用命令
+
+```bash
+# 查看日志
+docker compose logs -f cloud
+
+# 重建镜像
+docker compose build --no-cache
+
+# 停止服务
+docker compose down
+
+# 停止并清除数据
+docker compose down -v
+```
+
+### 方式二：手动部署
+
+#### 环境要求
+
+- Node.js 20+
+- PostgreSQL 15+
+
+#### 1. 克隆仓库并安装依赖
+
+```bash
+git clone https://github.com/Hector-Zhuang/nebula.git
+cd nebula
+npm install
+```
+
+#### 2. 配置环境变量
+
+在 `packages/nebula-cloud/` 目录下创建 `.env` 文件：
+
+```
+DATABASE_URL=postgresql://user:password@localhost:5432/nebula_cloud
+JWT_SECRET=your-random-secret-key
+PORT=3001
+```
+
+#### 3. 初始化数据库
+
+```bash
+cd packages/nebula-cloud
+npx prisma db push
+npx prisma db seed
+```
+
+`prisma db seed` 会创建默认管理员账户（`admin@nebula.local` / `password123`）。
+
+#### 4. 启动服务
+
+```bash
+# 开发模式（热重载）
+npm run dev
+
+# 生产模式
+npm run build
+node dist/main
+```
+
+服务默认监听端口 `3001`，API 根路径为 `/api`。
+
+## 自建后端指南
+
+如果参考实现无法满足你的需求，你可以使用任意技术栈构建自己的后端。关键在于：你的服务必须实现 [Nebula Cloud API](/docs/reference/nebula-cloud-api) 中定义的运行时必需接口。

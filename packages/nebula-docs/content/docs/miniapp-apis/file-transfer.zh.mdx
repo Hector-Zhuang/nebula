@@ -1,0 +1,197 @@
+---
+title: 文件传输
+description: 使用 Nebula 的下载和上传 API 传输文件，支持进度监听和取消操作。
+---
+
+Nebula 提供了支持进度监听和取消的文件下载/上传 API。传输操作返回 Task 对象，既是 Promise 又支持事件监听。
+
+## 下载文件
+
+### 基本用法
+
+```ts
+import { downloadFile } from '@nebula-rn/client';
+
+const result = await downloadFile({
+	url: 'https://example.com/image.jpg',
+});
+console.log('临时文件路径:', result.tempFilePath);
+console.log('HTTP 状态码:', result.statusCode);
+```
+
+### 监听下载进度
+
+```ts
+const task = downloadFile({
+	url: 'https://example.com/large-file.zip',
+});
+
+task.onProgressUpdate((progress) => {
+	console.log(`下载进度: ${progress.progress}%`);
+	console.log(`已下载: ${progress.totalBytesWritten} bytes`);
+	console.log(`总大小: ${progress.totalBytesExpectedToWrite} bytes`);
+});
+
+const result = await task;
+```
+
+### 取消下载
+
+```ts
+const task = downloadFile({ url: 'https://example.com/file.zip' });
+
+// 某个时机取消
+await task.abort();
+```
+
+### 参数
+
+```ts
+type DownloadFileOption = {
+	url: string;                      // 下载地址
+	header?: Record<string, string>;  // 自定义请求头
+	timeout?: number;                 // 超时时间 (ms)，默认 60000
+	filePath?: string;                // 指定保存路径（可选）
+};
+```
+
+### 返回值
+
+```ts
+type DownloadFileResult = {
+	tempFilePath: string;  // 下载后的临时文件路径
+	statusCode: number;    // HTTP 状态码
+};
+```
+
+## 上传文件
+
+### 基本用法
+
+```ts
+import { uploadFile } from '@nebula-rn/client';
+
+const result = await uploadFile({
+	url: 'https://example.com/upload',
+	filePath: localFilePath,
+	name: 'file',  // 表单字段名
+});
+console.log('服务器响应:', result.data);
+console.log('HTTP 状态码:', result.statusCode);
+```
+
+### 监听上传进度
+
+```ts
+const task = uploadFile({
+	url: 'https://example.com/upload',
+	filePath: localFilePath,
+	name: 'file',
+	formData: { userId: '123' },
+});
+
+task.onProgressUpdate((progress) => {
+	console.log(`上传进度: ${progress.progress}%`);
+	console.log(`已上传: ${progress.totalBytesSent} bytes`);
+});
+
+const result = await task;
+```
+
+### 参数
+
+```ts
+type UploadFileOption = {
+	url: string;                        // 上传地址
+	filePath: string;                   // 要上传的本地文件路径
+	name: string;                       // multipart 表单字段名
+	header?: Record<string, string>;    // 自定义请求头
+	formData?: Record<string, string>;  // 额外的表单数据
+	timeout?: number;                   // 超时时间 (ms)，默认 60000
+};
+```
+
+### 返回值
+
+```ts
+type UploadFileResult = {
+	data: string;        // 服务器响应体
+	statusCode: number;  // HTTP 状态码
+};
+```
+
+## Task 接口
+
+下载和上传都返回 Task 对象，同时支持 Promise 和事件监听：
+
+```ts
+interface Task<T, P> {
+	// Promise 接口
+	then(onFulfilled, onRejected): Promise<T>;
+	catch(onRejected): Promise<T>;
+
+	// 进度监听
+	onProgressUpdate(listener: (res: P) => void): void;
+	offProgressUpdate(listener: (res: P) => void): void;
+
+	// 响应头监听
+	onHeadersReceived(listener: (res: { header: Record<string, string> }) => void): void;
+	offHeadersReceived(listener: (res: { header: Record<string, string> }) => void): void;
+
+	// 取消
+	abort(): Promise<void>;
+}
+```
+
+## 完整示例：下载图片并保存
+
+```tsx
+import React, { useState } from 'react';
+import { Button, Image, StyleSheet, Text, View } from 'react-native';
+import { downloadFile } from '@nebula-rn/client';
+import { getFileSystemManager } from '@nebula-rn/client';
+
+export default function DownloadDemoPage() {
+	const [progress, setProgress] = useState(0);
+	const [imagePath, setImagePath] = useState('');
+
+	const handleDownload = async () => {
+		const task = downloadFile({
+			url: 'https://picsum.photos/480/480',
+		});
+
+		task.onProgressUpdate((p) => {
+			setProgress(p.progress);
+		});
+
+		const result = await task;
+		setImagePath(result.tempFilePath);
+
+		// 持久化保存
+		const fs = getFileSystemManager();
+		await fs.saveFile({ tempFilePath: result.tempFilePath });
+	};
+
+	return (
+		<View style={styles.container}>
+			<Button title="下载图片" onPress={handleDownload} />
+			<Text>进度: {progress}%</Text>
+			{imagePath ? (
+				<Image source={{ uri: imagePath }} style={styles.image} />
+			) : null}
+		</View>
+	);
+}
+
+const styles = StyleSheet.create({
+	container: { padding: 20 },
+	image: { width: 200, height: 200, marginTop: 16 },
+});
+```
+
+## 注意事项
+
+- 下载的文件默认保存为临时文件，需要用 `getFileSystemManager().saveFile()` 持久化
+- `abort()` 调用后 Task 的 Promise 会被 reject
+- 进度回调中的 `progress` 是 0-100 的百分比整数
+- 超时默认 60 秒，大文件传输建议调大 `timeout`

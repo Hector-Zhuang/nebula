@@ -1,0 +1,31 @@
+---
+title: Versions and Channels
+description: Understand Nebula miniapp version management, release channels, and status transitions.
+---
+
+Nebula Cloud uses version management and channel distribution to support miniapp release and rollback.
+
+## Version status
+
+```text
+DRAFT -> PUBLISHED
+```
+
+| Status | Meaning |
+|------|------|
+| `DRAFT` | Initial state after upload |
+| `PUBLISHED` | Published to users |
+
+## Channels
+
+Channels determine the distribution scope of a version. Currently, CLI uploads go to the `stable` channel by default.
+
+| Channel | Meaning |
+|------|------|
+| `stable` | Production channel for all users |
+
+## Release flow
+
+1. Upload a version (status: `DRAFT`)
+2. Publish it to production (status: `PUBLISHED`)
+3. Roll back if necessary

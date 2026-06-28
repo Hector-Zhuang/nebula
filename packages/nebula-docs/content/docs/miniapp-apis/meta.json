@@ -1,0 +1,12 @@
+{
+  "title": "Miniapp APIs",
+  "pages": [
+    "storage",
+    "media",
+    "file-system",
+    "file-transfer",
+    "network",
+    "clipboard",
+    "sensors"
+  ]
+}

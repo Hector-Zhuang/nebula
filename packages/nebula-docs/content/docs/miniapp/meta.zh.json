@@ -1,0 +1,17 @@
+{
+  "title": "小程序",
+  "pages": [
+    "development",
+    "components-library",
+    "directory-structure",
+    "configuration",
+    "host-environment",
+    "page-lifecycle",
+    "navigation",
+    "host-communication",
+    "custom-apis",
+    "versioning",
+    "dev-runner",
+    "base-library-versioning"
+  ]
+}

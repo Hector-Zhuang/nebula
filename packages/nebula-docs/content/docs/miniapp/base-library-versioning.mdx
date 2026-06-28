@@ -1,0 +1,130 @@
+---
+title: Base Library and Version Compatibility
+description: Understand Nebula base library versioning and how to handle compatibility across host and miniapp versions.
+---
+
+The Nebula base libraries (`@nebula-rn/client` and `@nebula-rn/sdk`) are the main API surface for miniapp developers. Since Host and miniapp versions can evolve independently, the base libraries include capability detection and version compatibility mechanisms.
+
+## Base library packages
+
+| Package              | Role                                  | Typical user                |
+| -------------------- | ------------------------------------- | --------------------------- |
+| `@nebula-rn/sdk`        | Runtime and protocol layer            | Host and Miniapp developers |
+| `@nebula-rn/client`     | Stable miniapp-facing API surface     | Miniapp developers          |
+| `@nebula-rn/host-apis`  | Official host feature implementations | Host developers             |
+| `@nebula-rn/components` | Cross-platform UI components          | Miniapp developers          |
+
+## Compatibility mechanism
+
+### Host capability registration
+
+Each Host API can declare its version when registered:
+
+```ts
+createHostApiFeature({
+  apiName: 'getLocation',
+  version: '1.0',
+  supported: true,
+  handle: async payload => {
+    // ...
+  },
+});
+```
+
+### Miniapp-side version checks
+
+Miniapps can declare a minimum version requirement when invoking an API:
+
+```ts
+const result = await Miniapp.invokeHostApi('getLocation', {}, '1.0', 5000);
+```
+
+### Capability detection API
+
+Before calling APIs, miniapps can detect supported capabilities and versions:
+
+```ts
+// Get all Host capabilities
+const { bridgeVersion, capabilities } = await Miniapp.getCapabilities();
+
+// capabilities structure:
+// {
+//   scanCode: { supported: true, version: '1.0' },
+//   getLocation: { supported: true, version: '1.0' },
+//   someNewApi: { supported: false, version: '0.0' },
+// }
+```
+
+```ts
+// Check whether a specific API supports a version
+const supported = await Miniapp.isSupported('scanCode', '1.0');
+
+if (supported) {
+  const result = await scanCode();
+} else {
+  // fallback handling
+  showUnsupportedTip();
+}
+```
+
+### Get available API descriptions
+
+```ts
+// Get all APIs registered by the Host with descriptions
+const descriptions = await Miniapp.getHostApiDescriptions();
+
+// Return format:
+// [
+//   {
+//     name: 'scanCode',
+//     version: '1.0',
+//     description: { summary: 'Scan code', tags: ['camera'] }
+//   },
+//   ...
+// ]
+```
+
+## Compatibility best practices
+
+### Detect capability before rendering
+
+For optional features, check capability before rendering entry buttons:
+
+```tsx
+function ScanButton() {
+  const [supported, setSupported] = useState(false);
+
+  useEffect(() => {
+    Miniapp.isSupported('scanCode', '1.0').then(setSupported);
+  }, []);
+
+  if (!supported) return null;
+
+  return <Button onPress={() => scanCode()}>Scan</Button>;
+}
+```
+
+### Handle UNSUPPORTED_API responses
+
+Even after detection, still handle runtime unsupported responses:
+
+```ts
+const result = await scanCode();
+
+if (!result.ok && result.error?.code === 'UNSUPPORTED') {
+  // Host does not support this API
+  showFallbackUI();
+}
+```
+
+### Do not assume every Host implements every API
+
+Different Host apps can register different API sets. Miniapps should:
+
+- check before using optional APIs
+- provide clear fallbacks for unsupported APIs
+- decouple core flows from optional capabilities
+
+### Version comparison
+
+Nebula compares semantic versions. `isSupported('api', '1.0')` returns `true` when the Host-declared version is >= `1.0`.

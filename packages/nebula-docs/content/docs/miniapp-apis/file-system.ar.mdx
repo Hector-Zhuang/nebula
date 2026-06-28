@@ -1,0 +1,216 @@
+---
+title: نظام الملفات
+description: استخدم واجهات نظام الملفات في Nebula لقراءة وكتابة الملفات والمجلدات داخل صندوق التطبيق المصغّر.
+---
+
+توفر Nebula لكل miniapp نظام ملفات معزولًا داخل صندوق خاص بها. استخدم `getFileSystemManager()` للحصول على مدير الملفات وإجراء عمليات الملفات والمجلدات.
+
+## مسار الصندوق
+
+لكل miniapp مسار صندوق خاص به:
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+const sandboxRoot = Miniapp.getSandboxPath();
+// مثال: /Documents/MiniApps/my-app
+```
+
+كل عمليات الملفات مقيدة داخل هذا المسار.
+
+## الحصول على مدير الملفات
+
+```ts
+import { getFileSystemManager } from '@nebula-rn/client';
+
+const fs = getFileSystemManager();
+```
+
+## عمليات المجلدات
+
+### mkdir — إنشاء مجلد
+
+```ts
+await fs.mkdir({
+	dirPath: `${sandboxRoot}/data`,
+	recursive: true,
+});
+```
+
+### readdir — عرض محتويات المجلد
+
+```ts
+const files = await fs.readdir({
+	dirPath: sandboxRoot,
+});
+console.log(files);
+```
+
+### rmdir — حذف مجلد
+
+```ts
+await fs.rmdir({
+	dirPath: `${sandboxRoot}/data`,
+	recursive: true,
+});
+```
+
+## عمليات الملفات
+
+### writeFile — كتابة ملف
+
+```ts
+await fs.writeFile({
+	filePath: `${sandboxRoot}/note.txt`,
+	data: 'File contents',
+});
+```
+
+### readFile — قراءة ملف
+
+```ts
+const content = await fs.readFile({
+	filePath: `${sandboxRoot}/note.txt`,
+});
+console.log(content);
+```
+
+### appendFile — إضافة محتوى
+
+```ts
+await fs.appendFile({
+	filePath: `${sandboxRoot}/log.txt`,
+	data: '\nNew log line',
+});
+```
+
+### copyFile — نسخ ملف
+
+```ts
+await fs.copyFile({
+	srcPath: `${sandboxRoot}/note.txt`,
+	destPath: `${sandboxRoot}/note-backup.txt`,
+});
+```
+
+### rename — نقل أو إعادة تسمية
+
+```ts
+await fs.rename({
+	oldPath: `${sandboxRoot}/note.txt`,
+	newPath: `${sandboxRoot}/renamed.txt`,
+});
+```
+
+### unlink — حذف ملف
+
+```ts
+await fs.unlink({
+	filePath: `${sandboxRoot}/renamed.txt`,
+});
+```
+
+### access — التحقق من وجود ملف
+
+```ts
+try {
+	await fs.access({ path: `${sandboxRoot}/note.txt` });
+	console.log('File exists');
+} catch {
+	console.log('File does not exist');
+}
+```
+
+### saveFile — حفظ ملف مؤقت داخل الصندوق
+
+```ts
+const result = await fs.saveFile({
+	tempFilePath: downloadedTempPath,
+});
+console.log('Saved path:', result.savedFilePath);
+```
+
+## معلومات الملف
+
+### getFileInfo
+
+```ts
+import { getFileInfo } from '@nebula-rn/client';
+
+const info = await getFileInfo({
+	filePath: `${sandboxRoot}/note.txt`,
+});
+console.log('File size:', info.size);
+```
+
+### removeFile
+
+```ts
+import { removeFile } from '@nebula-rn/client';
+
+await removeFile({
+	filePath: `${sandboxRoot}/note.txt`,
+});
+```
+
+## مثال كامل
+
+```tsx
+import React, { useMemo, useState } from 'react';
+import { Button, ScrollView, StyleSheet, Text } from 'react-native';
+import { Miniapp } from '@nebula-rn/sdk';
+import { getFileSystemManager, getFileInfo } from '@nebula-rn/client';
+
+export default function FileDemoPage() {
+	const [result, setResult] = useState('');
+	const sandboxRoot = useMemo(() => Miniapp.getSandboxPath(), []);
+	const fs = getFileSystemManager();
+	const testFile = `${sandboxRoot}/demo.txt`;
+
+	const writeDemo = async () => {
+		await fs.writeFile({
+			filePath: testFile,
+			data: `Written at: ${new Date().toISOString()}`,
+		});
+		setResult('File written');
+	};
+
+	const readDemo = async () => {
+		const content = await fs.readFile({ filePath: testFile });
+		setResult(`Content: ${content}`);
+	};
+
+	const infoDemo = async () => {
+		const info = await getFileInfo({ filePath: testFile });
+		setResult(`Size: ${info.size} bytes`);
+	};
+
+	const listDemo = async () => {
+		const files = await fs.readdir({ dirPath: sandboxRoot });
+		setResult(`Files: ${files.join(', ')}`);
+	};
+
+	return (
+		<ScrollView contentContainerStyle={styles.container}>
+			<Button title="Write file" onPress={writeDemo} />
+			<Button title="Read file" onPress={readDemo} />
+			<Button title="File info" onPress={infoDemo} />
+			<Button title="List directory" onPress={listDemo} />
+			<Text style={styles.result}>{result}</Text>
+		</ScrollView>
+	);
+}
+
+const styles = StyleSheet.create({
+	container: { padding: 20 },
+	result: { marginTop: 16, fontSize: 14, color: '#334155' },
+});
+```
+
+## ملاحظات
+
+- يجب أن تبقى كل المسارات داخل الصندوق
+- عمليات الملفات غير متزامنة، لذا استخدم `await`
+- `readdir` يعيد أسماء الملفات فقط، وليس المسارات الكاملة
+- عند استخدام `recursive: true` في `rmdir` سيتم حذف كل المحتويات المتداخلة
+- يجب حفظ الملفات المؤقتة عبر `saveFile` وإلا قد يقوم النظام بتنظيفها

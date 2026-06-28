@@ -1,0 +1,45 @@
+{
+  "name": "@superapp/sample-host",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "root": "packages/sample-host",
+  "sourceRoot": "packages/sample-host",
+  "projectType": "application",
+  "targets": {
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/sample-host",
+        "command": "npm run start"
+      }
+    },
+    "ios": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/sample-host",
+        "command": "npm run ios"
+      }
+    },
+    "android": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/sample-host",
+        "command": "npm run android"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/sample-host",
+        "command": "npm run lint"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/sample-host",
+        "command": "npm run test"
+      }
+    }
+  },
+  "tags": ["scope:host", "type:app"]
+}

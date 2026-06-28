@@ -1,0 +1,73 @@
+---
+title: إنشاء مشروع Host
+description: استخدم Nebula CLI لإنشاء مشروع Host جديد بسرعة والحصول على تطبيق مضيف قابل للتشغيل فورًا.
+---
+
+إذا كنت تبدأ دمج Nebula من الصفر، فأسرع طريق هو إنشاء Host مباشرة عبر CLI.
+
+```bash
+npx nebula create host my-host
+cd my-host
+npm install
+npm run ios
+# أو npm run android
+```
+
+ينشئ هذا الأمر **Host starter قابلًا للتشغيل** حتى تتمكن سريعًا من فهم:
+
+- كيف يفتح المضيف miniapps
+- كيف يتم تسجيل Host APIs
+- كيف تُدمج Nebula داخل shell حقيقي
+
+## ما هو هذا الـ Host؟
+
+إنه مشروع مضيف حقيقي. ليس مجرد snippet، وليس Dev Runner.
+
+وهو مناسب كنقطة بداية لـ:
+
+- مضيف أعمال حقيقي
+- بيئة تكامل حقيقية خارج Dev Runner
+- تطوير Host APIs ووحدات أصلية مخصصة
+
+## أمر الإنشاء
+
+```bash
+npx nebula create host <name> [--directory <path>] [--display-name <name>] [--bundle-id <id>]
+```
+
+أمثلة:
+
+```bash
+npx nebula create host acme-host
+npx nebula create host acme-host --display-name "Acme Host"
+npx nebula create host acme-host --bundle-id com.acme.host
+```
+
+## ماذا يتم إنشاؤه؟
+
+عادةً يحتوي Host starter على:
+
+- shell مضيف مبني بـ React Native
+- `@nebula-rn/sdk`
+- `@nebula-rn/host`
+- `@nebula-rn/host-apis`
+- دمج افتراضي عبر `NebulaAPI.wrap(...)`
+- نقاط دخول وأكواد أمثلة على جانب المضيف
+
+## `serverBaseURL` وNebula Cloud
+
+أحد أهم الإعدادات الأولى هو `serverBaseURL`.
+
+وهو **عنوان Nebula Cloud API الأساسي** الذي يستخدمه المضيف من أجل:
+
+- حل بيانات التثبيت
+- جلب معلومات الإصدارات
+- التحقق من التحديثات
+- تنزيل miniapp bundles
+
+## اقرأ أيضًا
+
+- [نظرة عامة](./overview.mdx)
+- [دليل تطوير miniapp](../miniapp/development.mdx)
+- [الدمج داخل تطبيق RN موجود](./integration.mdx)
+- [Quickstart Demo](./quickstart-demo.mdx)

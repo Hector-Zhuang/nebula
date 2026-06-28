@@ -1,0 +1,91 @@
+---
+title: دليل تطوير miniapp
+description: تعرّف إلى نموذج تطوير miniapp في Nebula وطريقة التشغيل والمكوّنات وواجهات API والتصحيح ومسار النشر.
+---
+
+توفّر Nebula نموذج تطوير بسيطًا وفعّالًا للـ miniapps، إلى جانب المكوّنات وواجهات API وruntime للمضيف والتوزيع السحابي، لمساعدة المطورين على بناء miniapps بتجربة أصلية.
+
+تشرح هذه الصفحة الموضوعات الأساسية لتطوير miniapp، بما في ذلك إنشاء المشروع وطريقة التشغيل وبيئة المضيف وبنية المجلدات والإعدادات والمكوّنات وواجهات API والتوافق وإصدار النسخ، لمساعدتك على بناء تصور متكامل بسرعة.
+
+إذا كانت هذه أول مرة تستخدم فيها Nebula، فابدأ بأقصر مسار:
+
+```bash
+npx nebula create miniapp hello-nebula
+cd hello-nebula
+npm install
+npx nebula miniapp dev
+```
+
+سيؤدي ذلك إلى إنشاء مشروع miniapp خالص. ستحتاج فقط إلى التركيز على الصفحات والحالة واستدعاءات API، من دون إدارة مشاريع `ios/` أو `android/` بنفسك.
+
+## المفاهيم الأساسية
+
+يمكن فهم تطوير miniapp في Nebula عبر هذه المفاهيم:
+
+- **Miniapp**: المشروع الذي يحتوي على صفحات الأعمال والحالة ومنطق التفاعل
+- **Host**: التطبيق المضيف الذي يشغّل miniapp ويوفّر القدرات الأصلية والحاوية ودورة الحياة
+- **Dev Runner**: مضيف عام خاص بالتطوير يساعدك على تشغيل miniapp وتصحيحها بشكل مستقل
+- **Nebula Cloud**: خدمة سحابية لإدارة الإصدارات والتوزيع والتثبيت والتحديث
+
+ومن المهم أن تتذكر أن Dev Runner هو أيضًا Host خاص بالتطوير. وهو أنسب لدعم mock لواجهات Host API والسلوكيات التطويرية الافتراضية، وليس لتنفيذ منطق أعمال حقيقي.
+
+## أسلوب التطوير
+
+أسلوب التطوير الموصى به في Nebula هو:
+
+- استخدام `npx nebula create miniapp` لإنشاء مشروع miniapp خالص
+- استخدام `npx nebula miniapp dev` لبدء التطوير
+- تطوير الصفحات وتصحيحها داخل Dev Runner
+- الانتقال إلى Host حقيقي فقط عند الحاجة إلى التحقق من التكامل الفعلي
+
+أوامر شائعة:
+
+```bash
+# إنشاء miniapp
+npx nebula create miniapp hello-nebula
+
+# بدء التطوير
+npx nebula miniapp dev
+
+# بناء ناتج الإنتاج
+npx nebula miniapp build
+
+# الرفع إلى Nebula Cloud
+npx nebula miniapp upload --version 1.0.0
+
+```
+
+## الحزم الموصى بها
+
+غالبًا ستتعامل مع هذه الحزم:
+
+- `@nebula-rn/client`
+  لاستدعاء واجهات miniapp الأساسية وHost APIs
+- `@nebula-rn/components`
+  لاستخدام مكوّنات الواجهة التي توفّرها Nebula
+- `@nebula-rn/sdk`
+  لدورة الحياة والruntime والقدرات المرتبطة بالمضيف
+
+## اقرأ أيضًا
+
+إذا أردت فهمًا أعمق للبيئة والمكوّنات وواجهات API والتوزيع، فتابع هذه الصفحات:
+
+- [بيئة تشغيل miniapp داخل المضيف](./host-environment.mdx)
+- [Dev Runner](./dev-runner.mdx)
+- [دورة حياة الصفحة](./page-lifecycle.mdx)
+- [تنقل الصفحات](./navigation.mdx)
+- [التواصل مع المضيف](./host-communication.mdx)
+- [الإصدارات والنشر](./versioning.mdx)
+- [بنية المجلدات](./directory-structure.mdx)
+- [الإعدادات](./configuration.mdx)
+- [واجهات API والمكوّنات المخصصة](./custom-apis.mdx)
+- [التوافق مع المكتبة الأساسية](./base-library-versioning.mdx)
+
+## مراجع مرتبطة
+
+- [مرجع Nebula SDK](../reference/nebula-sdk.mdx)
+- [Host Configuration](../host/configuration.mdx)
+- [Host Configuration](../host/configuration.mdx)
+- [Native-side APIs](../host/native-apis.mdx)
+- [Nebula Cloud](../nebula-cloud/version-and-channels.mdx)
+- [مرجع CLI](../reference/cli.mdx)

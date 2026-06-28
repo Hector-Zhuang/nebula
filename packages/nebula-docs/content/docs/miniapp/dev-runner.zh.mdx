@@ -1,0 +1,92 @@
+---
+title: Dev Runner
+description: 使用通用 Nebula Dev Runner 独立开发小程序，而不需要在小程序工程中维护宿主配置。
+---
+
+Nebula Dev Runner 是小程序独立开发时使用的通用开发宿主。
+
+对小程序开发者来说，主路径只有一条：
+
+```bash
+npx nebula miniapp dev
+```
+
+CLI 会自动准备并打开 Dev Runner，再切换到当前小程序。开发者通常不需要关心 Dev Runner 本身的安装或启动细节。
+
+<Info title="Dev Runner 的定位">
+  Dev Runner 本质上也是一个 Host。
+
+  它的角色不是替代真实业务 Host，而是为 Host 开发者提供一个可分发、可复用的开发环境，帮助小程序开发者独立开发页面，并通过 mock 的方式承接宿主 API，例如获取用户资料、权限状态或业务上下文。
+
+  为了业务安全，我们不建议把真实的业务实现、生产数据访问或敏感宿主逻辑直接放进通用 Dev Runner。Dev Runner 更适合提供开发期 mock、默认行为和调试能力；真实实现应当保留在正式 Host 中，或者由自定义 Runner 在受控环境下承接。
+</Info>
+
+它的目标是：
+
+- 让小程序工程保持纯净，不带 `ios/`、`android/`
+- 让小程序开发者可以独立运行页面和调试基础能力
+- 让 Dev Runner 作为开发宿主，并且已经集成 `@nebula-rn/host-apis`，从而提供基础 Host API 和默认开发行为
+
+## 快速开始
+
+```bash
+# 1. 生成纯小程序工程
+npx nebula create miniapp hello-nebula
+
+cd hello-nebula
+
+# 2. 启动当前小程序开发
+npx nebula miniapp dev
+```
+
+当前实现下：
+
+- `npx nebula miniapp dev` 会通过 Metro 暴露：
+  - `/app.json`
+  - `index.bundle?...`
+- CLI 会自动：
+  - 启动小程序 Metro
+  - 准备 Dev Runner 的 Metro
+  - 安装/打开对应平台的 Dev Runner
+  - 将 Dev Runner 切换到当前 miniapp
+
+如果你只想启动小程序 Metro，不自动拉起 Runner，可以使用：
+
+```bash
+npx nebula miniapp dev --no-runner
+```
+
+## Dev Runner 内置能力
+
+Dev Runner 已经默认集成了 `@nebula-rn/host-apis`，因此常见的基础 Host API 可以直接使用，而不需要小程序开发者额外配置。
+
+例如：
+
+- `scanCode`
+- `previewImage`
+- `showToast`
+- `showModal`
+
+如果团队有自己的业务 API 需求，例如：
+
+- `getUserProfile`
+- `getTenantInfo`
+- `getFeatureFlags`
+
+可以参考 [自定义 API](./custom-apis.mdx)，扩展自己的 Host API。
+
+## Custom Runner
+
+如果团队需要比默认 Deev Runner 更强的定制能力，比如：
+
+- 品牌化 UI
+- 自定义原生模块
+- 更接近真实宿主的行为
+
+可以使用：
+
+```bash
+npx nebula create runner my-runner
+```
+
+生成一个可定制的 Dev Runner 工程。

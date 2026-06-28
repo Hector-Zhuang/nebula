@@ -1,0 +1,105 @@
+---
+title: Roadmap
+description: Nebula's medium- and long-term technical direction.
+---
+
+This page summarizes the technical directions that are currently the clearest for Nebula. It is meant to help host teams and platform teams understand where Nebula is heading, not to serve as a release schedule or delivery commitment.
+
+What we are prioritizing is not simply "more APIs" or "more page features". The focus is on making Nebula a **safer, more governable, more operable, and more extensible miniapp platform**.
+
+<Info title="Feedback welcome">
+  If you have specific needs, different priorities, or new ideas while using Nebula, we welcome that feedback.
+
+  Many of Nebula's platform boundaries are closely tied to real business environments, host governance models, and cross-team collaboration. Direct feedback from developers will influence future design decisions.
+</Info>
+
+## Direction 1: JavaScript sandboxing
+
+Nebula plans to introduce a stricter JavaScript sandbox to limit arbitrary access from miniapps to native modules exposed by the host runtime.
+
+The goals include:
+
+- preventing miniapps from bypassing the Host API system and calling native modules directly
+- reducing the risk of third-party npm packages invoking unauthorized native capabilities
+- making the host capability surface clearer and more auditable
+- improving runtime isolation for multi-tenant, regulated, and high-compliance environments
+
+This directly affects Nebula's platform boundary:
+miniapps should interact with the host through Nebula's public APIs, rather than treating the host runtime as an unrestricted native environment.
+
+## Direction 2: MCP server
+
+Nebula plans to provide MCP server capabilities so that models, automation tools, and development workflows can better understand the current host, miniapp, and API runtime context.
+
+Possible capabilities include:
+
+- exposing miniapp metadata, page structure, and configuration
+- exposing registered Host API information
+- exposing the relationship between components, capabilities, and version compatibility
+- offering a unified entry point for dev tools, diagnostics, and automation
+
+This would make Nebula easier to integrate with:
+
+- AI-assisted development
+- automated checks
+- host capability discovery
+- cross-team tooling workflows
+
+## Direction 3: documentation automation
+
+Nebula will continue to invest in documentation automation so that APIs, components, and host capabilities do not drift away from the code that defines them.
+
+Key directions include:
+
+- extracting structured descriptions from API definitions
+- generating or validating reference documentation automatically
+- detecting missing examples, field descriptions, or compatibility notes
+- unifying Host APIs, component libraries, and platform capabilities into machine-consumable documentation data
+
+This is also why some capability definitions include metadata fields such as `description`.
+Those fields are useful not only for human readers, but also for documentation automation, capability discovery, and tooling integration.
+
+## Direction 4: branding
+
+Nebula will gradually improve branding capabilities so different teams can shape host and development experiences that better match their own products.
+
+This may include:
+
+- branded Dev Runner interfaces and launch experiences
+- branded host containers, loading screens, error screens, and empty states
+- branded miniapp directories, entry points, distribution pages, and operational surfaces
+- runtime visuals that align more closely with the host design system
+
+The goal is not superficial skinning. It is to let different host products retain their own product identity while sharing a common technical foundation.
+
+## Direction 5: host-side API guards
+
+Nebula will strengthen host-side API guard mechanisms so that hosts can decide with finer control:
+
+- which APIs are exposed
+- which APIs are only exposed on certain host versions
+- which APIs require additional permissions or context checks
+- which APIs should be blocked for certain tenants, users, or scenarios
+
+These guard mechanisms may cover:
+
+- static control at capability registration time
+- runtime parameter validation and call interception
+- binding to permission and identity context
+- clearer error responses and audit trails
+
+Together with JavaScript sandboxing, the Host API system, and compliance governance, this should form a more complete protection layer for the platform.
+
+## Summary
+
+Nebula's technical direction is not about turning it into a more permissive dynamic code distribution system. It is about evolving Nebula into a **more controllable, more secure, and more governable miniapp platform**.
+
+From that goal, the next phase of work will focus on:
+
+- stronger runtime isolation
+- clearer host capability boundaries
+- better automation and tooling integration
+- more complete branding support
+- stricter API guard and governance mechanisms
+
+If you are planning a host platform, compliance controls, or an internal miniapp ecosystem on top of Nebula, these directions are worth prioritizing ahead of simply adding more business APIs.

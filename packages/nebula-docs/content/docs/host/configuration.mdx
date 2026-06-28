@@ -1,0 +1,254 @@
+---
+title: Host Configuration
+description: Configure Nebula host runtime behavior with NebulaAPI.wrap, including host APIs, loading UI, and server base URL.
+---
+
+Host configuration is centered around `NebulaAPI.wrap(...)`.
+
+This is the host-side entry point that applies Nebula runtime defaults before your host app renders. In practice, most host projects use it to configure:
+
+- which Host APIs are exposed to miniapps
+- how the loading experience is rendered
+- how installation and remote bundle URLs are resolved
+
+## Basic shape
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+
+export default NebulaAPI.wrap({
+  hostApis: [],
+  serverBaseURL: 'https://api.example.com',
+})(App);
+```
+
+The current public host configuration surface is:
+
+```ts
+type NebulaHostOptions = {
+  hostApis?: NebulaHostFeature[];
+  miniappLoading?: {
+    component: React.ComponentType<MiniappLoadingProps>;
+    delayMs?: number;
+    enterContentDelayMs?: number;
+    resolveProps?: (
+      context: MiniappLoadingResolveContext,
+    ) => MiniappLoadingResolvedProps;
+  };
+  serverBaseURL?: string | null;
+};
+```
+
+## Initialization flow
+
+When the wrapped host app mounts, `NebulaAPI.wrap()` initializes Nebula in roughly this order:
+
+1. Configure host-owned miniapp loading behavior
+2. Start the host-side API server
+3. Register all configured host features
+4. Apply host runtime defaults such as `serverBaseURL`
+5. Subscribe to miniapp lifecycle events and clean up when the host unmounts
+
+## `hostApis`
+
+`hostApis` defines the Host API surface available to miniapps.
+
+Only APIs registered here can be called from the miniapp runtime. This makes `hostApis` the main capability boundary between host and miniapp.
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+export default NebulaAPI.wrap({
+  hostApis: defaultHostApis,
+})(App);
+```
+
+### Typical usage
+
+- Use `defaultHostApis` when you want Nebula’s standard host API set
+- Add custom Host APIs for business capabilities
+- Omit APIs you do not want miniapps to access
+
+### Guidance
+
+- Treat `hostApis` as a reviewed contract, not as a convenience list
+- Do not expose APIs that the host has not audited
+- Prefer explicit registration over broad or implicit capability exposure
+
+## `miniappLoading`
+
+`miniappLoading` configures the host-side loading experience shown while a miniapp is installing or opening.
+
+```tsx
+NebulaAPI.wrap({
+  miniappLoading: {
+    component: DefaultMiniappLoadingScreen,
+    delayMs: 5000,
+    enterContentDelayMs: 240,
+    resolveProps: ({ appId, installedInfo }) => ({
+      title: appId,
+      extraData: {
+        subtitle: installedInfo?.version
+          ? `Version ${installedInfo.version}`
+          : 'Preparing runtime',
+      },
+    }),
+  },
+})(App);
+```
+
+### `miniappLoading.component`
+
+The React component rendered by the host while the miniapp is in a loading state.
+
+This component receives `MiniappLoadingProps`:
+
+```ts
+type MiniappLoadingProps = {
+  appId: string;
+  mode: 'development' | 'production';
+  status: 'installing' | 'loading' | 'ready' | 'error';
+  title?: string | null;
+  icon?: ReactNode;
+  extraData?: Record<string, unknown> | null;
+  errorMessage?: string | null;
+};
+```
+
+Use it when you want:
+
+- branded loading UI
+- install / open progress messaging
+- production-mode error or retry affordances
+
+### `miniappLoading.delayMs`
+
+Controls how long the host keeps the loading UI visible before auto-hiding it after the miniapp reports readiness.
+
+- Type: `number`
+- Default: `0`
+
+Use it when the host needs a slightly slower transition to avoid abrupt visual changes.
+
+For the full loading lifecycle and where this delay applies, see
+[Miniapp Loading Screen](./miniapp-loading-screen.mdx).
+
+### `miniappLoading.enterContentDelayMs`
+
+Adds a delay before the miniapp content is visually entered after the loading view is ready to leave.
+
+- Type: `number`
+- Default: `0`
+
+This is useful when you need a more deliberate transition between the host loading shell and the mounted miniapp content.
+
+For the full loading lifecycle and where this delay applies, see
+[Miniapp Loading Screen](./miniapp-loading-screen.mdx).
+
+### `miniappLoading.resolveProps`
+
+Allows the host to derive display-only loading props from runtime context.
+
+```tsx
+resolveProps: ({ appId, status, installedInfo }) => ({
+  title: appId === 'checkout' ? 'Checkout' : appId,
+  extraData: {
+    subtitle:
+      status === 'installing'
+        ? 'Installing bundle'
+        : installedInfo?.version
+          ? `Version ${installedInfo.version}`
+          : 'Loading',
+  },
+});
+```
+
+It receives:
+
+```ts
+type MiniappLoadingResolveContext = {
+  appId: string;
+  mode: 'development' | 'production';
+  status: 'installing' | 'loading' | 'ready' | 'error';
+  title?: string | null;
+  icon?: ReactNode;
+  extraData?: Record<string, unknown> | null;
+  errorMessage?: string | null;
+  installedInfo?: InstalledMiniAppInfo | null;
+};
+```
+
+It returns a partial override of:
+
+- `title`
+- `icon`
+- `extraData`
+
+### Guidance
+
+- Use `miniappLoading` only for host-owned presentation
+- Do not treat it as a channel for miniapp business props
+- Keep it focused on status communication, not business workflow
+
+## `serverBaseURL`
+
+`serverBaseURL` defines the host-owned base URL used when Nebula needs to resolve remote installation or asset URLs.
+
+In a standard Nebula deployment, this value usually points to your **Nebula Cloud** service endpoint.
+
+```tsx
+NebulaAPI.wrap({
+  serverBaseURL: 'https://api.example.com',
+  hostApis: defaultHostApis,
+})(App);
+```
+
+## Complete example
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+export default NebulaAPI.wrap({
+  hostApis: defaultHostApis,
+  miniappLoading: {
+    component: DefaultMiniappLoadingScreen,
+    delayMs: 5000,
+    enterContentDelayMs: 240,
+    resolveProps: ({ appId, installedInfo }) => ({
+      title: appId,
+      extraData: {
+        subtitle: installedInfo?.version
+          ? `Version ${installedInfo.version}`
+          : 'Preparing production runtime',
+      },
+    }),
+  },
+  serverBaseURL: 'https://api.example.com',
+})(App);
+```
+
+## Runtime updates
+
+Some host configuration can also be adjusted at runtime through the SDK, for example:
+
+- `NebulaAPI.setServerBaseURL(...)`
+- `NebulaAPI.setMiniappLoadingDelay(...)`
+- `NebulaAPI.setMiniappLoadingEnterContentDelay(...)`
+
+Use runtime setters when the value must change after app startup.  
+Use `NebulaAPI.wrap(...)` when the value is part of the host’s default runtime configuration.
+
+## What is not configured here
+
+`Host Configuration` covers host-owned runtime defaults. It does not cover:
+
+- miniapp page configuration such as `app.json` or `page.config.ts`
+- miniapp update policy declared in a miniapp manifest
+- platform-native setup such as iOS entitlements, Android permissions, or deep link files
+
+For those topics, continue with:
+
+- [Miniapp Loading Screen](./miniapp-loading-screen.mdx)
+- [Native-side APIs](./native-apis.mdx)

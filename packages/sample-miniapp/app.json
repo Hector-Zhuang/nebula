@@ -1,0 +1,32 @@
+{
+  "appId": "sample-miniapp",
+  "updateStrategy": "manual",
+  "pages": [
+    "home",
+    "lifecycle",
+    "nebula",
+    "components/media",
+    "components/swiper",
+    "components/picker",
+    "components/richtext",
+    "components/icon",
+    "components/map",
+    "components/webview",
+    "api-tests",
+    "api-tests-device",
+    "api-tests-storage-file",
+    "api-tests-media",
+    "api-tests-events",
+    "scan-code",
+    "page1",
+    "page2",
+    "page3"
+  ],
+  "entryPagePath": "/home",
+  "window": {
+    "backgroundColor": "#f8fafc",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextColor": "#0f172a",
+    "visualEffectInBackground": "none"
+  }
+}

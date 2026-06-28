@@ -1,0 +1,162 @@
+---
+title: 数据存储
+description: 使用 Nebula 的键值存储 API 在小程序中持久化数据。
+---
+
+Nebula 为每个小程序提供隔离的键值存储，底层由宿主原生存储实现。适用于保存用户偏好、缓存数据和其他轻量级持久状态。
+
+## 存储限制
+
+- 每个小程序上限为 **10 MB**
+- 按 `appId` 隔离，小程序之间无法互相访问
+
+## 高级 API
+
+当你希望自动进行 JSON 序列化和反序列化时，使用高级 API：
+
+```ts
+import { setStorage, getStorage, getStorageInfo } from '@nebula-rn/client';
+
+await setStorage({ key: 'user', data: { name: 'Zhang San', age: 28 } });
+
+const user = await getStorage<{ name: string; age: number }>('user');
+console.log(user.name);
+
+const info = await getStorageInfo();
+console.log(info.keys);
+console.log(info.currentSize);
+console.log(info.limitSize);
+```
+
+### setStorage
+
+```ts
+await setStorage({ key: string, data: unknown }): Promise<void>
+```
+
+### getStorage
+
+```ts
+const value = await getStorage<T>(key: string): Promise<T>
+```
+
+当 key 不存在时会抛错，需要时使用 `try/catch`。
+
+### getStorageInfo
+
+```ts
+const info = await getStorageInfo(): Promise<GetStorageInfoResult>
+```
+
+```ts
+type GetStorageInfoResult = {
+	keys: string[];
+	currentSize: number;
+	limitSize: number;
+};
+```
+
+## 低级 API
+
+低级 API 直接操作字符串值，不会自动序列化：
+
+```ts
+import {
+	getStorageItem,
+	setStorageItem,
+	removeStorageItem,
+	clearStorageItems,
+	getStorageKeys,
+	getStorageCurrentSize,
+} from '@nebula-rn/client';
+```
+
+### setStorageItem / getStorageItem
+
+```ts
+await setStorageItem('token', 'abc123');
+const token = await getStorageItem('token');
+```
+
+当 key 不存在时，`getStorageItem` 返回 `undefined`。
+
+### removeStorageItem
+
+```ts
+await removeStorageItem('token');
+```
+
+### clearStorageItems
+
+```ts
+await clearStorageItems();
+```
+
+### getStorageKeys
+
+```ts
+const keys = await getStorageKeys();
+```
+
+### getStorageCurrentSize
+
+```ts
+const sizeKB = await getStorageCurrentSize();
+```
+
+## 序列化工具
+
+```ts
+import { serializeStorageValue, deserializeStorageValue } from '@nebula-rn/client';
+
+const json = serializeStorageValue({ count: 42 });
+const obj = deserializeStorageValue<{ count: number }>(json);
+```
+
+## 常见模式
+
+### 页面间共享数据
+
+```tsx
+const selectCity = async (city: string) => {
+	await setStorageItem('selectedCity', city);
+	Miniapp.navigateBack(1);
+};
+
+usePageOnShow(async () => {
+	const city = await getStorageItem('selectedCity');
+	if (city) setCity(city);
+});
+```
+
+### 带 TTL 的缓存
+
+```ts
+async function setCacheWithTTL(key: string, data: unknown, ttlMs: number) {
+	await setStorage({
+		key,
+		data: { value: data, expiry: Date.now() + ttlMs },
+	});
+}
+
+async function getCacheWithTTL<T>(key: string): Promise<T | null> {
+	try {
+		const cached = await getStorage<{ value: T; expiry: number }>(key);
+		if (Date.now() > cached.expiry) {
+			await removeStorageItem(key);
+			return null;
+		}
+		return cached.value;
+	} catch {
+		return null;
+	}
+}
+```
+
+## 注意事项
+
+- 存储在小程序重启后仍然存在
+- 存储操作是异步的，始终使用 `await`
+- 高级 API 会自动序列化 JSON，低级 API 操作原始字符串
+- 不要存储密码或密钥等敏感信息
+- 超过 10 MB 限制后写入会失败

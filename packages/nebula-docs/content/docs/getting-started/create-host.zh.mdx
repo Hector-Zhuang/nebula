@@ -1,0 +1,114 @@
+---
+title: 创建 Host 项目
+description: 使用 Nebula CLI 快速创建一个新的 Host 工程，并立刻获得一个可运行的宿主应用。
+---
+
+如果你是从零开始接入 Nebula，最推荐的方式是直接用 CLI 创建一个 Host。
+
+```bash
+npx nebula create host my-host
+cd my-host
+npm install
+npm run ios
+# 或 npm run android
+```
+
+这条命令会生成一个**可运行的 Host starter**，让你尽快体验：
+
+- 如何打开 miniapp
+- 如何注册 Host API
+- 如何把 Nebula 接入到真实宿主里
+
+## 这个 Host 是什么
+
+它是一个真实宿主工程，不是 sample 片段，也不是 Dev Runner。
+
+适合作为：
+
+- 正式业务宿主的起点
+- Dev Runner 之外的真实联调环境
+- 自定义 Host API 和原生模块的承载工程
+
+## 生成命令
+
+```bash
+npx nebula create host <name> [--directory <path>] [--display-name <name>] [--bundle-id <id>]
+```
+
+常见示例：
+
+```bash
+npx nebula create host acme-host
+npx nebula create host acme-host --display-name "Acme Host"
+npx nebula create host acme-host --bundle-id com.acme.host
+```
+
+## 会生成什么
+
+Host starter 主要包含：
+
+- React Native 宿主壳工程
+- `@nebula-rn/sdk`
+- `@nebula-rn/host`
+- `@nebula-rn/host-apis`
+- 默认 `NebulaAPI.wrap(...)` 接入
+- Host 侧开发入口与示例代码
+
+你可以把它理解成：
+
+- `@nebula-rn/host`
+  - Nebula 的原生宿主集成层
+- 生成出来的 Host 工程
+  - 你的业务宿主应用
+
+## 生成后如何启动
+
+进入项目目录后，按普通 React Native 工程启动即可：
+
+```bash
+cd my-host
+npm install
+npm run ios
+# 或 npm run android
+```
+
+如果你还想马上配一个 miniapp 一起体验，下一步推荐：
+
+```bash
+npx nebula create miniapp my-miniapp
+```
+
+对应说明见：
+
+- [小程序开发指南](/docs/miniapp/development)
+
+## Host 工程里最关键的部分
+
+生成的 Host 会在 JS 入口中使用：
+
+```tsx
+NebulaAPI.wrap({
+  hostApis: defaultHostApis,
+})
+```
+
+这意味着它已经具备：
+
+- 小程序打开能力
+- 默认 Host API
+- 宿主侧 Nebula 初始化
+
+你接下来主要做的是：
+
+- 配置 `serverBaseURL`（也就是 Nebula Cloud API 地址）
+- 注册业务自定义 Host API
+- 接入你自己的原生模块或业务 UI
+
+`serverBaseURL` 用来告诉 Host 去哪里获取线上 miniapp 的安装信息、版本信息和更新信息。通常它指向你的 Nebula Cloud API，例如：
+
+```ts
+NebulaAPI.wrap({
+  hostApis: defaultHostApis,
+  serverBaseURL: 'https://your-nebula-cloud.com/api',
+})
+``

@@ -1,0 +1,1662 @@
+---
+title: '@nebula-rn/sdk'
+description: 'Nebula SDK core package API reference, including host initialization, miniapp runtime, lifecycle hooks, and type definitions.'
+---
+
+`@nebula-rn/sdk` is Nebula's core runtime package, providing both host initialization API (`NebulaAPI`) and miniapp client API (`MiniAppAPI`, which is an alias export of `NebulaAPI`).
+
+**Version:** 0.1.0
+
+**Peer Dependencies:** `react >= 19`, `react-native >= 0.83`
+
+---
+
+## Host Initialization
+
+### NebulaAPI.wrap(options)
+
+A higher-order component (HOC) that wraps the host app's root component and initializes the Nebula runtime. Automatically calls `startApiServer()` when the component mounts, and also calls `setServerBaseURL()` if `serverBaseURL` is non-empty.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function wrap(
+  options: NebulaHostOptions,
+): <P>(Component: React.ComponentType<P>) => React.ComponentType<P>;
+```
+
+**Parameters `NebulaHostOptions`:**
+
+| Parameter       | Type                  | Required | Default | Description                                             |
+| --------------- | --------------------- | -------- | ------- | ------------------------------------------------------- |
+| `hostApis`      | `NebulaHostFeature[]` | No       | `[]`    | List of host API features to register with the runtime. |
+| `serverBaseURL` | `string \| null`      | No       | `null`  | Base URL for the miniapp resource service.              |
+
+**Example:**
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+export default NebulaAPI.wrap({
+  serverBaseURL: 'https://api.example.com',
+  hostApis: defaultHostApis,
+})(App);
+```
+
+---
+
+### NebulaAPI.startApiServer()
+
+Starts the host-side API message processing service, listening for protocol requests from miniapps. Typically called automatically by `wrap()`; calling it manually is idempotent.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function startApiServer(): void;
+```
+
+**Request types handled:**
+
+| Request kind         | Description                                                 |
+| -------------------- | ----------------------------------------------------------- |
+| `getCapabilities`    | Returns version and support status of registered host APIs. |
+| `getApiDescriptions` | Returns documentation descriptions of registered host APIs. |
+| `invoke`             | Routes to the corresponding API handler for execution.      |
+
+**Internal error codes:**
+
+| Error code        | Description                                           |
+| ----------------- | ----------------------------------------------------- |
+| `UNSUPPORTED_API` | The requested API is not registered or not supported. |
+| `INTERNAL_ERROR`  | An exception was thrown during handler execution.     |
+
+---
+
+### NebulaAPI.stopApiServer()
+
+Stops the host-side API message listener and cancels bridge event subscriptions.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function stopApiServer(): void;
+```
+
+---
+
+### NebulaAPI.setServerBaseURL(serverBaseURL)
+
+Sets the base URL for the host service, persisting it to native storage. This URL is used to resolve relative paths when installing and updating miniapps.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function setServerBaseURL(
+  serverBaseURL?: string | null,
+): Promise<ServerBaseURLResult>;
+```
+
+**Parameters:**
+
+| Parameter       | Type             | Required | Default | Description                                                   |
+| --------------- | ---------------- | -------- | ------- | ------------------------------------------------------------- |
+| `serverBaseURL` | `string \| null` | No       | —       | A valid http(s) URL; pass `null` or an empty string to clear. |
+
+**Return value `ServerBaseURLResult`:**
+
+| Field           | Type             | Description           |
+| --------------- | ---------------- | --------------------- |
+| `serverBaseURL` | `string \| null` | The URL that was set. |
+
+**Error codes:**
+
+| Error code           | Platform      | Description                   |
+| -------------------- | ------------- | ----------------------------- |
+| `INVALID_SERVER_URL` | iOS / Android | URL format validation failed. |
+
+---
+
+### NebulaAPI.getServerBaseURL()
+
+Gets the currently configured service base URL.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getServerBaseURL(): Promise<ServerBaseURLResult>;
+```
+
+**Return value `ServerBaseURLResult`:**
+
+| Field           | Type             | Description                            |
+| --------------- | ---------------- | -------------------------------------- |
+| `serverBaseURL` | `string \| null` | The current URL, or `null` if not set. |
+
+---
+
+## Miniapp Installation
+
+### NebulaAPI.installMiniApp(appId, bundleURL)
+
+Downloads and installs a miniapp bundle from a remote URL (production mode). Automatically fetches and stores the `app.json` manifest.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function installMiniApp(
+  appId: string,
+  bundleURL: string,
+): Promise<MiniAppResult>;
+```
+
+**Parameters:**
+
+| Parameter   | Type     | Required | Description                            |
+| ----------- | -------- | -------- | -------------------------------------- |
+| `appId`     | `string` | Yes      | Unique identifier of the miniapp.      |
+| `bundleURL` | `string` | Yes      | Remote URL of the bundle (http/https). |
+
+**Return value `MiniAppResult`:**
+
+| Field     | Type      | Description                              |
+| --------- | --------- | ---------------------------------------- |
+| `success` | `boolean` | Whether the installation was successful. |
+| `appId`   | `string`  | The miniapp ID.                          |
+
+**Platform differences:**
+
+|                 | Android                                         | iOS                                       |
+| --------------- | ----------------------------------------------- | ----------------------------------------- |
+| Bundle path     | `Files/nebula/{appId}/index.android.bundle`     | `Documents/MiniApps/{appId}/index.bundle` |
+| Network timeout | Connect 15s + read 15s                          | URLSession default                        |
+| Manifest fetch  | Automatically replaces filename with `app.json` | Same as Android                           |
+
+**Error codes:**
+
+| Error code      | Description                 |
+| --------------- | --------------------------- |
+| `INSTALL_ERROR` | Download or parsing failed. |
+
+---
+
+### NebulaAPI.installMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer?)
+
+Installs a miniapp with the specified bundle URL, using `connectToURLMetroServer` to determine whether to treat it as a Metro development runtime connected to that URL.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function installMiniAppWithBundleURL(
+  appId: string,
+  bundleURL: string,
+  connectToURLMetroServer?: boolean,
+): Promise<MiniAppResult>;
+```
+
+**Parameters:**
+
+| Parameter                 | Type      | Required | Description                                                                               |
+| ------------------------- | --------- | -------- | ----------------------------------------------------------------------------------------- |
+| `appId`                   | `string`  | Yes      | Unique identifier of the miniapp.                                                         |
+| `bundleURL`               | `string`  | Yes      | Remote URL of the bundle.                                                                 |
+| `connectToURLMetroServer` | `boolean` | No       | `false` installs as production; `true` treats the URL as a Metro development entry point. |
+
+**Return value `MiniAppResult`:**
+
+| Field     | Type      | Description                                             |
+| --------- | --------- | ------------------------------------------------------- |
+| `success` | `boolean` | Whether the installation was successful.                |
+| `appId`   | `string`  | The miniapp ID.                                         |
+| `mode`    | `string`  | Final installation mode: `development` or `production`. |
+
+**Behavior differences:**
+
+|                   | `connectToURLMetroServer = true` | `connectToURLMetroServer = false`          |
+| ----------------- | -------------------------------- | ------------------------------------------ |
+| Installation mode | `development`                    | `production`                               |
+| `version`         | `null` (version not tracked)     | Read from manifest                         |
+| `updateStrategy`  | Forced `'manual'`                | Read from manifest, defaults to `'manual'` |
+| Dev URL           | Saves hot reload URL             | Not saved                                  |
+
+**Error codes:**
+
+| Error code      | Description                        |
+| --------------- | ---------------------------------- |
+| `INSTALL_ERROR` | Download or parsing failed.        |
+| `INVALID_MODE`  | Mode string is invalid (iOS only). |
+
+---
+
+## Opening and Preloading Miniapps
+
+### NebulaAPI.openMiniApp(appId, initialProps?, versionType?)
+
+Opens an installed miniapp and displays it to the user. If not installed locally, it will automatically install the specified version type (defaults to `release`). If the miniapp is in production mode and `updateStrategy` is `'auto'`, it will automatically check for and apply updates before opening (update failure does not block opening).
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function openMiniApp(
+  appId: string,
+  initialProps?: Record<string, unknown>,
+  versionType?: 'release' | 'experience',
+): Promise<MiniAppResult>;
+```
+
+**Parameters:**
+
+| Parameter      | Type                        | Required | Default     | Description                                                    |
+| -------------- | --------------------------- | -------- | ----------- | -------------------------------------------------------------- |
+| `appId`        | `string`                    | Yes      | —           | Installed miniapp ID.                                          |
+| `initialProps` | `Record<string, unknown>`   | No       | `{}`        | Initial properties passed to the miniapp root component.       |
+| `versionType`  | `'release' \| 'experience'` | No       | `'release'` | Which cloud version to automatically install if not installed. |
+
+**Return value `MiniAppResult`:**
+
+| Field     | Type      | Description                     |
+| --------- | --------- | ------------------------------- |
+| `success` | `boolean` | Whether opening was successful. |
+| `appId`   | `string`  | The miniapp ID.                 |
+
+**Platform differences:**
+
+|                       | Android                    | iOS                        |
+| --------------------- | -------------------------- | -------------------------- |
+| Threading model       | `activity.runOnUiThread()` | `DispatchQueue.main.async` |
+| No UI container error | `NO_ACTIVITY`              | `NO_ROOT_VC`               |
+
+**Error codes:**
+
+| Error code    | Platform | Description                     |
+| ------------- | -------- | ------------------------------- |
+| `NO_ACTIVITY` | Android  | Current Activity not found.     |
+| `NO_ROOT_VC`  | iOS      | Root view controller not found. |
+| `OPEN_ERROR`  | All      | Runtime error.                  |
+
+---
+
+### NebulaAPI.openMiniAppWithBundleURL(appId, bundleURL, initialProps?, connectToURLMetroServer?)
+
+Installs and immediately opens a miniapp. Equivalent to calling `installMiniAppWithBundleURL()` followed by `openMiniApp()`.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function openMiniAppWithBundleURL(
+  appId: string,
+  bundleURL: string,
+  initialProps?: Record<string, unknown>,
+  connectToURLMetroServer?: boolean,
+): Promise<MiniAppResult>;
+```
+
+**Parameters:**
+
+| Parameter                 | Type                      | Required | Default | Description                                                                                                          |
+| ------------------------- | ------------------------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------- |
+| `appId`                   | `string`                  | Yes      | —       | Unique identifier of the miniapp.                                                                                    |
+| `bundleURL`               | `string`                  | Yes      | —       | Remote URL of the bundle.                                                                                            |
+| `initialProps`            | `Record<string, unknown>` | No       | `{}`    | Initial properties passed to the root component.                                                                     |
+| `connectToURLMetroServer` | `boolean`                 | No       | `false` | When `true`, treats as development mode connecting to Metro at that URL; otherwise installs and opens as production. |
+
+---
+
+### NebulaAPI.preloadMiniApp(appId)
+
+Preloads an installed miniapp in the background, creating the runtime and root view in advance to reduce subsequent open time.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function preloadMiniApp(appId: string): Promise<MiniAppResult>;
+```
+
+**Parameters:**
+
+| Parameter | Type     | Required | Description           |
+| --------- | -------- | -------- | --------------------- |
+| `appId`   | `string` | Yes      | Installed miniapp ID. |
+
+**Return value `MiniAppResult`:**
+
+| Field     | Type      | Description                        |
+| --------- | --------- | ---------------------------------- |
+| `success` | `boolean` | Whether preloading was successful. |
+| `appId`   | `string`  | The miniapp ID.                    |
+
+**Platform implementation differences:**
+
+|                    | iOS                                    | Android                                  |
+| ------------------ | -------------------------------------- | ---------------------------------------- |
+| Caching strategy   | Single-slot cache + generation counter | ReactHost cache pool (ConcurrentHashMap) |
+| Container approach | ViewController hidden at bottom layer  | Background ReactHost instance            |
+
+**Error codes:**
+
+| Error code      | Description                      |
+| --------------- | -------------------------------- |
+| `PRELOAD_ERROR` | Runtime error during preloading. |
+
+---
+
+### NebulaAPI.preloadMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer?)
+
+Installs then preloads a miniapp. Equivalent to calling `installMiniAppWithBundleURL()` followed by `preloadMiniApp()`.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function preloadMiniAppWithBundleURL(
+  appId: string,
+  bundleURL: string,
+  connectToURLMetroServer?: boolean,
+): Promise<MiniAppResult>;
+```
+
+**Parameters:**
+
+| Parameter                 | Type      | Required | Description                                                                       |
+| ------------------------- | --------- | -------- | --------------------------------------------------------------------------------- |
+| `appId`                   | `string`  | Yes      | Unique identifier of the miniapp.                                                 |
+| `bundleURL`               | `string`  | Yes      | Remote URL of the bundle.                                                         |
+| `connectToURLMetroServer` | `boolean` | No       | When `false`, preloads as production; when `true`, connects to Metro at that URL. |
+
+**Error codes:**
+
+| Error code      | Description                      |
+| --------------- | -------------------------------- |
+| `PRELOAD_ERROR` | Runtime error during preloading. |
+
+---
+
+## Version and Update
+
+### NebulaAPI.checkMiniAppUpdate(appId)
+
+Checks whether an update is available for a miniapp. Fetches the remote `app.json` manifest and compares version numbers using semver numeric segment comparison.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function checkMiniAppUpdate(appId: string): Promise<MiniAppUpdateInfo>;
+```
+
+**Parameters:**
+
+| Parameter | Type     | Required | Description           |
+| --------- | -------- | -------- | --------------------- |
+| `appId`   | `string` | Yes      | Installed miniapp ID. |
+
+**Return value `MiniAppUpdateInfo`:**
+
+| Field            | Type                 | Description                     |
+| ---------------- | -------------------- | ------------------------------- |
+| `appId`          | `string`             | The miniapp ID.                 |
+| `currentVersion` | `string \| null`     | Currently installed version.    |
+| `latestVersion`  | `string \| null`     | Latest remote version.          |
+| `hasUpdate`      | `boolean`            | Whether an update is available. |
+| `updateStrategy` | `'auto' \| 'manual'` | Update strategy.                |
+| `mode`           | `string \| null`     | Runtime mode.                   |
+| `sourceUrl`      | `string \| null`     | Bundle source URL.              |
+
+**Cases where `hasUpdate: false` is returned:**
+
+- Miniapp is not installed
+- In development mode
+- No `sourceUrl` (non-remote app)
+- Unable to derive manifest URL
+
+**Version comparison logic:** Split by `.` into numeric segments and compare segment by segment; missing segments default to 0.
+
+---
+
+### NebulaAPI.applyMiniAppUpdate(appId)
+
+Checks for and applies a miniapp update. Internally calls `checkMiniAppUpdate()` first; if an update is available, calls `installMiniAppWithBundleURL()` to download and install.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function applyMiniAppUpdate(appId: string): Promise<MiniAppUpdateInfo>;
+```
+
+**Parameters:**
+
+| Parameter | Type     | Required | Description           |
+| --------- | -------- | -------- | --------------------- |
+| `appId`   | `string` | Yes      | Installed miniapp ID. |
+
+**Return value:** Same as `MiniAppUpdateInfo`.
+
+---
+
+## Miniapp Information
+
+### NebulaAPI.getInstalledMiniAppInfo(appId)
+
+Gets local installation information for a miniapp.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getInstalledMiniAppInfo(
+  appId: string,
+): Promise<InstalledMiniAppInfoResult>;
+```
+
+**Parameters:**
+
+| Parameter | Type     | Required | Description |
+| --------- | -------- | -------- | ----------- |
+| `appId`   | `string` | Yes      | Miniapp ID. |
+
+**Return value `InstalledMiniAppInfoResult`:**
+
+| Field       | Type                                | Description                                             |
+| ----------- | ----------------------------------- | ------------------------------------------------------- |
+| `installed` | `boolean`                           | Whether installed.                                      |
+| `app`       | `InstalledMiniAppInfo \| undefined` | Installation info object, `undefined` if not installed. |
+
+**`InstalledMiniAppInfo` fields:**
+
+| Field            | Type                         | Description               |
+| ---------------- | ---------------------------- | ------------------------- |
+| `appId`          | `string`                     | Miniapp ID.               |
+| `mode`           | `string \| null`             | Runtime mode.             |
+| `bundlePath`     | `string \| null`             | Local bundle file path.   |
+| `sourceUrl`      | `string \| null`             | Remote bundle source URL. |
+| `version`        | `string \| null`             | Version from manifest.    |
+| `updateStrategy` | `'auto' \| 'manual' \| null` | Update strategy.          |
+
+---
+
+### NebulaAPI.getInstalledMiniApps()
+
+Gets the list of IDs of all installed miniapps.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getInstalledMiniApps(): Promise<InstalledMiniAppsResult>;
+```
+
+**Return value `InstalledMiniAppsResult`:**
+
+| Field  | Type       | Description                     |
+| ------ | ---------- | ------------------------------- |
+| `apps` | `string[]` | Array of installed miniapp IDs. |
+
+---
+
+## Navigation
+
+### MiniAppAPI.navigateTo(url)
+
+Navigates to a new page, pushing the current page onto the page stack.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function navigateTo(url: string): Promise<NavigationResult>;
+```
+
+**Parameters:**
+
+| Parameter | Type     | Required | Description                                |
+| --------- | -------- | -------- | ------------------------------------------ |
+| `url`     | `string` | Yes      | Target page URL, e.g., `"/detail?id=123"`. |
+
+**Return value `NavigationResult`:**
+
+| Field    | Type     | Description                                                |
+| -------- | -------- | ---------------------------------------------------------- |
+| `errMsg` | `string` | Format: `"navigateTo:ok"` or `"navigateTo:fail <reason>"`. |
+
+**Platform differences:**
+
+|        | Android                    | iOS                        |
+| ------ | -------------------------- | -------------------------- |
+| Thread | `activity.runOnUiThread()` | `DispatchQueue.main.async` |
+
+---
+
+### MiniAppAPI.redirectTo(url)
+
+Navigates to a new page, replacing the current page (cannot go back).
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function redirectTo(url: string): Promise<NavigationResult>;
+```
+
+**Parameters:**
+
+| Parameter | Type     | Required | Description      |
+| --------- | -------- | -------- | ---------------- |
+| `url`     | `string` | Yes      | Target page URL. |
+
+---
+
+### MiniAppAPI.reLaunch(url)
+
+Clears all page stacks and opens the target page.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function reLaunch(url: string): Promise<NavigationResult>;
+```
+
+**Parameters:**
+
+| Parameter | Type     | Required | Description      |
+| --------- | -------- | -------- | ---------------- |
+| `url`     | `string` | Yes      | Target page URL. |
+
+---
+
+### MiniAppAPI.navigateBack(delta?)
+
+Pops pages from the page stack.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function navigateBack(delta?: number): Promise<NavigationResult>;
+```
+
+**Parameters:**
+
+| Parameter | Type     | Required | Default | Description             |
+| --------- | -------- | -------- | ------- | ----------------------- |
+| `delta`   | `number` | No       | `1`     | Number of pages to pop. |
+
+---
+
+## Page Styling
+
+### MiniAppAPI.setPageStyle(style)
+
+Sets the appearance style of the current page.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function setPageStyle(style: NebulaPageStyle): Promise<NavigationResult>;
+```
+
+**Parameters `NebulaPageStyle`:**
+
+| Parameter                      | Type                    | Required | Description                                                        |
+| ------------------------------ | ----------------------- | -------- | ------------------------------------------------------------------ |
+| `backgroundColor`              | `string`                | No       | Page background color.                                             |
+| `navigationBarBackgroundColor` | `string`                | No       | Navigation bar background color.                                   |
+| `navigationBarTextColor`       | `string`                | No       | Navigation bar text color.                                         |
+| `navigationBarTitleText`       | `string`                | No       | Navigation bar title.                                              |
+| `navigationStyle`              | `'default' \| 'custom'` | No       | Navigation bar style; `'custom'` hides the default navigation bar. |
+| `visualEffectInBackground`     | `'blur' \| 'none'`      | No       | Visual effect when app enters background. **iOS only.**            |
+
+---
+
+### MiniAppAPI.setNavigationBarTitle(title)
+
+Convenience method for setting the navigation bar title. Internally calls `setPageStyle({ navigationBarTitleText: title })`.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function setNavigationBarTitle(title: string): Promise<NavigationResult>;
+```
+
+---
+
+### MiniAppAPI.setNavigationBarColor(options)
+
+Convenience method for setting the navigation bar color.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function setNavigationBarColor(options: {
+  backgroundColor?: string;
+  frontColor?: string;
+}): Promise<NavigationResult>;
+```
+
+**Parameters:**
+
+| Parameter         | Type     | Required | Description                                   |
+| ----------------- | -------- | -------- | --------------------------------------------- |
+| `backgroundColor` | `string` | No       | Navigation bar background color.              |
+| `frontColor`      | `string` | No       | Navigation bar foreground color (text/icons). |
+
+---
+
+## Device and App
+
+### MiniAppAPI.getAppId()
+
+Gets the current miniapp ID. Synchronous method.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getAppId(): string | null;
+```
+
+**Return value:** Current miniapp ID, or `null` if not initialized.
+
+---
+
+### MiniAppAPI.getSandboxPath()
+
+Gets the miniapp's file sandbox path.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getSandboxPath(): string;
+```
+
+**Return value:** Sandbox path string, e.g., `/Documents/MiniApps/{appId}`.
+
+---
+
+### MiniAppAPI.getDeviceInfo()
+
+Gets device information. Synchronous blocking call.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getDeviceInfo(): DeviceInfo;
+```
+
+**Return value `DeviceInfo`:**
+
+| Field           | Type                 | Description            |
+| --------------- | -------------------- | ---------------------- |
+| `platform`      | `'iOS' \| 'Android'` | Current platform.      |
+| `systemVersion` | `string`             | System version number. |
+| `model`         | `string`             | Device model.          |
+
+**Platform differences:**
+
+|                 | Android                 | iOS                              |
+| --------------- | ----------------------- | -------------------------------- |
+| `systemVersion` | `Build.VERSION.RELEASE` | `UIDevice.current.systemVersion` |
+| `model`         | `Build.MODEL`           | `UIDevice.current.model`         |
+
+---
+
+### MiniAppAPI.showToast(title)
+
+Displays a brief toast message.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function showToast(title: string): Promise<NavigationResult>;
+```
+
+**Parameters:**
+
+| Parameter | Type     | Required | Description |
+| --------- | -------- | -------- | ----------- |
+| `title`   | `string` | Yes      | Toast text. |
+
+**Platform differences:**
+
+|                | Android              | iOS                 |
+| -------------- | -------------------- | ------------------- |
+| Implementation | `Toast.LENGTH_SHORT` | `UIAlertController` |
+| Duration       | ~2 seconds           | 1.5 seconds         |
+
+---
+
+## Host Communication
+
+### MiniAppAPI.invokeHostApi(apiName, payload?, version?, timeoutMs?)
+
+Calls a host-registered API from a miniapp. Sends a request through the Nebula protocol layer (`api.v1`) and waits for a response.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function invokeHostApi<TData = unknown>(
+  apiName: string,
+  payload?: Record<string, unknown>,
+  version?: string,
+  timeoutMs?: number,
+): Promise<NebulaApiInvokeResult<TData>>;
+```
+
+**Parameters:**
+
+| Parameter   | Type                      | Required | Default   | Description                                            |
+| ----------- | ------------------------- | -------- | --------- | ------------------------------------------------------ |
+| `apiName`   | `string`                  | Yes      | —         | Name of the host API to call.                          |
+| `payload`   | `Record<string, unknown>` | No       | `{}`      | Data to pass to the API handler.                       |
+| `version`   | `string`                  | No       | `'1.0.0'` | Requested API version.                                 |
+| `timeoutMs` | `number`                  | No       | `15000`   | Request timeout in milliseconds. `0` means no timeout. |
+
+**Return value `NebulaApiInvokeResult<TData>`:**
+
+```ts
+// Success
+{ ok: true, data: TData }
+
+// Failure
+{ ok: false, error: { code: string, message: string, details?: Record<string, unknown> } }
+```
+
+**Error codes:**
+
+| Error code        | Description                             |
+| ----------------- | --------------------------------------- |
+| `UNSUPPORTED_API` | API is not registered or not supported. |
+| `INTERNAL_ERROR`  | Exception during handler execution.     |
+
+**Timeout:** 15000ms. After timeout, the request is cleaned up and the Promise rejects with `"Timed out waiting for host API: {apiName}"`.
+
+---
+
+### MiniAppAPI.postMessageToHost(message)
+
+Sends a message to the host.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function postMessageToHost(
+  message: Record<string, unknown>,
+): Promise<NavigationResult>;
+```
+
+**Parameters:**
+
+| Parameter | Type                      | Required | Description                   |
+| --------- | ------------------------- | -------- | ----------------------------- |
+| `message` | `Record<string, unknown>` | Yes      | Any JSON-serializable object. |
+
+---
+
+### MiniAppAPI.onHostMessage(listener)
+
+Subscribes to messages from the host.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function onHostMessage(listener: (event: BridgeMessage) => void): () => void;
+```
+
+**`BridgeMessage` fields:**
+
+| Field       | Type     | Description                        |
+| ----------- | -------- | ---------------------------------- |
+| `appId`     | `string` | ID of the app sending the message. |
+| `message`   | `object` | Message content.                   |
+| `timestamp` | `number` | Message timestamp.                 |
+
+**Return value:** Unsubscribe function.
+
+---
+
+### NebulaAPI.postMessageToMiniApp(appId, message)
+
+Sends a message from the host to a specified miniapp.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function postMessageToMiniApp(
+  appId: string,
+  message: Record<string, unknown>,
+): Promise<NavigationResult>;
+```
+
+**Parameters:**
+
+| Parameter | Type                      | Required | Description                   |
+| --------- | ------------------------- | -------- | ----------------------------- |
+| `appId`   | `string`                  | Yes      | Target miniapp ID.            |
+| `message` | `Record<string, unknown>` | Yes      | Any JSON-serializable object. |
+
+---
+
+### NebulaAPI.addMiniAppMessageListener(listener)
+
+Subscribes to messages from miniapps (for host-side use).
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function addMiniAppMessageListener(
+  listener: (event: BridgeMessage) => void,
+): () => void;
+```
+
+**Return value:** Unsubscribe function.
+
+---
+
+## Capability Detection
+
+### MiniAppAPI.getCapabilities()
+
+Gets the list of all API capabilities registered by the host.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getCapabilities(): Promise<{
+  bridgeVersion: string;
+  capabilities: NebulaHostCapabilityMap;
+}>;
+```
+
+**Return value:**
+
+| Field           | Type                      | Description                                      |
+| --------------- | ------------------------- | ------------------------------------------------ |
+| `bridgeVersion` | `string`                  | Protocol version, currently fixed at `'1.0.0'`.  |
+| `capabilities`  | `NebulaHostCapabilityMap` | Mapping from API name to capability description. |
+
+**`NebulaHostCapabilityDescriptor` fields:**
+
+| Field       | Type      | Description         |
+| ----------- | --------- | ------------------- |
+| `supported` | `boolean` | Whether supported.  |
+| `version`   | `string`  | API version number. |
+
+**Timeout:** 15000ms (fixed).
+
+---
+
+### MiniAppAPI.isSupported(apiName, minimumVersion?)
+
+Checks whether a specified API is supported by the host, optionally validating a minimum version.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function isSupported(
+  apiName: string,
+  minimumVersion?: string,
+): Promise<boolean>;
+```
+
+**Parameters:**
+
+| Parameter        | Type     | Required | Description                                |
+| ---------------- | -------- | -------- | ------------------------------------------ |
+| `apiName`        | `string` | Yes      | API name.                                  |
+| `minimumVersion` | `string` | No       | Required minimum version, e.g., `"1.0.0"`. |
+
+**Return value:** `true` if supported and meets version requirements.
+
+---
+
+### MiniAppAPI.getHostApiDescriptions(timeoutMs?)
+
+Gets detailed documentation descriptions of host-registered APIs.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getHostApiDescriptions(
+  timeoutMs?: number,
+): Promise<NebulaHostApiDescriptionMap>;
+```
+
+**Parameters:**
+
+| Parameter   | Type     | Required | Default | Description                      |
+| ----------- | -------- | -------- | ------- | -------------------------------- |
+| `timeoutMs` | `number` | No       | `15000` | Request timeout in milliseconds. |
+
+**Return value `NebulaHostApiDescriptionMap`:**
+
+```ts
+Record<string, NebulaHostApiDescription>;
+```
+
+**`NebulaHostApiDescription` fields:**
+
+| Field         | Type                                    | Description               |
+| ------------- | --------------------------------------- | ------------------------- |
+| `summary`     | `string`                                | API summary.              |
+| `description` | `string \| undefined`                   | Detailed description.     |
+| `params`      | `NebulaApiFieldDescriptor[]`            | Parameter list.           |
+| `returns`     | `{ type: string; description: string }` | Return value description. |
+| `tags`        | `string[]`                              | Tag list.                 |
+| `examples`    | `NebulaApiExampleDescriptor[]`          | Example code.             |
+
+---
+
+## Host Visibility and Modal
+
+### MiniAppAPI.bringHostToFront()
+
+Brings the host app to the foreground while hiding the miniapp (preserves state for restoration).
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function bringHostToFront(): Promise<HostVisibilityResult>;
+```
+
+**Return value `HostVisibilityResult`:**
+
+| Field     | Type                  | Description                                      |
+| --------- | --------------------- | ------------------------------------------------ |
+| `success` | `boolean`             | Whether the operation was successful.            |
+| `token`   | `string \| undefined` | Restoration token to pass to `restoreMiniApp()`. |
+
+---
+
+### MiniAppAPI.restoreMiniApp(token?)
+
+Restores a miniapp previously hidden via `bringHostToFront()`.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function restoreMiniApp(token?: string | null): Promise<HostVisibilityResult>;
+```
+
+**Parameters:**
+
+| Parameter | Type             | Required | Default | Description                                             |
+| --------- | ---------------- | -------- | ------- | ------------------------------------------------------- |
+| `token`   | `string \| null` | No       | `null`  | Restoration token; `null` restores the most recent one. |
+
+---
+
+### MiniAppAPI.presentHostModal(moduleName, props?)
+
+Presents a host-side React Native module as a Modal.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function presentHostModal(
+  moduleName: string,
+  props?: Record<string, unknown>,
+): Promise<NavigationResult>;
+```
+
+**Parameters:**
+
+| Parameter    | Type                      | Required | Default | Description                                |
+| ------------ | ------------------------- | -------- | ------- | ------------------------------------------ |
+| `moduleName` | `string`                  | Yes      | —       | Registered RN component name.              |
+| `props`      | `Record<string, unknown>` | No       | `{}`    | Properties to pass to the Modal component. |
+
+**Platform differences:**
+
+|              | Android                                     | iOS                                           |
+| ------------ | ------------------------------------------- | --------------------------------------------- |
+| Presentation | New Activity (`FLAG_ACTIVITY_NO_ANIMATION`) | `overFullScreen` + `crossDissolve` transition |
+
+**Error codes:**
+
+| Error code                 | Platform | Description                 |
+| -------------------------- | -------- | --------------------------- |
+| `NO_ACTIVITY`              | Android  | Current Activity not found. |
+| `PRESENT_HOST_MODAL_ERROR` | Android  | Failed to present Modal.    |
+
+---
+
+### MiniAppAPI.dismissHostModal()
+
+Dismisses the currently presented host Modal.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function dismissHostModal(): Promise<NavigationResult>;
+```
+
+---
+
+## Page Lifecycle
+
+### MiniAppAPI.onPageLifecycle(listener)
+
+Subscribes to page lifecycle events.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function onPageLifecycle(
+  listener: (event: PageLifecycleEvent) => void,
+): () => void;
+```
+
+**`PageLifecycleEvent` fields:**
+
+| Field        | Type                           | Description        |
+| ------------ | ------------------------------ | ------------------ |
+| `appId`      | `string`                       | Miniapp ID.        |
+| `instanceId` | `string`                       | Page instance ID.  |
+| `routePath`  | `string \| undefined`          | Current page path. |
+| `type`       | `'show' \| 'hide' \| 'unload'` | Event type.        |
+
+**Return value:** Unsubscribe function.
+
+---
+
+## Lifecycle Hooks
+
+### usePageOnLoad(callback)
+
+Executes when the page loads for the first time, receiving route parameters. Triggers once when the component mounts.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function usePageOnLoad(
+  callback: (params: Record<string, unknown>) => void,
+): void;
+```
+
+**Parameters:**
+
+| Parameter  | Type               | Description                                    |
+| ---------- | ------------------ | ---------------------------------------------- |
+| `callback` | `(params) => void` | Callback that receives route query parameters. |
+
+---
+
+### usePageOnShow(callback)
+
+Executes every time the page becomes visible. Triggers when the component mounts, then on every `'show'` lifecycle event.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function usePageOnShow(callback: () => void): void;
+```
+
+---
+
+### usePageOnReady(callback)
+
+Executes after the page has rendered (after the first animation frame). Uses `requestAnimationFrame()` internally.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function usePageOnReady(callback: () => void): void;
+```
+
+---
+
+### usePageOnHide(callback)
+
+Executes when the page becomes invisible. Triggers on the `'hide'` lifecycle event.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function usePageOnHide(callback: () => void): void;
+```
+
+---
+
+### usePageOnUnload(callback)
+
+Executes when the page is unloaded. Triggers when the component unmounts (cleanup function).
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function usePageOnUnload(callback: () => void): void;
+```
+
+---
+
+## Route Registration
+
+### NebulaAPI.registerRoutes(appId, routes)
+
+Registers the miniapp's route table, typically called when the miniapp starts.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function registerRoutes(
+  appId: string,
+  routes: Record<string, string>,
+): Promise<void>;
+```
+
+**Parameters:**
+
+| Parameter | Type                     | Required | Description                                                                        |
+| --------- | ------------------------ | -------- | ---------------------------------------------------------------------------------- |
+| `appId`   | `string`                 | Yes      | Current miniapp ID.                                                                |
+| `routes`  | `Record<string, string>` | Yes      | Mapping from path to component name, e.g., `{ "/": "Home", "/detail": "Detail" }`. |
+
+---
+
+### NebulaAPI.registerManifest(appId, manifest)
+
+Registers the complete miniapp manifest (extended route table with page configurations).
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function registerManifest(
+  appId: string,
+  manifest: RegisteredMiniAppManifest,
+): Promise<void>;
+```
+
+**Parameters `RegisteredMiniAppManifest`:**
+
+| Parameter        | Type                              | Required | Description                          |
+| ---------------- | --------------------------------- | -------- | ------------------------------------ |
+| `pages`          | `Record<string, string>`          | Yes      | Mapping from path to component name. |
+| `entryPagePath`  | `string`                          | No       | Entry page path, e.g., `"/"`.        |
+| `pageConfigs`    | `Record<string, NebulaPageStyle>` | No       | Page-level style overrides.          |
+| `window`         | `NebulaPageStyle`                 | No       | Global window style.                 |
+| `updateStrategy` | `'auto' \| 'manual'`              | No       | Update strategy.                     |
+| `version`        | `string`                          | No       | Version number.                      |
+
+**Error codes:**
+
+| Error code         | Description                   |
+| ------------------ | ----------------------------- |
+| `INVALID_MANIFEST` | Manifest JSON parsing failed. |
+
+---
+
+## Host API Registration
+
+### NebulaAPI.registerApiHandler(apiName, handler)
+
+Manually registers a host API handler. Automatically calls `startApiServer()` if the API Server has not been started.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function registerApiHandler(
+  apiName: string,
+  handler: NebulaHostApiHandler,
+): void;
+```
+
+**Parameters `NebulaHostApiHandler`:**
+
+| Parameter     | Type                                                   | Required | Default | Description                                  |
+| ------------- | ------------------------------------------------------ | -------- | ------- | -------------------------------------------- |
+| `version`     | `string`                                               | Yes      | —       | API version number, e.g., `"1.0.0"`.         |
+| `supported`   | `boolean \| () => Promise<boolean>`                    | No       | `true`  | Whether supported; can be an async function. |
+| `description` | `NebulaHostApiDescription`                             | No       | —       | API documentation description.               |
+| `handle`      | `(payload, context) => Promise<NebulaApiInvokeResult>` | Yes      | —       | Request handler function.                    |
+
+---
+
+### NebulaAPI.unregisterApiHandler(apiName)
+
+Unregisters a host API handler.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function unregisterApiHandler(apiName: string): void;
+```
+
+---
+
+### NebulaAPI.getRegisteredCapabilities()
+
+Gets the version and support status of all registered APIs (asynchronously resolves `supported` functions).
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getRegisteredCapabilities(): Promise<NebulaHostCapabilityMap>;
+```
+
+---
+
+### NebulaAPI.getRegisteredApiDescriptions()
+
+Synchronously gets the documentation descriptions of all registered APIs.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function getRegisteredApiDescriptions(): NebulaHostApiDescriptionMap;
+```
+
+---
+
+## Host Feature Factories
+
+### createHostApiFeature(options)
+
+Creates a UI-less host API feature for registration with `hostApis` in `NebulaAPI.wrap()`.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function createHostApiFeature(
+  options: RegisterHostApiOptions,
+): NebulaHostFeature;
+```
+
+**Parameters `RegisterHostApiOptions`:**
+
+| Parameter     | Type                                                   | Required | Default | Description                    |
+| ------------- | ------------------------------------------------------ | -------- | ------- | ------------------------------ |
+| `apiName`     | `string`                                               | Yes      | —       | API name identifier.           |
+| `version`     | `string`                                               | No       | `'1.0'` | API version number.            |
+| `supported`   | `boolean \| () => Promise<boolean>`                    | No       | `true`  | Whether this API is supported. |
+| `description` | `NebulaHostApiDescription`                             | No       | —       | API documentation description. |
+| `handle`      | `(payload, context) => Promise<NebulaApiInvokeResult>` | Yes      | —       | Request handler function.      |
+
+**Return value `NebulaHostFeature`:** A feature object containing `name`, `description`, and a `register()` method.
+
+---
+
+### createHostModalApiFeature(options)
+
+Creates a host API feature that requires Modal UI. Automatically presents a Modal when called, and returns the result when the Modal closes.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function createHostModalApiFeature<TPayload, TRequest>(
+  options: RegisterHostModalApiOptions<TPayload, TRequest>,
+): NebulaHostFeature;
+```
+
+**Parameters `RegisterHostModalApiOptions`:**
+
+| Parameter               | Type                                                  | Required | Description                                                                                     |
+| ----------------------- | ----------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------- |
+| `apiName`               | `string`                                              | Yes      | API name identifier.                                                                            |
+| `component`             | `React.ComponentType`                                 | Yes      | React component to render in the Modal.                                                         |
+| `channel`               | `HostModalChannel<TRequest>`                          | Yes      | Modal request channel.                                                                          |
+| `createRequest`         | `(payload: TPayload) => TRequest`                     | Yes      | Creates a Modal request from the API payload.                                                   |
+| `modalProps`            | `Record \| (payload, request) => Record`              | No       | Additional properties to pass to the Modal component.                                           |
+| `onBeforeOpen`          | `(payload) => Promise<NebulaApiInvokeResult \| null>` | No       | Pre-processing before Modal opens (e.g., permission check); returning non-null skips the Modal. |
+| `onUnmountErrorMessage` | `string`                                              | No       | Error message when Modal unmounts abnormally.                                                   |
+| `version`               | `string`                                              | No       | API version number.                                                                             |
+| `description`           | `NebulaHostApiDescription`                            | No       | API documentation description.                                                                  |
+
+---
+
+### createHostModalChannel()
+
+Creates a bidirectional request-response channel for Modals, used for communication between host components and API calls.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function createHostModalChannel<
+  TRequest extends object,
+>(): HostModalChannel<TRequest>;
+```
+
+**Return value `HostModalChannel<TRequest>`:**
+
+| Method       | Signature                                                       | Description                               |
+| ------------ | --------------------------------------------------------------- | ----------------------------------------- |
+| `open`       | `(request: TRequest) => Promise<NebulaApiInvokeResult>`         | Opens the channel and waits for a result. |
+| `settle`     | `(result: NebulaApiInvokeResult) => void`                       | Submits a result from the Modal side.     |
+| `getCurrent` | `() => TRequest \| null`                                        | Gets the current request.                 |
+| `clear`      | `() => void`                                                    | Clears the current request.               |
+| `subscribe`  | `(listener: (request: TRequest \| null) => void) => () => void` | Listens for request changes.              |
+
+---
+
+## Helper Functions
+
+### createHostApiSuccess(data)
+
+Creates a successful API return result.
+
+```ts
+function createHostApiSuccess<TData>(data: TData): NebulaApiInvokeResult<TData>;
+// Returns { ok: true, data }
+```
+
+---
+
+### createHostApiFailure(code, message)
+
+Creates a failed API return result.
+
+```ts
+function createHostApiFailure(
+  code: string,
+  message: string,
+): NebulaApiInvokeResult;
+// Returns { ok: false, error: { code, message } }
+```
+
+---
+
+### definePageConfig(config)
+
+TypeScript helper function for page configuration (pass-through, provides type constraints only).
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function definePageConfig<T extends MiniAppPageConfig>(config: T): T;
+```
+
+**Parameters `MiniAppPageConfig`:**
+
+| Parameter                      | Type                    | Required | Description                                     |
+| ------------------------------ | ----------------------- | -------- | ----------------------------------------------- |
+| `route`                        | `string`                | No       | Page route path.                                |
+| `backgroundColor`              | `string`                | No       | Page background color.                          |
+| `navigationBarBackgroundColor` | `string`                | No       | Navigation bar background color.                |
+| `navigationBarTextColor`       | `string`                | No       | Navigation bar text color.                      |
+| `navigationBarTitleText`       | `string`                | No       | Navigation bar title.                           |
+| `navigationStyle`              | `'default' \| 'custom'` | No       | Navigation bar style.                           |
+| `visualEffectInBackground`     | `'blur' \| 'none'`      | No       | Visual effect when in background. **iOS only.** |
+
+---
+
+### createMiniAppPage(Component)
+
+Higher-order component that wraps a miniapp page component, providing Nebula context. Automatically calls `MiniAppAPI.bootstrap()` and provides `MiniAppPageContext`.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```ts
+function createMiniAppPage<P extends Record<string, unknown>>(
+  Component: React.ComponentType<P>,
+): React.ComponentType<P>;
+```
+
+**Reserved Props (not passed to child component):** `appId`, `instanceId`, `sandboxPath`, `title`, `__pageConfig`, `__routePath`, `__routeUrl`.
+
+---
+
+## Type Definitions
+
+```ts
+type MiniAppUpdateStrategy = 'auto' | 'manual';
+
+type MiniAppResult = {
+  success: boolean;
+  appId: string;
+  mode?: string;
+};
+
+type MiniAppUpdateInfo = {
+  appId: string;
+  currentVersion?: string | null;
+  latestVersion?: string | null;
+  hasUpdate: boolean;
+  updateStrategy: 'auto' | 'manual';
+  mode?: string | null;
+  sourceUrl?: string | null;
+};
+
+type NebulaApiInvokeResult<T = unknown> =
+  | { ok: true; data: T }
+  | { ok: false; error: NebulaApiError };
+
+type NebulaApiError = {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+};
+
+type NebulaHostCapabilityDescriptor = {
+  supported: boolean;
+  version: string;
+};
+
+type NebulaHostCapabilityMap = Record<string, NebulaHostCapabilityDescriptor>;
+
+type PageLifecycleEvent = {
+  appId: string;
+  instanceId: string;
+  routePath?: string;
+  type: 'show' | 'hide' | 'unload';
+};
+
+type NebulaPageStyle = {
+  backgroundColor?: string;
+  navigationBarBackgroundColor?: string;
+  navigationBarTextColor?: string;
+  navigationBarTitleText?: string;
+  navigationStyle?: 'default' | 'custom';
+  visualEffectInBackground?: 'blur' | 'none';
+};
+
+type NavigationResult = {
+  errMsg: string;
+};
+
+type HostVisibilityResult = {
+  success: boolean;
+  token?: string | null;
+};
+
+type ServerBaseURLResult = {
+  serverBaseURL?: string | null;
+};
+```
+
+---
+
+## Native Module
+
+`@nebula-rn/sdk` communicates with the native layer via `NebulaNativeModule`.
+
+**Synchronous methods:** `getDeviceInfo()`
+
+**Asynchronous methods:** All other native calls return Promises.
+
+**Platform configuration constants:**
+
+| Configuration           | iOS Default | Description                                          |
+| ----------------------- | ----------- | ---------------------------------------------------- |
+| Max concurrent miniapps | `3`         | Maximum number of miniapps in memory simultaneously. |
+| Max page stack depth    | `10`        | Maximum number of pages in a single miniapp's stack. |
+
+**Default timeouts:**
+
+| Operation                  | Timeout                |
+| -------------------------- | ---------------------- |
+| `invokeHostApi()`          | 15000ms                |
+| `getCapabilities()`        | 15000ms (fixed)        |
+| `getHostApiDescriptions()` | 15000ms (configurable) |
+| Network download (Android) | Connect 15s + read 15s |
+| Network download (iOS)     | URLSession default     |
+
+**Error code summary:**
+
+| Error code                 | Platform | Context                                          |
+| -------------------------- | -------- | ------------------------------------------------ |
+| `NO_ACTIVITY`              | Android  | Activity not found when opening/presenting Modal |
+| `NO_ROOT_VC`               | iOS      | Root view controller not found when opening      |
+| `OPEN_ERROR`               | All      | Runtime error opening miniapp                    |
+| `PRELOAD_ERROR`            | All      | Runtime error during preloading                  |
+| `INSTALL_ERROR`            | All      | Download or parsing failed                       |
+| `INVALID_SERVER_URL`       | All      | URL format validation failed                     |
+| `INVALID_MANIFEST`         | All      | Manifest JSON parsing failed                     |
+| `INVALID_MODE`             | iOS      | Runtime mode string invalid                      |
+| `UNSUPPORTED_API`          | All      | API not registered or not supported              |
+| `INTERNAL_ERROR`           | All      | Handler execution exception                      |
+| `PRESENT_HOST_MODAL_ERROR` | Android  | Failed to present Modal                          |

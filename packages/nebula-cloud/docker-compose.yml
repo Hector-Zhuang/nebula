@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nebula
+      POSTGRES_PASSWORD: nebula
+      POSTGRES_DB: nebula_cloud
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  cloud:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://nebula:nebula@db:5432/nebula_cloud
+      JWT_SECRET: change-me-to-a-random-secret
+      PORT: "3001"
+    ports:
+      - "3001:3001"
+    volumes:
+      - uploads:/app/storage
+
+volumes:
+  pgdata:
+  uploads:

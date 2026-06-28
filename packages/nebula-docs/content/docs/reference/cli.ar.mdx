@@ -1,0 +1,329 @@
+---
+title: CLI
+description: مرجع مفصّل لأوامر Nebula CLI.
+---
+
+Nebula CLI هي نقطة الدخول من سطر الأوامر لإنشاء المشاريع، وضبط عنوان Nebula Cloud، وتسجيل دخول CLI، وتشغيل miniapps محليًا، وبناء نواتج الإنتاج، ورفع الإصدارات إلى Nebula Cloud.
+
+## نطاق الأداة
+
+يدعم Nebula CLI حاليًا خمس فئات رئيسية:
+
+- إنشاء المشاريع
+- ضبط عنوان الخادم
+- تسجيل الدخول والخروج في CLI
+- تطوير miniapp وبناؤها
+- رفع miniapp
+
+## فهرس الأوامر
+
+| الأمر | الغرض |
+|------|------|
+| `npx nebula create host <name>` | إنشاء مشروع Host |
+| `npx nebula create miniapp <name>` | إنشاء مشروع miniapp |
+| `npx nebula create runner <name>` | إنشاء مشروع Runner مخصص |
+| `npx nebula config server` | عرض أو حفظ أو حذف عنوان Nebula Cloud |
+| `npx nebula auth login` | بدء تدفق تسجيل دخول CLI |
+| `npx nebula auth logout` | حذف الرمز المحفوظ وجلسة المستخدم |
+| `npx nebula miniapp dev` | تشغيل miniapp في وضع التطوير |
+| `npx nebula miniapp build` | بناء نواتج miniapp للإنتاج |
+| `npx nebula miniapp upload` | بناء نسخة miniapp ورفعها إلى Nebula Cloud |
+
+## `create`
+
+استخدم `create` لإنشاء مشروع جديد من حزمة القوالب.
+
+### الصيغة
+
+```bash
+npx nebula create <host|miniapp|runner> <name> [options]
+```
+
+### الأنواع المدعومة
+
+| النوع | النتيجة |
+|------|------|
+| `host` | مشروع تطبيق مضيف |
+| `miniapp` | مشروع miniapp مستقل |
+| `runner` | مشروع Runner تطويري مخصص |
+
+### الخيارات
+
+| الخيار | المعنى |
+|------|------|
+| `--directory <path>` | الكتابة إلى مجلد مخصص بدلًا من `<name>` |
+| `--app-id <id>` | استبدال `appId` الافتراضي |
+| `--display-name <name>` | استبدال الاسم الظاهر الافتراضي |
+| `--bundle-id <id>` | استبدال المعرّف الأصلي الافتراضي للتطبيق |
+
+### أمثلة
+
+```bash
+npx nebula create miniapp hello-nebula
+npx nebula create host my-host
+npx nebula create runner my-runner
+npx nebula create miniapp checkout --directory ./examples/checkout
+npx nebula create host enterprise-host --bundle-id com.company.enterprise
+```
+
+### ملاحظات
+
+- يجب أن يكون مجلد الهدف فارغًا.
+- يستخدم المشروع الناتج إصدارات Nebula الحالية من القالب أو من الـ workspace المحلي.
+- يناسب `runner` فرق الـ Host التي تحتاج إلى مضيف تطويري أكثر تخصيصًا.
+
+## `config server`
+
+استخدم `config server` لإدارة عنوان Nebula Cloud API المحفوظ.
+
+### الصيغة
+
+```bash
+npx nebula config server [--url <url>]
+npx nebula config server <url>
+npx nebula config server --clear
+```
+
+### السلوك
+
+| الصيغة | النتيجة |
+|------|------|
+| `npx nebula config server` | عرض عنوان الخادم المحفوظ حاليًا |
+| `npx nebula config server <url>` | حفظ عنوان خادم |
+| `npx nebula config server --url <url>` | حفظ عنوان خادم |
+| `npx nebula config server --clear` | حذف عنوان الخادم وحالة تسجيل الدخول المحفوظة |
+
+### أمثلة
+
+```bash
+npx nebula config server
+npx nebula config server http://localhost:3001/api
+npx nebula config server --url https://cloud.example.com/api
+npx nebula config server --clear
+```
+
+### سلوك مهم
+
+إذا تغيّر عنوان الخادم المحفوظ، فسيقوم Nebula CLI بحذف جلسة تسجيل الدخول السابقة تلقائيًا حتى لا يُستخدم رمز وصول قديم مع خدمة مختلفة.
+
+## `auth login`
+
+استخدم `auth login` لتفويض Nebula CLI مع Nebula Cloud.
+
+### الصيغة
+
+```bash
+npx nebula auth login [--server <url>] [--open false]
+```
+
+### السلوك
+
+يتبع CLI تدفق تفويض على نمط الأجهزة:
+
+1. يطلب جلسة تحقق من Nebula Cloud
+2. يطبع رابط التحقق والرمز
+3. يفتح المتصفح تلقائيًا اختياريًا
+4. يستمر في الاستطلاع حتى تتم الموافقة أو تنتهي الجلسة
+
+### الخيارات
+
+| الخيار | المعنى |
+|------|------|
+| `--server <url>` | تجاوز عنوان الخادم المحفوظ لهذا التدفق فقط |
+| `--open false` | عدم فتح المتصفح تلقائيًا |
+
+### أمثلة
+
+```bash
+npx nebula auth login
+npx nebula auth login --server http://localhost:3001/api
+npx nebula auth login --open false
+```
+
+## `auth logout`
+
+استخدم `auth logout` لمسح رمز الوصول المحفوظ وبيانات المستخدم.
+
+### الصيغة
+
+```bash
+npx nebula auth logout
+```
+
+## `miniapp dev`
+
+استخدم `miniapp dev` لتشغيل miniapp محليًا في وضع التطوير.
+
+### الصيغة
+
+```bash
+npx nebula miniapp dev [options]
+```
+
+### السلوك
+
+يقوم `miniapp dev` بما يلي:
+
+1. يقرأ `app.json`
+2. ينشئ ملفات runtime داخل `.nebula/generated/`
+3. يشغّل Metro على المنفذ `8082`
+4. يطلق Dev Runner المشترك بشكل افتراضي
+
+### الخيارات
+
+| الخيار | المعنى |
+|------|------|
+| `--platform ios` | فتح Dev Runner على iOS |
+| `--platform android` | فتح Dev Runner على Android |
+| `--no-runner true` | تشغيل خادم miniapp فقط من دون فتح Runner |
+
+### أمثلة
+
+```bash
+npx nebula miniapp dev
+npx nebula miniapp dev --platform ios
+npx nebula miniapp dev --platform android
+npx nebula miniapp dev --no-runner true
+```
+
+### الملفات الناتجة
+
+في وضع التطوير يتم إنشاء الملفات التالية:
+
+```text
+.nebula/generated/
+  app.json
+  index.js
+  metro.config.cjs
+```
+
+هذه الملفات ناتجة عن التوليد ويجب التعامل معها على هذا الأساس.
+
+## `miniapp build`
+
+استخدم `miniapp build` لبناء نواتج الإنتاج لمشروع miniapp الحالي.
+
+### الصيغة
+
+```bash
+npx nebula miniapp build
+```
+
+## `miniapp upload`
+
+استخدم `miniapp upload` لبناء miniapp الحالية ثم رفع الـ bundles والـ manifest الناتجين إلى Nebula Cloud.
+
+### الصيغة
+
+```bash
+npx nebula miniapp upload [options]
+```
+
+### المتطلبات المسبقة
+
+قبل الرفع، تأكد من أنك:
+
+1. ضبطت عنوان Nebula Cloud
+2. سجّلت الدخول من خلال CLI
+3. أنشأت miniapp الهدف في Nebula Cloud مع نفس `appId`
+
+### السلوك
+
+يقوم `miniapp upload` بما يلي:
+
+1. قراءة `app.json`
+2. بناء bundle إنتاجي لكل من iOS وAndroid
+3. إنشاء manifest runtime
+4. رفع الـ bundles والـ manifest إلى Nebula Cloud
+
+### الخيارات
+
+| الخيار | المعنى |
+|------|------|
+| `--server <url>` | تجاوز عنوان Nebula Cloud المحفوظ لهذا الرفع |
+| `--version <version>` | تجاوز الإصدار المقروء من `package.json` |
+| `--changelog <text>` | إرفاق نص changelog مع الإصدار المرفوع |
+
+### سلوك الرفع الحالي
+
+يتم الرفع حاليًا بالقيم التالية دائمًا:
+
+- channel: `stable`
+- release type: `RELEASE`
+
+أما المراجعة والنشر النهائي فيتمّان بعد الرفع من خلال Nebula Cloud أو Console.
+
+### مثال
+
+```bash
+npx nebula config server http://localhost:3001/api
+npx nebula auth login
+npx nebula miniapp upload --version 1.2.0 --changelog "Fix checkout flow"
+```
+
+### السلوك
+
+يقوم `miniapp build` بما يلي:
+
+1. إنشاء `.nebula/generated/`
+2. بناء bundles لكل من iOS وAndroid
+3. كتابة النواتج داخل `build/`
+
+### المخرجات
+
+| الملف | الغرض |
+|------|------|
+| `build/app.json` | manifest runtime الناتج |
+| `build/main.ios.jsbundle` | bundle الإنتاج لـ iOS |
+| `build/main.android.bundle` | bundle الإنتاج لـ Android |
+
+### مثال
+
+```bash
+npx nebula miniapp build
+```
+
+## مسارات عمل شائعة
+
+### إنشاء miniapp وتشغيلها
+
+```bash
+npx nebula create miniapp hello-nebula
+cd hello-nebula
+npm install
+npx nebula miniapp dev
+```
+
+### بناء miniapp قابلة للتوزيع
+
+```bash
+npx nebula miniapp build
+```
+
+### بناء إصدار miniapp ورفعه
+
+```bash
+npx nebula config server http://localhost:3001/api
+npx nebula auth login
+npx nebula miniapp upload --version 1.2.0 --changelog "Fix checkout flow"
+```
+
+### إعداد CLI وتسجيل الدخول
+
+```bash
+npx nebula config server http://localhost:3001/api
+npx nebula auth login
+```
+
+## ما لا يغطيه هذا المرجع
+
+Nebula CLI لا يقدّم حاليًا هذه الأمور:
+
+- إدارة المراجعة من داخل CLI
+- إدارة النشر من داخل CLI
+- الإدارة التشغيلية الكاملة لـ Nebula Cloud من خلال CLI
+
+لفهم نموذج الإصدارات والتحديثات والتوزيع، راجع:
+
+- [إصدارات miniapp والنشر](../miniapp/versioning.mdx)
+- [Nebula Cloud API](./nebula-cloud-api.mdx)

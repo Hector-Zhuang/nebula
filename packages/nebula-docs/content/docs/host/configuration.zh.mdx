@@ -1,0 +1,254 @@
+---
+title: 宿主配置
+description: 使用 NebulaAPI.wrap 配置 Nebula 宿主运行时行为，包括宿主 API、加载 UI 以及服务器基础 URL。
+---
+
+宿主配置主要围绕 `NebulaAPI.wrap(...)` 展开。
+
+这是宿主端的入口点，会在宿主应用渲染之前应用 Nebula 运行时默认设置。在实践中，大多数宿主项目使用它来配置：
+
+- 向小程序暴露哪些宿主 API
+- 加载体验的渲染方式
+- 安装和远程 bundle URL 的解析方式
+
+## 基本结构
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+
+export default NebulaAPI.wrap({
+  hostApis: [],
+  serverBaseURL: 'https://api.example.com',
+})(App);
+```
+
+当前公开的宿主配置接口为：
+
+```ts
+type NebulaHostOptions = {
+  hostApis?: NebulaHostFeature[];
+  miniappLoading?: {
+    component: React.ComponentType<MiniappLoadingProps>;
+    delayMs?: number;
+    enterContentDelayMs?: number;
+    resolveProps?: (
+      context: MiniappLoadingResolveContext,
+    ) => MiniappLoadingResolvedProps;
+  };
+  serverBaseURL?: string | null;
+};
+```
+
+## 初始化流程
+
+当被包装的宿主应用挂载时，`NebulaAPI.wrap()` 大致按以下顺序初始化 Nebula：
+
+1. 配置宿主自有的小程序加载行为
+2. 启动宿主端 API 服务器
+3. 注册所有已配置的宿主功能
+4. 应用宿主运行时默认设置（如 `serverBaseURL`）
+5. 订阅小程序生命周期事件，并在宿主卸载时进行清理
+
+## `hostApis`
+
+`hostApis` 定义了可供小程序使用的宿主 API 接口。
+
+只有在此处注册的 API 才能从小程序运行时调用。这使得 `hostApis` 成为宿主与小程序之间的主要能力边界。
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+export default NebulaAPI.wrap({
+  hostApis: defaultHostApis,
+})(App);
+```
+
+### 典型用法
+
+- 当你需要 Nebula 的标准宿主 API 集合时，使用 `defaultHostApis`
+- 为业务能力添加自定义宿主 API
+- 忽略你不想让小程序访问的 API
+
+### 使用建议
+
+- 将 `hostApis` 视为经过审核的契约，而不是一个便利列表
+- 不要暴露宿主尚未审核的 API
+- 优先使用显式注册，而不是宽泛或隐式的能力暴露
+
+## `miniappLoading`
+
+`miniappLoading` 配置在小程序安装或打开期间显示的宿主端加载体验。
+
+```tsx
+NebulaAPI.wrap({
+  miniappLoading: {
+    component: DefaultMiniappLoadingScreen,
+    delayMs: 5000,
+    enterContentDelayMs: 240,
+    resolveProps: ({ appId, installedInfo }) => ({
+      title: appId,
+      extraData: {
+        subtitle: installedInfo?.version
+          ? `版本 ${installedInfo.version}`
+          : '准备运行时',
+      },
+    }),
+  },
+})(App);
+```
+
+### `miniappLoading.component`
+
+在小程序处于加载状态时，由宿主渲染的 React 组件。
+
+该组件接收 `MiniappLoadingProps`：
+
+```ts
+type MiniappLoadingProps = {
+  appId: string;
+  mode: 'development' | 'production';
+  status: 'installing' | 'loading' | 'ready' | 'error';
+  title?: string | null;
+  icon?: ReactNode;
+  extraData?: Record<string, unknown> | null;
+  errorMessage?: string | null;
+};
+```
+
+当你需要以下功能时使用它：
+
+- 品牌化的加载 UI
+- 安装/打开进度提示
+- 生产模式下的错误或重试操作
+
+### `miniappLoading.delayMs`
+
+控制在小程序报告就绪后，宿主保持加载 UI 可见的时间，之后会自动隐藏。
+
+- 类型：`number`
+- 默认值：`0`
+
+当宿主需要稍慢的过渡以避免突然的视觉变化时使用。
+
+有关完整的加载生命周期以及此延迟的适用位置，请参阅
+[小程序加载屏幕](./miniapp-loading-screen.mdx)。
+
+### `miniappLoading.enterContentDelayMs`
+
+在加载视图准备离开后，添加一个延迟再视觉上进入小程序内容。
+
+- 类型：`number`
+- 默认值：`0`
+
+当你需要在宿主加载外壳和已挂载的小程序内容之间进行更从容的过渡时，此选项非常有用。
+
+有关完整的加载生命周期以及此延迟的适用位置，请参阅
+[小程序加载屏幕](./miniapp-loading-screen.mdx)。
+
+### `miniappLoading.resolveProps`
+
+允许宿主根据运行时上下文派生出仅用于展示的加载属性。
+
+```tsx
+resolveProps: ({ appId, status, installedInfo }) => ({
+  title: appId === 'checkout' ? '结账' : appId,
+  extraData: {
+    subtitle:
+      status === 'installing'
+        ? '正在安装 bundle'
+        : installedInfo?.version
+          ? `版本 ${installedInfo.version}`
+          : '加载中',
+  },
+});
+```
+
+它接收：
+
+```ts
+type MiniappLoadingResolveContext = {
+  appId: string;
+  mode: 'development' | 'production';
+  status: 'installing' | 'loading' | 'ready' | 'error';
+  title?: string | null;
+  icon?: ReactNode;
+  extraData?: Record<string, unknown> | null;
+  errorMessage?: string | null;
+  installedInfo?: InstalledMiniAppInfo | null;
+};
+```
+
+它返回以下内容的部分覆盖：
+
+- `title`
+- `icon`
+- `extraData`
+
+### 使用建议
+
+- 仅将 `miniappLoading` 用于宿主自有的展示
+- 不要将其视为传递小程序业务属性的通道
+- 专注于状态通信，而不是业务流程
+
+## `serverBaseURL`
+
+`serverBaseURL` 定义了宿主自有的基础 URL，当 Nebula 需要解析远程安装或资源 URL 时使用。
+
+在标准的 Nebula 部署中，此值通常指向你的 **Nebula Cloud** 服务端点。
+
+```tsx
+NebulaAPI.wrap({
+  serverBaseURL: 'https://api.example.com',
+  hostApis: defaultHostApis,
+})(App);
+```
+
+## 完整示例
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+export default NebulaAPI.wrap({
+  hostApis: defaultHostApis,
+  miniappLoading: {
+    component: DefaultMiniappLoadingScreen,
+    delayMs: 5000,
+    enterContentDelayMs: 240,
+    resolveProps: ({ appId, installedInfo }) => ({
+      title: appId,
+      extraData: {
+        subtitle: installedInfo?.version
+          ? `版本 ${installedInfo.version}`
+          : '准备生产运行时',
+      },
+    }),
+  },
+  serverBaseURL: 'https://api.example.com',
+})(App);
+```
+
+## 运行时更新
+
+某些宿主配置也可以在运行时通过 SDK 进行调整，例如：
+
+- `NebulaAPI.setServerBaseURL(...)`
+- `NebulaAPI.setMiniappLoadingDelay(...)`
+- `NebulaAPI.setMiniappLoadingEnterContentDelay(...)`
+
+当值必须在应用启动后更改时，使用运行时设置方法。
+当值是宿主默认运行时配置的一部分时，使用 `NebulaAPI.wrap(...)`。
+
+## 此处未配置的内容
+
+`宿主配置` 涵盖宿主自有的运行时默认设置。它不包括：
+
+- 小程序页面配置，如 `app.json` 或 `page.config.ts`
+- 在小程序清单中声明的小程序更新策略
+- 平台原生设置，如 iOS 权限、Android 权限或深度链接文件
+
+有关这些主题，请继续阅读：
+
+- [小程序加载屏幕](./miniapp-loading-screen.mdx)
+- [原生端 API](./native-apis.mdx)

@@ -1,0 +1,180 @@
+---
+title: 集成到现有 RN 应用
+description: 通过安装 @nebula-rn/host，把 Nebula 接入已有的 React Native 宿主应用。
+---
+
+这篇文档面向已经有 React Native 应用、并希望把它接入为 Nebula Host 的团队。
+
+关键原则很简单：
+
+- 安装 `@nebula-rn/host`
+- 让 React Native 按原生依赖方式完成链接
+- 在 JavaScript 层通过 `NebulaAPI.wrap(...)` 初始化宿主运行时
+
+你**不应该**从 `sample-host` 里复制原生文件。`sample-host` 是示例工程，不是集成机制。
+
+## 适用场景
+
+当你满足下面条件时，请使用这篇文档：
+
+- 已经有一个 React Native 应用
+- 希望在这个应用里承载 Nebula 小程序
+- 想保留现有宿主壳和业务结构
+
+如果你只是想快速得到一个可运行宿主，请直接使用：
+
+```bash
+npx nebula create host my-host
+```
+
+## 1. 安装宿主相关包
+
+先在现有应用里安装 Nebula 相关包：
+
+```bash
+npm install @nebula-rn/sdk @nebula-rn/host @nebula-rn/host-apis @nebula-rn/components
+```
+
+| 包 | 用途 |
+|---|---|
+| `@nebula-rn/sdk` | JavaScript 运行时层、`NebulaAPI`、生命周期和宿主特性接口 |
+| `@nebula-rn/host` | iOS / Android 原生宿主集成包 |
+| `@nebula-rn/host-apis` | 官方 Host API 实现集合 |
+| `@nebula-rn/components` | 小程序可使用的共享 UI 组件 |
+
+如果你使用 `defaultHostApis`，还需要安装它依赖的原生库：
+
+```bash
+npm install react-native-mmkv react-native-device-info react-native-vision-camera \
+  react-native-image-picker @bam.tech/react-native-image-resizer \
+  @dr.pogodin/react-native-fs @react-native-clipboard/clipboard \
+  @react-native-community/geolocation @react-native-community/netinfo \
+  @react-native-camera-roll/camera-roll react-native-sensors
+```
+
+## 2. 让 React Native 接入 `@nebula-rn/host`
+
+`@nebula-rn/host` 是一个原生包。它的 iOS 和 Android 接入方式已经通过 React Native 包元数据描述好了，所以你应当像接入普通原生依赖一样接入它。
+
+在大多数标准 React Native 工程里，autolinking 会自动处理这件事。
+
+### iOS
+
+安装依赖后执行：
+
+```bash
+cd ios
+pod install
+```
+
+### Android
+
+确保你的应用使用标准的 React Native autolinking 流程。对于常规现代 React Native 工程，通常不需要再单独手工注册原生包。
+
+## 3. Monorepo 说明
+
+如果你的应用在 monorepo 里，并且 `@nebula-rn/host` 不是从发布产物位置被发现，而是从本地 workspace 引用，那么请通过 `react-native.config.js` 指向本地包根目录。
+
+例如：
+
+```js
+const path = require('path');
+
+module.exports = {
+  dependencies: {
+    '@nebula-rn/host': {
+      root: path.resolve(__dirname, '../host'),
+    },
+  },
+};
+```
+
+这只是 workspace 下的依赖定位步骤，本质上仍然是在接入 `@nebula-rn/host`，而不是复制 `sample-host` 的原生源码。
+
+## 4. 在 JavaScript 层初始化 Nebula
+
+使用 `NebulaAPI.wrap(...)` 包装你的应用根组件：
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+function App() {
+  return <YourAppContent />;
+}
+
+export default NebulaAPI.wrap({
+  hostApis: defaultHostApis,
+  serverBaseURL: 'https://your-nebula-cloud.com/api',
+})(App);
+```
+
+这是宿主侧 JavaScript 的主要入口。
+
+你会在 `NebulaAPI.wrap(...)` 中配置：
+
+- `hostApis`
+- `miniappLoading`
+- `serverBaseURL`
+
+完整配置项请看 [Host Configuration](../host/configuration.mdx)。
+
+## 5. 按需添加自定义 Host API
+
+先从 `defaultHostApis` 开始，再把你的业务能力扩展成独立的 host feature。
+
+```ts
+import { createHostApiFeature, NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+const getUserInfoApi = createHostApiFeature({
+  apiName: 'getUserInfo',
+  supported: true,
+  version: '1.0',
+  description: '获取当前登录用户',
+  handle: async () => {
+    const user = await fetchCurrentUser();
+    return {
+      userId: user.id,
+      name: user.name,
+      avatar: user.avatar,
+    };
+  },
+});
+
+export default NebulaAPI.wrap({
+  hostApis: [...defaultHostApis, getUserInfoApi],
+  serverBaseURL: 'https://your-nebula-cloud.com/api',
+})(App);
+```
+
+## 6. 打开一个小程序
+
+宿主初始化完成后，你可以通过 appId 或开发 bundle URL 打开小程序。
+
+例如：
+
+```tsx
+await NebulaAPI.openMiniAppWithBundleURL(
+  'com.example.hello',
+  'http://localhost:8082',
+  {},
+  true,
+);
+```
+
+## 7. 这篇文档不建议你这样做
+
+这篇文档**不建议**：
+
+- 从 `sample-host` 复制 iOS 原生文件
+- 从 `sample-host` 复制 Android 原生文件
+- 把 `sample-host` 当成正式集成层
+
+正确的宿主集成层是 `@nebula-rn/host`。
+
+## 相关文档
+
+- [使用 CLI 创建 Host](./create-host.mdx)
+- [Host Configuration](../host/configuration.mdx)
+- [Native-side APIs](../host/native-apis.mdx)

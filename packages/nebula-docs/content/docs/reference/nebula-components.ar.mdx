@@ -1,0 +1,769 @@
+---
+title: "@nebula-rn/components"
+description: "مرجع API لمكتبة واجهة Nebula متعددة المنصات، تتضمن Props كاملة لكل مكوّن وأحداثه والفروق بين المنصات."
+---
+
+توفر `@nebula-rn/components` مجموعة من مكونات React Native متعددة المنصات لاستخدام مطوري miniapp. كما تعيد تصدير المكونات الأساسية من React Native.
+
+**Peer Dependencies:** `react >= 18`، `react-native >= 0.83`
+
+---
+
+## Camera
+
+مكوّن كاميرا يدعم التصوير ووضع المسح. مبني على `react-native-vision-camera`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```tsx
+import { Camera } from '@nebula-rn/components';
+```
+
+**مثال:**
+
+```tsx
+import { useState } from 'react';
+import { Alert, View } from 'react-native';
+import { Camera } from '@nebula-rn/components';
+
+export default function ScanCodeDemo() {
+	const [mode, setMode] = useState<'normal' | 'scanCode'>('scanCode');
+
+	return (
+		<View style={{ height: 240, borderRadius: 12, overflow: 'hidden' }}>
+			<Camera
+				mode={mode}
+				devicePosition="back"
+				flash="auto"
+				onScanCode={event => {
+					Alert.alert('نتيجة المسح', event.result);
+					setMode('normal');
+				}}
+				onError={error => {
+					Alert.alert('خطأ في الكاميرا', error.message);
+				}}
+			/>
+		</View>
+	);
+}
+```
+
+**Props:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `id` | `string` | لا | — | معرّف المكوّن. |
+| `className` | `string` | لا | — | اسم فئة CSS. |
+| `style` | `StyleProp<ViewStyle>` | لا | — | نمط مخصّص. |
+| `mode` | `'normal' \| 'scanCode'` | لا | `'normal'` | وضع الكاميرا. يفعّل `'scanCode'` وضع التعرف على الأكواد. |
+| `resolution` | `'low' \| 'medium' \| 'high'` | لا | — | دقة الكاميرا. |
+| `devicePosition` | `'front' \| 'back'` | لا | `'back'` | الكاميرا الأمامية/الخلفية. |
+| `flash` | `'auto' \| 'on' \| 'off' \| 'torch'` | لا | — | وضع الفلاش. |
+
+**الأحداث:**
+
+| الحدث | النوع | الوصف |
+|------|------|------|
+| `onInitDone` | `(event: CameraInitEventDetail) => void` | اكتمال تهيئة الكاميرا. |
+| `onReady` | `(event: CameraInitEventDetail) => void` | الكاميرا جاهزة. |
+| `onScanCode` | `(event: CameraScanCodeEventDetail) => void` | نجاح المسح (فقط عند `mode='scanCode'`). |
+| `onError` | `(error: CameraError) => void` | حدث خطأ. |
+
+**`CameraInitEventDetail`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `maxZoom` | `number` | أقصى درجة تقريب يدعمها الجهاز. |
+
+**`CameraScanCodeEventDetail`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `result` | `string` | نص نتيجة المسح. |
+| `fullResult` | `string` | نتيجة المسح الكاملة. |
+| `rawData` | `string` | البيانات الخام. |
+| `charSet` | `string` | ترميز الحروف. |
+| `type` | `CodeType \| 'unknown'` | نوع الكود (مثل QR أو EAN-13). |
+
+**`CameraError`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `message` | `string` | رسالة الخطأ. |
+| `code` | `string \| undefined` | رمز الخطأ مثل `'PERMISSION_DENIED'` أو `'PERMISSION_ERROR'`. |
+| `nativeError` | `unknown` | كائن الخطأ الأصلي. |
+
+**متطلبات الأذونات:** إذن الكاميرا (يُطلب تلقائيًا عند تركيب المكوّن).
+
+**الأبعاد الافتراضية:** 300x300 مع `overflow: hidden` وخلفية سوداء.
+
+**أنواع الأكواد المدعومة:** QR Code، وباركود EAN-13.
+
+**الاعتماد الأصلي:** `react-native-vision-camera` v4.7.3
+
+---
+
+## Map
+
+مكوّن لعرض الخرائط والتفاعل معها. مبني على `react-native-maps`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```tsx
+import { Map } from '@nebula-rn/components';
+```
+
+**مثال:**
+
+```tsx
+import { Map } from '@nebula-rn/components';
+
+const markers = [
+	{
+		id: 1,
+		latitude: 31.2304,
+		longitude: 121.4737,
+		title: 'مكتب شنغهاي',
+		iconPath: 'https://example.com/marker.png',
+		callout: {
+			content: 'اضغط لعرض التفاصيل',
+			display: 'BYCLICK',
+			bgColor: '#ffffff',
+			padding: 8,
+		},
+	},
+];
+
+export default function OfficeMap() {
+	return (
+		<Map
+			latitude={31.2304}
+			longitude={121.4737}
+			scale={14}
+			markers={markers}
+			showCompass
+			enableZoom
+			enableScroll
+			style={{ height: 280, borderRadius: 12 }}
+		/>
+	);
+}
+```
+
+**Props:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `latitude` | `number` | نعم | — | خط العرض للنقطة المركزية. |
+| `longitude` | `number` | نعم | — | خط الطول للنقطة المركزية. |
+| `scale` | `number` | لا | — | مستوى التكبير. |
+| `markers` | `MarkerItem[]` | لا | — | قائمة العلامات. |
+| `polyline` | `PolylineItem[]` | لا | — | قائمة الخطوط متعددة النقاط. |
+| `polygons` | `PolygonItem[]` | لا | — | قائمة المضلعات. |
+| `circles` | `CircleItem[]` | لا | — | قائمة الدوائر. |
+| `includePoints` | `Coordinate[]` | لا | — | النقاط التي يجب تضمينها ضمن العرض. |
+| `showLocation` | `boolean` | لا | `false` | عرض موقع المستخدم الحالي. |
+| `subkey` | `string` | لا | — | مفتاح خدمة الخرائط. |
+| `enable3D` | `boolean` | لا | — | تفعيل عرض ثلاثي الأبعاد. |
+| `showCompass` | `boolean` | لا | `true` | إظهار البوصلة. |
+| `enableOverlooking` | `boolean` | لا | — | السماح بمنظور مائل (علوي). |
+| `enableZoom` | `boolean` | لا | `true` | السماح بالتكبير. |
+| `enableScroll` | `boolean` | لا | `true` | السماح بالتمرير. |
+| `enableRotate` | `boolean` | لا | `true` | السماح بالدوران. |
+
+**الأحداث:**
+
+| الحدث | النوع | الوصف |
+|------|------|------|
+| `onMarkerClick` | `(markerId: number) => void` | النقر على علامة. |
+| `onCalloutClick` | `(markerId: number) => void` | النقر على فقاعة العلامة. |
+| `onControlClick` | `(controlId?: number) => void` | النقر على عنصر تحكم. |
+| `onRegionChange` | `(event: RegionChangeEvent) => void` | تغيّر منطقة العرض. |
+| `onClick` | `(coordinate: Coordinate) => void` | النقر على منطقة فارغة في الخريطة. |
+| `onUpdated` | `() => void` | اكتمال تحديث الخريطة. |
+| `onPoiClick` | `(event: any) => void` | النقر على POI. |
+
+**`MarkerItem`:**
+
+| الحقل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `id` | `number` | نعم | المعرّف الفريد. |
+| `latitude` | `number` | نعم | خط العرض. |
+| `longitude` | `number` | نعم | خط الطول. |
+| `title` | `string` | لا | نص العنوان. |
+| `iconPath` | `string` | نعم | URI الأيقونة. |
+| `rotate` | `number` | لا | زاوية الدوران. |
+| `alpha` | `number` | لا | الشفافية. |
+| `callout` | `CalloutItem` | لا | إعدادات الفقاعة. |
+| `anchor` | `{ x: number; y: number }` | لا | نقطة ارتكاز الأيقونة. |
+
+**`CalloutItem`:**
+
+| الحقل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `content` | `string` | لا | نص الفقاعة. |
+| `color` | `string` | لا | لون النص. |
+| `fontSize` | `number` | لا | حجم الخط. |
+| `borderRadius` | `number` | لا | نصف قطر الحافة. |
+| `borderWidth` | `number` | لا | عرض الحد. |
+| `borderColor` | `string` | لا | لون الحد. |
+| `bgColor` | `string` | لا | لون الخلفية. |
+| `padding` | `number` | لا | الحشو الداخلي. |
+| `display` | `'BYCLICK' \| 'ALWAYS'` | لا | نمط العرض. `BYCLICK` عند النقر، و`ALWAYS` دائمًا. |
+| `textAlign` | `'left' \| 'right' \| 'center'` | لا | محاذاة النص. |
+
+**`PolylineItem`:**
+
+| الحقل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `points` | `Coordinate[]` | نعم | نقاط الخط. |
+| `color` | `string` | لا | لون الخط. |
+| `width` | `number` | لا | عرض الخط. |
+
+**`PolygonItem`:**
+
+| الحقل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `points` | `Coordinate[]` | نعم | نقاط المضلع. |
+| `strokeWidth` | `number` | لا | عرض الحد. |
+| `strokeColor` | `string` | لا | لون الحد. |
+| `fillColor` | `string` | لا | لون التعبئة. |
+
+**`CircleItem`:**
+
+| الحقل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `latitude` | `number` | نعم | خط عرض المركز. |
+| `longitude` | `number` | نعم | خط طول المركز. |
+| `radius` | `number` | نعم | نصف القطر (متر). |
+| `color` | `string` | لا | لون الحد. |
+| `fillColor` | `string` | لا | لون التعبئة. |
+| `strokeWidth` | `number` | لا | عرض الحد. |
+
+**`RegionChangeEvent`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `type` | `'begin' \| 'end'` | مرحلة التغيير. |
+| `timeStamp` | `number` | الطابع الزمني. |
+| `causedBy` | `'scale' \| 'drag' \| 'update'` | سبب التغيير. |
+
+**قيود التكبير:** حد أدنى 5 وحد أقصى 18.
+
+**نطاق العرض الافتراضي:** `LATITUDE_DELTA = 0.0922`.
+
+**الاعتماد الأصلي:** `react-native-maps`
+
+---
+
+## Progress
+
+مكوّن شريط تقدم يدعم الحركة.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```tsx
+import { Progress } from '@nebula-rn/components';
+```
+
+**مثال:**
+
+```tsx
+import { View } from 'react-native';
+import { Progress } from '@nebula-rn/components';
+
+export default function UploadProgress() {
+	return (
+		<View style={{ gap: 12 }}>
+			<Progress percent={32} showInfo />
+			<Progress
+				percent={76}
+				active
+				activeMode="forwards"
+				strokeWidth={8}
+				borderRadius={999}
+				activeColor="#2563eb"
+				backgroundColor="#dbeafe"
+			/>
+		</View>
+	);
+}
+```
+
+**Props:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `percent` | `number` | نعم | — | نسبة التقدم (0-100). |
+| `showInfo` | `boolean` | لا | `false` | عرض النسبة على اليمين. |
+| `strokeWidth` | `number \| string` | لا | `6` | ارتفاع شريط التقدم (px). |
+| `activeColor` | `string` | لا | `'#09BB07'` | لون الجزء المنجَز. |
+| `backgroundColor` | `string` | لا | `'#EBEBEB'` | لون الجزء غير المنجَز. |
+| `borderRadius` | `number \| string` | لا | `0` | نصف قطر الحواف. |
+| `fontSize` | `number \| string` | لا | — | حجم نص النسبة. |
+| `active` | `boolean` | لا | — | تفعيل الحركة. |
+| `activeMode` | `'backwards' \| 'forwards'` | لا | `'backwards'` | نمط الحركة. |
+| `style` | `StyleProp<ViewStyle>` | لا | — | نمط مخصّص. |
+
+**الأحداث:**
+
+| الحدث | النوع | الوصف |
+|------|------|------|
+| `onActiveEnd` | `(event: { percent: number }) => void` | انتهاء حركة التقدم. |
+
+**أنماط الحركة:**
+
+| النمط | السلوك |
+|------|------|
+| `backwards` | يعود إلى الصفر ثم يتحرك إلى القيمة الهدف. |
+| `forwards` | يتحرك من القيمة الحالية إلى الهدف. |
+
+**مدة الحركة:** `(percent / 100) * 1000` مللي ثانية مع تسارع خطي.
+
+---
+
+## RichText
+
+مكوّن لعرض نصوص HTML باستخدام WebView مع تكيّف تلقائي للارتفاع.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```tsx
+import { RichText } from '@nebula-rn/components';
+```
+
+**مثال:**
+
+```tsx
+import { RichText } from '@nebula-rn/components';
+
+const article = `
+	<h1 style="font-size: 20px; color: #0f172a;">مرحبًا بك في Nebula</h1>
+	<p style="color: #475569; line-height: 1.7;">
+		RichText مناسب لعرض المقالات الترويجية وشروط الخدمة والقواعد.
+	</p>
+	<ul>
+		<li>يدعم الوسوم الأساسية</li>
+		<li>يدعم الأنماط المضمّنة</li>
+		<li>يتكيّف تلقائيًا مع الارتفاع</li>
+	</ul>
+`;
+
+export default function RichArticle() {
+	return <RichText html={article} style={{ backgroundColor: '#fff' }} />;
+}
+```
+
+**Props:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `html` | `string` | نعم | — | محتوى HTML المراد عرضه. |
+| `style` | `StyleProp<ViewStyle>` | لا | — | نمط مخصّص. |
+
+**الميزات:**
+- حساب الارتفاع تلقائيًا عبر حقن JS للحصول على `scrollHeight`.
+- تعطيل التمرير الداخلي.
+- خلفية شفافة.
+- الخط الافتراضي: `-apple-system, system-ui`.
+- إعداد Viewport: `width=device-width, initial-scale=1, user-scalable=0`.
+
+**الاعتماد الأصلي:** `react-native-webview`
+
+---
+
+## Slider
+
+مكوّن منزلق يدعم نمطي التحكم وغير التحكم.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```tsx
+import { Slider } from '@nebula-rn/components';
+```
+
+**مثال:**
+
+```tsx
+import { useState } from 'react';
+import { Text, View } from 'react-native';
+import { Slider } from '@nebula-rn/components';
+
+export default function VolumeSlider() {
+	const [value, setValue] = useState(40);
+
+	return (
+		<View style={{ gap: 8 }}>
+			<Text>مستوى الصوت: {value}</Text>
+			<Slider
+				min={0}
+				max={100}
+				step={5}
+				value={value}
+				showValue
+				activeColor="#2563eb"
+				onChanging={event => setValue(event.value)}
+				onChange={event => setValue(event.value)}
+			/>
+		</View>
+	);
+}
+```
+
+**Props:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `min` | `number` | لا | `0` | الحد الأدنى. |
+| `max` | `number` | لا | `100` | الحد الأعلى. |
+| `step` | `number` | لا | `1` | مقدار الخطوة. |
+| `value` | `number` | لا | — | القيمة المتحكم بها. استخدامه يفعّل وضع التحكم. |
+| `defaultValue` | `number` | لا | — | القيمة الابتدائية في وضع غير التحكم. |
+| `disabled` | `boolean` | لا | — | تعطيل التفاعل. |
+| `activeColor` | `string` | لا | `'#1aad19'` | لون الجزء المحدد. |
+| `backgroundColor` | `string` | لا | `'#e9e9e9'` | لون الجزء غير المحدد. |
+| `blockColor` | `string` | لا | `'#fff'` | لون المقبض. |
+| `showValue` | `boolean` | لا | `false` | عرض القيمة على اليمين. |
+| `name` | `string` | لا | — | اسم الحقل في النموذج. |
+| `style` | `StyleProp<ViewStyle>` | لا | — | نمط مخصّص. |
+
+**الأحداث:**
+
+| الحدث | النوع | الوصف |
+|------|------|------|
+| `onChange` | `(event: { value: number }) => void` | عند انتهاء السحب. |
+| `onChanging` | `(event: { value: number }) => void` | أثناء السحب المستمر. |
+
+**فاصل مزامنة وضع التحكم:** 50ms (إزالة اهتزاز).
+
+**الاعتماد الأصلي:** `@react-native-community/slider`
+
+---
+
+## Swiper
+
+مكوّن للشرائح/الصور مع تشغيل تلقائي وتكرار ومؤشر صفحات.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```tsx
+import { Swiper } from '@nebula-rn/components';
+```
+
+**مثال:**
+
+```tsx
+import { Image, View } from 'react-native';
+import { Swiper } from '@nebula-rn/components';
+
+const banners = [
+	'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200',
+	'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1200',
+	'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200',
+];
+
+export default function BannerSwiper() {
+	return (
+		<View style={{ height: 180, borderRadius: 12, overflow: 'hidden' }}>
+			<Swiper autoplay circular indicatorDots interval={3000}>
+				{banners.map(uri => (
+					<Image
+						key={uri}
+						source={{ uri }}
+						style={{ width: '100%', height: '100%' }}
+						resizeMode="cover"
+					/>
+				))}
+			</Swiper>
+		</View>
+	);
+}
+```
+
+**Props:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `indicatorDots` | `boolean` | لا | — | إظهار مؤشرات الصفحات. |
+| `indicatorColor` | `string` | لا | `'rgba(0,0,0,0.3)'` | لون المؤشر غير النشط. |
+| `indicatorActiveColor` | `string` | لا | `'#000'` | لون المؤشر النشط. |
+| `autoplay` | `boolean` | لا | — | تشغيل تلقائي. |
+| `current` | `number` | لا | `0` | فهرس الشريحة الحالية. |
+| `interval` | `number` | لا | `5000` | فترة التشغيل التلقائي (ms). |
+| `circular` | `boolean` | لا | — | تدوير لا نهائي. |
+| `vertical` | `boolean` | لا | — | تمرير عمودي. |
+| `style` | `StyleProp<ViewStyle>` | لا | — | نمط مخصّص. |
+
+**الأحداث:**
+
+| الحدث | النوع | الوصف |
+|------|------|------|
+| `onChange` | `(event: { current: number }) => void` | عند تبدّل الشريحة. |
+| `onAnimationFinish` | `(event: { current: number }) => void` | عند انتهاء الحركة. |
+
+**المكوّنات الفرعية:**
+
+```tsx
+<Swiper autoplay circular indicatorDots>
+	<Swiper.Item><Image source={img1} /></Swiper.Item>
+	<Swiper.Item><Image source={img2} /></Swiper.Item>
+</Swiper>
+```
+
+**نمط المؤشر:** نقاط 8x8، borderRadius 8، غير نشط `#999`، نشط `#333`.
+
+**الاعتماد الأصلي:** `react-native-reanimated-carousel` v4.0.3 و`react-native-reanimated` v4.2.3
+
+---
+
+## Video
+
+مكوّن مشغل فيديو يدعم ملء الشاشة وملصق الفيديو وعناصر التحكم.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```tsx
+import { Video } from '@nebula-rn/components';
+```
+
+**مثال:**
+
+```tsx
+import { Video } from '@nebula-rn/components';
+
+export default function CourseVideo() {
+	return (
+		<Video
+			src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+			poster="https://peach.blender.org/wp-content/uploads/title_anouncement.jpg?x11217"
+			controls
+			objectFit="cover"
+			style={{ height: 220, borderRadius: 12, backgroundColor: '#000' }}
+			onError={event => {
+				console.error('خطأ الفيديو', event.errMsg);
+			}}
+		/>
+	);
+}
+```
+
+**Props:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `src` | `string` | نعم | — | URI لمورد الفيديو. |
+| `duration` | `number` | لا | — | مدة الفيديو (ms). |
+| `controls` | `boolean` | لا | `true` | إظهار عناصر التحكم. |
+| `autoplay` | `boolean` | لا | `false` | تشغيل تلقائي. |
+| `loop` | `boolean` | لا | `false` | تكرار التشغيل. |
+| `muted` | `boolean` | لا | `false` | كتم الصوت. |
+| `initialTime` | `number` | لا | `0` | موضع البدء (ms). |
+| `objectFit` | `'contain' \| 'fill' \| 'cover'` | لا | `'contain'` | وضع التحجيم. |
+| `poster` | `string` | لا | — | صورة الملصق قبل التشغيل. |
+| `showCenterPlayBtn` | `boolean` | لا | `true` | إظهار زر التشغيل المركزي. |
+| `style` | `StyleProp<ViewStyle>` | لا | — | نمط مخصّص. |
+| `children` | `ReactNode` | لا | — | محتوى فوق الفيديو. |
+
+**الأحداث:**
+
+| الحدث | النوع | الوصف |
+|------|------|------|
+| `onLoad` | `() => void` | اكتمال تحميل الفيديو. |
+| `onPlay` | `() => void` | بدء التشغيل. |
+| `onPause` | `() => void` | إيقاف مؤقت. |
+| `onEnded` | `() => void` | انتهاء التشغيل. |
+| `onError` | `(event: { errMsg: string }) => void` | خطأ في التشغيل. |
+| `onTimeUpdate` | `(event: VideoTimeUpdateEvent) => void` | تحديث تقدم التشغيل. |
+| `onFullscreenChange` | `(event: VideoFullscreenChangeEvent) => void` | تغيّر وضع ملء الشاشة. |
+| `onLoadedMetaData` | `(event: VideoMetaDataEvent) => void` | اكتمال تحميل بيانات الفيديو. |
+
+**`VideoTimeUpdateEvent`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `currentTime` | `number` | موضع التشغيل الحالي (ms). |
+| `duration` | `number` | مدة الفيديو الإجمالية (ms). |
+
+**`VideoFullscreenChangeEvent`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `fullScreen` | `boolean` | هل هو ملء شاشة. |
+| `direction` | `'vertical' \| 'horizontal'` | اتجاه ملء الشاشة. |
+
+**`VideoMetaDataEvent`:**
+
+| الحقل | النوع | الوصف |
+|------|------|------|
+| `width` | `number` | عرض الفيديو (px). |
+| `height` | `number` | ارتفاع الفيديو (px). |
+| `duration` | `number` | مدة الفيديو (ms). |
+
+**ربط أنماط القياس:**
+
+| `objectFit` | React Native `ResizeMode` |
+|-------------|---------------------------|
+| `'contain'` | `ResizeMode.CONTAIN` |
+| `'fill'` | `ResizeMode.STRETCH` |
+| `'cover'` | `ResizeMode.COVER` |
+
+**الأبعاد الافتراضية:** العرض 100%، الارتفاع 225px، خلفية سوداء.
+
+**تكرار تحديث التقدم:** 250ms.
+
+**الاعتماد الأصلي:** `react-native-video` v6.19.1
+
+---
+
+## WebView
+
+مكوّن لعرض محتوى الويب المضمّن، يوسّع قدرات `react-native-webview` بالكامل.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```tsx
+import { WebView } from '@nebula-rn/components';
+```
+
+**مثال:**
+
+```tsx
+import { Alert } from 'react-native';
+import { WebView } from '@nebula-rn/components';
+
+const html = `
+	<html>
+		<body style="font-family: -apple-system; padding: 24px;">
+			<h2>محتوى HTML محلي</h2>
+			<button onclick="window.ReactNativeWebView.postMessage('clicked')">
+				إرسال رسالة إلى miniapp
+			</button>
+		</body>
+	</html>
+`;
+
+export default function EmbeddedPage() {
+	return (
+		<WebView
+			html={html}
+			style={{ height: 320, borderRadius: 12, overflow: 'hidden' }}
+			onMessage={event => {
+				Alert.alert('تم استلام الرسالة', event.nativeEvent.data);
+			}}
+		/>
+	);
+}
+```
+
+**Props:**
+
+| المعامل | النوع | مطلوب | الوصف |
+|------|------|------|------|
+| `src` | `string` | لا | URL المراد تحميله. |
+| `html` | `string` | لا | محتوى HTML المراد عرضه. عند توفيره يتقدّم على `src`. |
+| `style` | `StyleProp<ViewStyle>` | لا | نمط مخصّص. |
+| `...rest` | `RNWebViewProps` | لا | كل Props الأصلية في `react-native-webview`. |
+
+**الإعدادات الافتراضية:**
+- `originWhitelist`: `['*']` (السماح بكل المصادر).
+
+**الاعتماد الأصلي:** `react-native-webview`
+
+---
+
+## المكونات الأساسية
+
+يمكن استخدام المكونات الأساسية من React Native مباشرة في miniapp عبر الاستيراد من `react-native`:
+
+```tsx
+import { View, Text, ScrollView, Image, Button } from 'react-native';
+```
+
+**مثال:**
+
+```tsx
+import { Button, Image, ScrollView, Text, View } from 'react-native';
+
+export default function BasicLayout() {
+	return (
+		<ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+			<Image
+				source={{ uri: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1200' }}
+				style={{ width: '100%', height: 180, borderRadius: 12 }}
+			/>
+			<View style={{ gap: 6 }}>
+				<Text style={{ fontSize: 20, fontWeight: '700' }}>الصفحة الرئيسية للمكونات</Text>
+				<Text style={{ color: '#475569' }}>
+					ما زالت مكونات React Native الأساسية هي أساس بناء التخطيطات.
+				</Text>
+			</View>
+			<Button title="ابدأ الآن" onPress={() => {}} />
+		</ScrollView>
+	);
+}
+```
+
+المكونات الأساسية الشائعة في miniapp:
+
+| المكوّن | الوصف |
+|------|------|
+| `View` | حاوية أساسية |
+| `Text` | نص |
+| `ScrollView` | حاوية قابلة للتمرير |
+| `Image` | صورة |
+| `Button` | زر |
+| `Input` | إدخال نص |
+| `Textarea` | إدخال متعدد الأسطر |
+| `Block` | كتلة تخطيط |
+| `Checkbox` / `CheckboxGroup` | اختيار متعدد |
+| `Radio` / `RadioGroup` | اختيار أحادي |
+| `Form` | نموذج |
+| `Icon` | أيقونة |
+| `Label` | وسم |
+| `Navigator` | تنقّل |
+| `Picker` / `PickerView` | منتقٍ |
+| `Switch` | تبديل |
+| `CoverImage` / `CoverView` | طبقة تغطية |
+| `PageContainer` | حاوية صفحة |
+| `SwiperItem` | عنصر شريحة |
+
+---
+
+## الاعتمادات الأصلية
+
+عند استخدام وحدات تحتوي على مكوّنات أصلية، يجب تثبيت الاعتمادات التالية في مشروع المضيف:
+
+| الاعتماد | الإصدار | الاستخدام |
+|------|------|------|
+| `react-native-vision-camera` | ^4.7.3 | Camera |
+| `react-native-video` | ^6.19.1 | Video |
+| `react-native-reanimated` | ^4.2.3 | حركات Swiper |
+| `react-native-reanimated-carousel` | ^4.0.3 | Swiper |
+| `react-native-gesture-handler` | ^2.30.0 | التفاعل بالإيماءات |
+| `react-native-webview` | — | RichText، WebView |
+| `react-native-maps` | — | Map |
+| `@react-native-community/slider` | — | Slider |

@@ -1,0 +1,32 @@
+{
+  "name": "scenario-superapp-ride-hailing",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ride Hailing Nebula miniapp",
+  "scripts": {
+    "dev": "nebula miniapp dev",
+    "build": "nebula miniapp build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nebula-rn/client": "^0.0.1",
+    "@nebula-rn/sdk": "^0.0.1",
+    "react": "19.2.0",
+    "react-native": "0.83.1"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "20.0.0",
+    "@react-native-community/cli-platform-android": "20.0.0",
+    "@react-native-community/cli-platform-ios": "20.0.0",
+    "@react-native/babel-preset": "0.83.1",
+    "@react-native/eslint-config": "0.83.1",
+    "@react-native/metro-config": "0.83.1",
+    "@react-native/typescript-config": "0.83.1",
+    "@types/react": "^19.2.0",
+    "eslint": "^8.19.0",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

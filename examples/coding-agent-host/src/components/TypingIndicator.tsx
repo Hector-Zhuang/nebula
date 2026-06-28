@@ -1,0 +1,85 @@
+import React, { useEffect, useRef } from 'react';
+import { Animated, View, StyleSheet, Easing, Text } from 'react-native';
+import { colors } from '../theme/colors';
+
+export function TypingIndicator({ statusText }: { statusText?: string }) {
+  const dot1 = useRef(new Animated.Value(0.3)).current;
+  const dot2 = useRef(new Animated.Value(0.3)).current;
+  const dot3 = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const createAnim = (dot: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(dot, {
+            toValue: 1,
+            duration: 400,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(dot, {
+            toValue: 0.3,
+            duration: 400,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+
+    const a1 = createAnim(dot1, 0);
+    const a2 = createAnim(dot2, 200);
+    const a3 = createAnim(dot3, 400);
+
+    a1.start();
+    a2.start();
+    a3.start();
+
+    return () => {
+      a1.stop();
+      a2.stop();
+      a3.stop();
+    };
+  }, [dot1, dot2, dot3]);
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.bubble}>
+        <Animated.View style={[styles.dot, { opacity: dot1 }]} />
+        <Animated.View style={[styles.dot, { opacity: dot2 }]} />
+        <Animated.View style={[styles.dot, { opacity: dot3 }]} />
+        {statusText ? <Text style={styles.statusText}>{statusText}</Text> : null}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginHorizontal: 12,
+    marginVertical: 6,
+  },
+  bubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfacePrimary,
+    borderRadius: 14,
+    borderBottomLeftRadius: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 5,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.textSecondary,
+  },
+  statusText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    marginLeft: 4,
+  },
+});

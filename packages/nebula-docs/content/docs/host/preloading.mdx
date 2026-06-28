@@ -1,0 +1,182 @@
+---
+title: Preloading
+description: Use Nebula's preloading mechanism to reduce miniapp cold start latency and improve launch speed for frequently used miniapps.
+---
+
+Preloading is a startup optimization technique provided by the Nebula runtime. By initializing the JavaScript runtime and creating the root view before the user actually opens the miniapp, cold start latency can be significantly reduced.
+
+## How It Works
+
+### Opening Flow Without Preloading
+
+```
+User taps to open
+    │
+    ├── Create container controller
+    ├── Locate bundle file
+    ├── Create React Native Factory
+    ├── Initialize JS runtime
+    ├── Load JS bundle
+    ├── Create root view
+    └── Mount and render
+    │
+    ▼
+User sees content
+```
+
+These steps execute sequentially and can take hundreds of milliseconds on low-end devices.
+
+### Opening Flow With Preloading
+
+```
+Host calls preloadMiniApp() in advance      User taps to open
+    │                                           │
+    ├── Create React Native Factory             ├── Create container controller
+    ├── Initialize JS runtime                   ├── Retrieve preloaded root view
+    ├── Load JS bundle                          └── Mount to container
+    ├── Create root view                         │
+    └── Mount to hidden container (background)   ▼
+                                               User sees content
+```
+
+Preloading completes time-consuming initialization work in advance. When opening, the ready-to-use view is simply moved into the container, achieving near-instant rendering.
+
+## API
+
+### NebulaAPI.preloadMiniApp(appId)
+
+Preloads an **already installed** miniapp. The host locates the locally installed bundle based on the `appId` and creates the React Native runtime and root view in advance.
+
+```ts
+import { NebulaAPI } from '@nebula-rn/sdk';
+
+await NebulaAPI.preloadMiniApp('frequently-used-app');
+```
+
+**Parameters:**
+
+| Parameter | Type     | Description                                |
+| --------- | -------- | ------------------------------------------ |
+| `appId`   | `string` | Unique identifier of the installed miniapp |
+
+**Return value:** `Promise<MiniAppResult>`
+
+```ts
+{ success: true, appId: 'frequently-used-app' }
+```
+
+**Prerequisite:** The miniapp must already be installed locally via `installMiniApp`. If the bundle file does not exist, preloading will be skipped.
+
+### NebulaAPI.preloadMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer?)
+
+Installs then preloads a miniapp. Suitable for scenarios where the miniapp is not yet installed and needs to be downloaded from a remote bundle and preloaded immediately.
+
+```ts
+await NebulaAPI.preloadMiniAppWithBundleURL(
+  'new-app',
+  'https://api.example.com/bundles/new-app/main.jsbundle',
+  false,
+);
+```
+
+**Parameters:**
+
+| Parameter                 | Type      | Description                                                          |
+| ------------------------- | --------- | -------------------------------------------------------------------- |
+| `appId`                   | `string`  | Unique identifier of the miniapp                                     |
+| `bundleURL`               | `string`  | Bundle download URL                                                  |
+| `connectToURLMetroServer` | `boolean` | `true` connects to Metro at that URL; `false` preloads as production |
+
+**Return value:** `Promise<MiniAppResult>`
+
+**Execution flow:**
+
+1. Download bundle to local sandbox directory
+2. Download manifest (app.json)
+3. Register installation information
+4. Call preload to create root view
+
+## Platform Implementations
+
+### iOS Implementation
+
+iOS uses a **single-slot preload cache**, caching the preloaded view of only one miniapp at a time.
+
+**Core mechanism:**
+
+1. **Hidden container:** Inserts a non-interactive, transparent `UIView` at the bottom layer (`index: 0`) of `keyWindow` as the preload container
+2. **Create root view:** Creates `RCTReactNativeFactory` and React Native root view
+3. **Background mounting:** Mounts the root view into the hidden container, triggering layout calculation while remaining invisible to users
+4. **Consume view:** When opening the miniapp, moves the root view from the hidden container to the actual container controller
+
+**Single-slot design:** Before preloading a new miniapp, any previously cached preload view is cleared. This means only one miniapp can be in preloaded state at any time.
+
+**Concurrency safety:** Uses `DispatchSemaphore` and a generation counter to prevent outdated preload tasks from overwriting new caches.
+
+**Factory reference counting:** `RCTReactNativeFactory` manages its lifecycle through reference counting, only being reclaimed after all consumers release it.
+
+### Android Implementation
+
+Android uses a **ReactHost cache pool**, supporting simultaneous caching of multiple miniapp runtimes.
+
+**Core mechanism:**
+
+1. **Create ReactHost:** Creates an independent `ReactHostImpl` instance for the miniapp
+2. **Initialize runtime:** Loads the Hermes JS engine, parses the bundle, registers Native Modules
+3. **Cache reuse:** Stores ReactHost in a `ConcurrentHashMap` for reuse on subsequent opens
+4. **Create Surface:** When opening the miniapp, creates a `ReactSurface` from the cached ReactHost
+
+**Multi-slot design:** Android can preload multiple miniapps simultaneously, with each miniapp holding an independent ReactHost instance.
+
+## Cache Invalidation
+
+When a miniapp's bundle is updated or its runtime mode changes, the cached preload view may become outdated and require invalidation.
+
+### iOS
+
+```swift
+// Invalidate preload cache for a specific miniapp
+NebulaAppManager.shared.invalidate(appId: "my-app")
+
+// Invalidate all preload caches
+NebulaAppManager.shared.invalidateAll()
+```
+
+Invalidation will:
+
+- Remove cached root view and Factory
+- Cancel ongoing preload tasks (by incrementing generation counter)
+- Clean up reference counting
+
+### Android
+
+Android's ReactHost is cached in the `hosts` Map and is automatically rebuilt when a miniapp is reinstalled or its mode switches.
+
+## Preload State Check
+
+On iOS, you can check whether a miniapp has completed preloading:
+
+```swift
+let isReady = NebulaAppManager.shared.hasPreloadedRootView(appId: "my-app")
+```
+
+## Use Cases
+
+### Suitable for Preloading
+
+- Core miniapps on the home screen entry point
+- Frequently accessed miniapps
+- Critical paths sensitive to first-screen rendering time
+
+### Not Suitable for Preloading
+
+- Infrequently used miniapps
+- Miniapps in development mode (bundle changes frequently)
+- Non-core miniapps in memory-constrained scenarios
+
+## Important Notes
+
+- **Memory overhead:** Preloading consumes memory in advance. iOS's single-slot design caps memory usage, while Android requires attention to the number of preloaded miniapps
+- **Bundle consistency:** If the bundle is updated after preloading, the cache must be invalidated and preloading re-executed
+- **Development mode:** In development mode where the bundle comes from a dev server, preloading is less beneficial (bundle content may change at any time)
+- **System memory warnings:** The iOS `NebulaHost` listens to `didReceiveMemoryWarningNotification` and may need to release preload resources under memory pressure

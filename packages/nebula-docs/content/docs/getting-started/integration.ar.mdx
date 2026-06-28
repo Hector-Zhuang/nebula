@@ -1,0 +1,180 @@
+---
+title: الدمج داخل تطبيق RN موجود
+description: أضف Nebula إلى تطبيق React Native موجود عبر تثبيت @nebula-rn/host وتهيئة runtime الخاص بالمضيف.
+---
+
+هذا الدليل مخصص للفرق التي لديها بالفعل تطبيق React Native وتريد تحويله إلى Host يعمل مع Nebula.
+
+الفكرة الأساسية هي:
+
+- تثبيت `@nebula-rn/host`
+- ترك React Native يربط الحزمة الأصلية بالطريقة المعتادة
+- تهيئة Nebula من طبقة JavaScript باستخدام `NebulaAPI.wrap(...)`
+
+لا ينبغي لك **نسخ** الملفات الأصلية من `sample-host`. فـ `sample-host` تطبيق مثالي، وليس آلية الدمج نفسها.
+
+## متى تستخدم هذا الدليل
+
+استخدم هذا الدليل عندما:
+
+- يكون لديك تطبيق React Native موجود
+- تريد تشغيل Nebula داخله
+- تريد الاحتفاظ بهيكل التطبيق المضيف الحالي
+
+إذا كنت تريد نقطة انطلاق جاهزة، فاستخدم:
+
+```bash
+npx nebula create host my-host
+```
+
+## 1. تثبيت حزم المضيف
+
+قم أولًا بتثبيت حزم Nebula الأساسية داخل تطبيقك:
+
+```bash
+npm install @nebula-rn/sdk @nebula-rn/host @nebula-rn/host-apis @nebula-rn/components
+```
+
+| الحزمة | الغرض |
+|---|---|
+| `@nebula-rn/sdk` | طبقة runtime في JavaScript و`NebulaAPI` ودورة الحياة وواجهات host feature |
+| `@nebula-rn/host` | حزمة الدمج الأصلية للمضيف على iOS وAndroid |
+| `@nebula-rn/host-apis` | تطبيقات Host API الرسمية |
+| `@nebula-rn/components` | مكوّنات واجهة مشتركة متاحة للـ miniapps |
+
+إذا كنت ستستخدم `defaultHostApis`، فقم أيضًا بتثبيت المكتبات الأصلية التي تعتمد عليها:
+
+```bash
+npm install react-native-mmkv react-native-device-info react-native-vision-camera \
+  react-native-image-picker @bam.tech/react-native-image-resizer \
+  @dr.pogodin/react-native-fs @react-native-clipboard/clipboard \
+  @react-native-community/geolocation @react-native-community/netinfo \
+  @react-native-camera-roll/camera-roll react-native-sensors
+```
+
+## 2. دع React Native يربط `@nebula-rn/host`
+
+`@nebula-rn/host` حزمة أصلية. تكاملها مع iOS وAndroid موصوف عبر بيانات حزمة React Native، لذلك يجب التعامل معها مثل أي تبعية أصلية أخرى.
+
+في معظم مشاريع React Native القياسية، سيتولى autolinking هذه الخطوة تلقائيًا.
+
+### iOS
+
+بعد تثبيت الاعتماديات، شغّل:
+
+```bash
+cd ios
+pod install
+```
+
+### Android
+
+تأكد من أن تطبيقك يستخدم تدفق autolinking القياسي في React Native. في المشاريع الحديثة المعتادة، لا تحتاج عادةً إلى تسجيل الحزمة يدويًا.
+
+## 3. ملاحظة خاصة بالـ monorepo
+
+إذا كان تطبيقك داخل monorepo، وكان `@nebula-rn/host` يُستهلك من workspace محلي بدلًا من حزمة منشورة، فقم بتوجيه React Native إلى جذر الحزمة المحلية عبر `react-native.config.js`.
+
+مثال:
+
+```js
+const path = require('path');
+
+module.exports = {
+  dependencies: {
+    '@nebula-rn/host': {
+      root: path.resolve(__dirname, '../host'),
+    },
+  },
+};
+```
+
+هذه فقط خطوة خاصة بتحديد موقع الحزمة داخل workspace. ما زلت تستخدم `@nebula-rn/host`، ولست تنسخ ملفات `sample-host`.
+
+## 4. تهيئة Nebula في JavaScript
+
+قم بلف جذر التطبيق بـ `NebulaAPI.wrap(...)`:
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+function App() {
+  return <YourApp />;
+}
+
+export default NebulaAPI.wrap({
+  hostApis: defaultHostApis,
+  serverBaseURL: 'https://your-nebula-cloud.com/api',
+})(App);
+```
+
+هذه هي نقطة الدخول الأساسية من جهة JavaScript في تطبيق المضيف.
+
+ضمن `NebulaAPI.wrap(...)` ستقوم بضبط:
+
+- `hostApis`
+- `miniappLoading`
+- `serverBaseURL`
+
+راجع [Host Configuration](../host/configuration.mdx) من أجل السطح الكامل للإعدادات.
+
+## 5. أضف Host APIs مخصصة عند الحاجة
+
+ابدأ عادةً بـ `defaultHostApis`، ثم أضف قدراتك التجارية الخاصة كـ host features مستقلة.
+
+```ts
+import { createHostApiFeature, NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+const getUserInfoApi = createHostApiFeature({
+  apiName: 'getUserInfo',
+  supported: true,
+  version: '1.0',
+  description: 'Get the currently signed-in user',
+  handle: async () => {
+    const user = await fetchCurrentUser();
+    return {
+      userId: user.id,
+      name: user.name,
+      avatar: user.avatar,
+    };
+  },
+});
+
+export default NebulaAPI.wrap({
+  hostApis: [...defaultHostApis, getUserInfoApi],
+  serverBaseURL: 'https://your-nebula-cloud.com/api',
+})(App);
+```
+
+## 6. افتح miniapp
+
+بعد تهيئة المضيف، يمكنك فتح miniapp عبر app ID أو عبر عنوان development bundle.
+
+مثال:
+
+```tsx
+await NebulaAPI.openMiniAppWithBundleURL(
+  'com.example.hello',
+  'http://localhost:8082',
+  {},
+  true,
+);
+```
+
+## 7. ما الذي لا يوصي به هذا الدليل
+
+هذا الدليل **لا** يوصي بـ:
+
+- نسخ ملفات iOS الأصلية من `sample-host`
+- نسخ ملفات Android الأصلية من `sample-host`
+- التعامل مع `sample-host` كطبقة الدمج الرسمية
+
+طبقة الدمج الصحيحة هي `@nebula-rn/host`.
+
+## اقرأ أيضًا
+
+- [إنشاء Host عبر CLI](./create-host.mdx)
+- [Host Configuration](../host/configuration.mdx)
+- [Native-side APIs](../host/native-apis.mdx)

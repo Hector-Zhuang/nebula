@@ -1,0 +1,329 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		000000000000000000000011 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000021 /* AppDelegate.swift */; };
+		000000000000000000000012 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000022 /* SceneDelegate.swift */; };
+		000000000000000000000013 /* MiniappLauncherViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000023 /* MiniappLauncherViewController.swift */; };
+		37B44196269E85BB1E85F2FE /* libPods-NativeNebulaHost.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 233C9BE1800B31742B7EE091 /* libPods-NativeNebulaHost.a */; };
+		E7D1EE63911733838289BEC2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4702A11BBFA7ADAE2E5A8D10 /* PrivacyInfo.xcprivacy */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		000000000000000000000021 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		000000000000000000000022 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		000000000000000000000023 /* MiniappLauncherViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniappLauncherViewController.swift; sourceTree = "<group>"; };
+		000000000000000000000024 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		000000000000000000000025 /* NativeNebulaHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NativeNebulaHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		233C9BE1800B31742B7EE091 /* libPods-NativeNebulaHost.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-NativeNebulaHost.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4702A11BBFA7ADAE2E5A8D10 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = ../PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A98066CFBD67B1AE83549987 /* Pods-NativeNebulaHost.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NativeNebulaHost.debug.xcconfig"; path = "Target Support Files/Pods-NativeNebulaHost/Pods-NativeNebulaHost.debug.xcconfig"; sourceTree = "<group>"; };
+		E8CC1E078A86D870E7915AE5 /* Pods-NativeNebulaHost.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NativeNebulaHost.release.xcconfig"; path = "Target Support Files/Pods-NativeNebulaHost/Pods-NativeNebulaHost.release.xcconfig"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		000000000000000000000062 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				37B44196269E85BB1E85F2FE /* libPods-NativeNebulaHost.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		000000000000000000000031 = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000032 /* NativeNebulaHost */,
+				000000000000000000000033 /* Products */,
+				97A2C1E4CE8F3E1E02B15752 /* Pods */,
+				F98F891C1DFC6E3223505435 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		000000000000000000000032 /* NativeNebulaHost */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000021 /* AppDelegate.swift */,
+				000000000000000000000022 /* SceneDelegate.swift */,
+				000000000000000000000023 /* MiniappLauncherViewController.swift */,
+				000000000000000000000024 /* Info.plist */,
+				4702A11BBFA7ADAE2E5A8D10 /* PrivacyInfo.xcprivacy */,
+			);
+			path = NativeNebulaHost;
+			sourceTree = "<group>";
+		};
+		000000000000000000000033 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000025 /* NativeNebulaHost.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		97A2C1E4CE8F3E1E02B15752 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				A98066CFBD67B1AE83549987 /* Pods-NativeNebulaHost.debug.xcconfig */,
+				E8CC1E078A86D870E7915AE5 /* Pods-NativeNebulaHost.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		F98F891C1DFC6E3223505435 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				233C9BE1800B31742B7EE091 /* libPods-NativeNebulaHost.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		000000000000000000000041 /* NativeNebulaHost */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000000000051 /* Build configuration list for PBXNativeTarget "NativeNebulaHost" */;
+			buildPhases = (
+				825EE34AA442B5011863C4D0 /* [CP] Check Pods Manifest.lock */,
+				000000000000000000000061 /* Sources */,
+				000000000000000000000062 /* Frameworks */,
+				000000000000000000000063 /* Resources */,
+				DDF093BCB6CD49492B435403 /* [CP] Embed Pods Frameworks */,
+				416B20F93F38A9C3150E7284 /* [CP] Copy Pods Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NativeNebulaHost;
+			productName = NativeNebulaHost;
+			productReference = 000000000000000000000025 /* NativeNebulaHost.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		000000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					000000000000000000000041 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 000000000000000000000052 /* Build configuration list for PBXProject "NativeNebulaHost" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 000000000000000000000031;
+			productRefGroup = 000000000000000000000033 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				000000000000000000000041 /* NativeNebulaHost */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		000000000000000000000063 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E7D1EE63911733838289BEC2 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		416B20F93F38A9C3150E7284 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-NativeNebulaHost/Pods-NativeNebulaHost-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			inputPaths = (
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-NativeNebulaHost/Pods-NativeNebulaHost-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-NativeNebulaHost/Pods-NativeNebulaHost-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		825EE34AA442B5011863C4D0 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-NativeNebulaHost-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		DDF093BCB6CD49492B435403 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-NativeNebulaHost/Pods-NativeNebulaHost-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			inputPaths = (
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-NativeNebulaHost/Pods-NativeNebulaHost-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-NativeNebulaHost/Pods-NativeNebulaHost-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		000000000000000000000061 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				000000000000000000000011 /* AppDelegate.swift in Sources */,
+				000000000000000000000012 /* SceneDelegate.swift in Sources */,
+				000000000000000000000013 /* MiniappLauncherViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		000000000000000000000071 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A98066CFBD67B1AE83549987 /* Pods-NativeNebulaHost.debug.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 69BV75J53K;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NativeNebulaHost/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.NativeNebulaHost;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		000000000000000000000072 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E8CC1E078A86D870E7915AE5 /* Pods-NativeNebulaHost.release.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 69BV75J53K;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NativeNebulaHost/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.NativeNebulaHost;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		000000000000000000000073 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				OTHER_CFLAGS = "$(inherited)";
+				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../../../node_modules/react-native";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				USE_HERMES = true;
+			};
+			name = Debug;
+		};
+		000000000000000000000074 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "c++20";
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				OTHER_CFLAGS = "$(inherited)";
+				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../../../node_modules/react-native";
+				USE_HERMES = true;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		000000000000000000000051 /* Build configuration list for PBXNativeTarget "NativeNebulaHost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				000000000000000000000071 /* Debug */,
+				000000000000000000000072 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		000000000000000000000052 /* Build configuration list for PBXProject "NativeNebulaHost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				000000000000000000000073 /* Debug */,
+				000000000000000000000074 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 000000000000000000000001 /* Project object */;
+}

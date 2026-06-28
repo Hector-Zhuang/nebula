@@ -1,0 +1,129 @@
+---
+title: Deployment and Operations
+description: Deploy the Nebula Cloud reference implementation, understand the API contract, or build your own backend.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="info">
+  Nebula Cloud is a **reference implementation** that provides only the most
+  basic user management and version management. In production, you should extend
+  it or build your own backend. In either case, your service must implement the
+  **runtime-required interfaces** defined in [Nebula Cloud
+  API](/docs/reference/nebula-cloud-api), otherwise the Nebula runtime cannot
+  download and install miniapps.
+</Callout>
+
+## What Nebula Cloud provides
+
+Nebula Cloud is built with NestJS and Prisma and includes the following baseline capabilities:
+
+| Capability                  | Description                                      |
+| --------------------------- | ------------------------------------------------ |
+| User registration and login | Email/password authentication and JWT            |
+| CLI device authorization    | OAuth device flow for `nebula auth login`        |
+| Miniapp registration        | Create miniapps and manage metadata              |
+| Version upload              | Receive bundle and manifest uploads from the CLI |
+| Version publishing          | DRAFT → PUBLISHED direct publishing              |
+| Channel publishing          | test / stable channel separation                 |
+| Bundle delivery             | Download endpoints used by the runtime           |
+
+### What Nebula Cloud does not provide
+
+- CDN delivery
+- automated review
+- team permissions
+- monitoring and analytics
+- content filtering
+- staged rollout
+- webhooks / notifications
+- multi-tenant support
+
+## Deploy Nebula Cloud
+
+### Option 1: Docker Compose (recommended)
+
+The project includes a `docker-compose.yml` with PostgreSQL and the application service.
+
+```bash
+git clone https://github.com/Hector-Zhuang/nebula.git
+cd nebula/packages/nebula-cloud
+docker compose up -d
+```
+
+After startup:
+
+- API endpoint: `http://localhost:3001/api`
+- Default admin: `admin@nebula.local` / `password123`
+
+<Callout type="warning">
+  In production, always change `JWT_SECRET`, database credentials, and admin password in `docker-compose.yml`.
+</Callout>
+
+#### Common commands
+
+```bash
+# View logs
+docker compose logs -f cloud
+
+# Rebuild images
+docker compose build --no-cache
+
+# Stop services
+docker compose down
+
+# Stop and remove all data
+docker compose down -v
+```
+
+### Option 2: Manual deployment
+
+#### Requirements
+
+- Node.js 20+
+- PostgreSQL 15+
+
+#### 1. Clone the repository and install dependencies
+
+```bash
+git clone https://github.com/Hector-Zhuang/nebula.git
+cd nebula
+npm install
+```
+
+#### 2. Configure environment variables
+
+Create a `.env` file in `packages/nebula-cloud/`:
+
+```
+DATABASE_URL=postgresql://user:password@localhost:5432/nebula_cloud
+JWT_SECRET=your-random-secret-key
+PORT=3001
+```
+
+#### 3. Initialize the database
+
+```bash
+cd packages/nebula-cloud
+npx prisma db push
+npx prisma db seed
+```
+
+`prisma db seed` creates the default admin account (`admin@nebula.local` / `password123`).
+
+#### 4. Start the service
+
+```bash
+# Development mode (hot reload)
+npm run dev
+
+# Production mode
+npm run build
+node dist/main
+```
+
+By default, the service listens on port `3001` and exposes APIs under `/api`.
+
+## Build your own backend
+
+If the reference implementation does not meet your needs, you can build your own backend with any stack. The key requirement is that your service implements the runtime-required interfaces defined in [Nebula Cloud API](/docs/reference/nebula-cloud-api).

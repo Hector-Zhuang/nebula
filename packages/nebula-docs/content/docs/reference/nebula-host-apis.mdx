@@ -1,0 +1,1450 @@
+---
+title: '@nebula-rn/host-apis'
+description: 'Nebula official host feature implementation package API reference, providing out-of-the-box host API registration and detailed parameter descriptions for each API.'
+---
+
+`@nebula-rn/host-apis` provides official host API feature implementations. Host apps can directly use these pre-built features and register them with the runtime via `NebulaAPI.wrap()`.
+
+**Version:** 0.0.1
+
+---
+
+## Quick Start
+
+### Register All Default APIs
+
+```tsx
+import { NebulaAPI } from '@nebula-rn/sdk';
+import { defaultHostApis } from '@nebula-rn/host-apis';
+
+export default NebulaAPI.wrap({
+  serverBaseURL: 'https://api.example.com',
+  hostApis: defaultHostApis,
+})(App);
+```
+
+### Register on Demand
+
+```tsx
+import { scanCodeHostApi, previewImageHostApi } from '@nebula-rn/host-apis';
+
+NebulaAPI.wrap({
+  hostApis: [scanCodeHostApi, previewImageHostApi],
+})(App);
+```
+
+---
+
+## Exports
+
+| Export                | Type                  | Description                        |
+| --------------------- | --------------------- | ---------------------------------- |
+| `defaultHostApis`     | `NebulaHostFeature[]` | Array containing all default APIs. |
+| `scanCodeHostApi`     | `NebulaHostFeature`   | Scan code Modal API.               |
+| `previewImageHostApi` | `NebulaHostFeature`   | Image preview Modal API.           |
+| `coreHostApis`        | `NebulaHostFeature[]` | Core functionality API array.      |
+| `downloadFileHostApi` | `NebulaHostFeature`   | File download (Task API).          |
+| `downloadFileHost`    | `function`            | File download (pure function).     |
+| `uploadFileHostApi`   | `NebulaHostFeature`   | File upload (Task API).            |
+| `uploadFileHost`      | `function`            | File upload (pure function).       |
+| `saveMediaHost`       | `function`            | Save media to system photo album.  |
+
+`defaultHostApis` = `[scanCodeHostApi, previewImageHostApi, ...coreHostApis]`
+
+---
+
+## Modal APIs
+
+### scanCode
+
+Opens the host-managed scanning UI, supporting QR codes and barcodes.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `scanCode`
+
+**Version:** 1.0
+
+**Payload:**
+
+| Parameter        | Type       | Required | Default                        | Description                   |
+| ---------------- | ---------- | -------- | ------------------------------ | ----------------------------- |
+| `scanType`       | `string[]` | No       | `['qr', 'ean-13', 'code-128']` | Types of codes to recognize.  |
+| `onlyFromCamera` | `boolean`  | No       | —                              | Use camera only for scanning. |
+
+**Return Value:**
+
+| Field      | Type                  | Description           |
+| ---------- | --------------------- | --------------------- |
+| `result`   | `string \| undefined` | Scanned content.      |
+| `scanType` | `string \| 'unknown'` | Recognized code type. |
+| `rawData`  | `unknown`             | Raw scan data.        |
+
+**Permission Required:** Camera permission.
+
+**Platform Differences:**
+
+|                  | iOS                                                                                 | Android                         |
+| ---------------- | ----------------------------------------------------------------------------------- | ------------------------------- |
+| Permission check | Proactively checks in `onBeforeOpen`; returns `PERMISSION_DENIED` if not authorized | Handled automatically by system |
+
+**Error Codes:**
+
+| Error code           | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `PERMISSION_DENIED`  | Camera permission not authorized (iOS only). |
+| `USER_CANCELLED`     | User closed the scan interface.              |
+| `UNSUPPORTED_SOURCE` | Device does not support scanning.            |
+| `SCAN_FAILED`        | Scanning failed.                             |
+
+---
+
+### previewImage
+
+Opens a full-screen image preview interface, supporting browsing multiple images and saving.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `previewImage`
+
+**Version:** 1.0
+
+**Payload:**
+
+| Parameter       | Type       | Required | Default | Description                        |
+| --------------- | ---------- | -------- | ------- | ---------------------------------- |
+| `urls`          | `string[]` | Yes      | —       | List of image URLs.                |
+| `current`       | `string`   | No       | —       | Initially displayed image URL.     |
+| `showMenu`      | `boolean`  | No       | —       | Whether to show save/menu options. |
+| `saveMediaText` | `string`   | No       | —       | Custom text for the save button.   |
+| `cancelText`    | `string`   | No       | —       | Custom text for the cancel button. |
+
+**Return Value:** Same as Payload structure.
+
+**Permission Required:** None.
+
+---
+
+## Device and App
+
+### getAppBaseInfo
+
+Gets basic information about the host application.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `getAppBaseInfo`
+
+**Payload:** `{}` (no parameters)
+
+**Return Value:**
+
+| Field         | Type      | Description                            |
+| ------------- | --------- | -------------------------------------- |
+| `version`     | `string`  | App version number.                    |
+| `language`    | `string`  | Device language.                       |
+| `enableDebug` | `boolean` | Whether debug mode is enabled.         |
+| `theme`       | `string`  | Current theme (`'light'` or `'dark'`). |
+
+---
+
+### getSystemInfo
+
+Gets device, screen, and safe area information.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `getSystemInfo`
+
+**Payload:** `{}` (no parameters)
+
+**Return Value:**
+
+| Field               | Type       | Description                                         |
+| ------------------- | ---------- | --------------------------------------------------- |
+| `brand`             | `string`   | Device brand.                                       |
+| `model`             | `string`   | Device model.                                       |
+| `pixelRatio`        | `number`   | Screen pixel ratio.                                 |
+| `screenWidth`       | `number`   | Screen width in pixels.                             |
+| `screenHeight`      | `number`   | Screen height in pixels.                            |
+| `windowWidth`       | `number`   | Window width.                                       |
+| `windowHeight`      | `number`   | Window height.                                      |
+| `statusBarHeight`   | `number`   | Status bar height.                                  |
+| `platform`          | `string`   | `'ios'` or `'android'`.                             |
+| `system`            | `string`   | OS name + version, e.g., `"iOS 17.0"`.              |
+| `version`           | `string`   | System version number.                              |
+| `fontSizeSetting`   | `number`   | Font scale factor.                                  |
+| `deviceOrientation` | `string`   | Device orientation (`'portrait'` or `'landscape'`). |
+| `safeArea`          | `SafeArea` | Safe area.                                          |
+| `language`          | `null`     | Reserved field.                                     |
+| `SDKVersion`        | `null`     | Reserved field.                                     |
+
+**`SafeArea` Fields:**
+
+| Field    | Type     | Description           |
+| -------- | -------- | --------------------- |
+| `left`   | `number` | Left safe distance.   |
+| `right`  | `number` | Right safe distance.  |
+| `top`    | `number` | Top safe distance.    |
+| `bottom` | `number` | Bottom safe distance. |
+| `width`  | `number` | Safe area width.      |
+| `height` | `number` | Safe area height.     |
+
+**Platform Differences:**
+
+|                   | Android                   | iOS                   |
+| ----------------- | ------------------------- | --------------------- |
+| `statusBarHeight` | `StatusBar.currentHeight` | Safe area `top` value |
+
+---
+
+### getScreenBrightness
+
+Gets the current screen brightness.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `getScreenBrightness`
+
+**Payload:** `{}` (no parameters)
+
+**Return Value:** `number` (brightness value 0-1).
+
+---
+
+### makePhoneCall
+
+Opens the system dialer with the specified number.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `makePhoneCall`
+
+**Payload:**
+
+| Parameter     | Type     | Required | Description   |
+| ------------- | -------- | -------- | ------------- |
+| `phoneNumber` | `string` | Yes      | Phone number. |
+
+**Return Value:** `boolean` (`true` if dialer was successfully invoked, `false` if number is empty or failed).
+
+---
+
+## Clipboard
+
+### getClipboardData
+
+Reads text content from the clipboard.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `getClipboardData`
+
+**Payload:** `{}` (no parameters)
+
+**Return Value:** `string` (clipboard text).
+
+---
+
+### setClipboardData
+
+Writes text to the clipboard.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `setClipboardData`
+
+**Payload:**
+
+| Parameter | Type     | Required | Description   |
+| --------- | -------- | -------- | ------------- |
+| `data`    | `string` | Yes      | Text to copy. |
+
+**Return Value:** `null`
+
+---
+
+## Location
+
+### getLocation
+
+Gets the current device location (one-time).
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `getLocation`
+
+**Payload:**
+
+| Parameter                | Type      | Required | Default | Description                       |
+| ------------------------ | --------- | -------- | ------- | --------------------------------- |
+| `isHighAccuracy`         | `boolean` | No       | —       | Whether to enable high accuracy.  |
+| `highAccuracyExpireTime` | `number`  | No       | `10000` | High accuracy timeout (ms).       |
+| `altitude`               | `boolean` | No       | —       | Whether to request altitude data. |
+
+**Return Value:**
+
+| Field                | Type     | Description          |
+| -------------------- | -------- | -------------------- |
+| `latitude`           | `number` | Latitude.            |
+| `longitude`          | `number` | Longitude.           |
+| `speed`              | `number` | Speed (m/s).         |
+| `accuracy`           | `number` | Accuracy in meters.  |
+| `altitude`           | `number` | Altitude in meters.  |
+| `verticalAccuracy`   | `number` | Vertical accuracy.   |
+| `horizontalAccuracy` | `number` | Horizontal accuracy. |
+
+**Permission Required (Android):** `ACCESS_FINE_LOCATION`, falls back to `ACCESS_COARSE_LOCATION`.
+
+**Error Codes:**
+
+| Error code        | Description              |
+| ----------------- | ------------------------ |
+| `LOCATION_FAILED` | Location request failed. |
+
+---
+
+### locationChange.subscribe
+
+Starts continuously listening for location changes.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `locationChange.subscribe`
+
+**Payload:**
+
+| Parameter            | Type      | Required | Default | Description                      |
+| -------------------- | --------- | -------- | ------- | -------------------------------- |
+| `enableHighAccuracy` | `boolean` | No       | `true`  | Whether to enable high accuracy. |
+
+**Return Value:**
+
+| Field            | Type     | Description                        |
+| ---------------- | -------- | ---------------------------------- |
+| `subscriptionId` | `string` | Subscription ID for unsubscribing. |
+
+**Subscription Event Data:**
+
+| Field       | Type     | Description |
+| ----------- | -------- | ----------- |
+| `latitude`  | `number` | Latitude.   |
+| `longitude` | `number` | Longitude.  |
+| `speed`     | `number` | Speed.      |
+| `accuracy`  | `number` | Accuracy.   |
+| `altitude`  | `number` | Altitude.   |
+| `timestamp` | `number` | Timestamp.  |
+
+**Timeout:** 10000ms.
+
+**distanceFilter:** 0 (any movement triggers callback).
+
+---
+
+### locationChange.unsubscribe
+
+Stops listening for location changes.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `locationChange.unsubscribe`
+
+**Payload:**
+
+| Parameter        | Type     | Required | Description                |
+| ---------------- | -------- | -------- | -------------------------- |
+| `subscriptionId` | `string` | Yes      | Subscription ID to cancel. |
+
+**Return Value:** `null`
+
+---
+
+## Media
+
+### chooseMedia
+
+Opens the media picker to get images/videos from the album or camera.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `chooseMedia`
+
+**Timeout:** 120000ms
+
+**Payload:**
+
+| Parameter     | Type                              | Required | Default                      | Description                           |
+| ------------- | --------------------------------- | -------- | ---------------------------- | ------------------------------------- |
+| `count`       | `number`                          | No       | `9`                          | Maximum number of items to select.    |
+| `mediaType`   | `('image' \| 'video' \| 'mix')[]` | No       | `['image', 'video']`         | Media type filter.                    |
+| `sourceType`  | `('album' \| 'camera')[]`         | No       | `['album', 'camera']`        | Source filter.                        |
+| `maxDuration` | `number`                          | No       | `10`                         | Maximum recording duration (seconds). |
+| `sizeType`    | `('original' \| 'compressed')[]`  | No       | `['original', 'compressed']` | Compression options.                  |
+| `camera`      | `'back' \| 'front'`               | No       | `'back'`                     | Default camera.                       |
+
+**Return Value:**
+
+| Field       | Type                          | Description          |
+| ----------- | ----------------------------- | -------------------- |
+| `type`      | `'image' \| 'video' \| 'mix'` | Selected media type. |
+| `tempFiles` | `TempFile[]`                  | List of files.       |
+
+**`TempFile` Fields:**
+
+| Field               | Type                  | Description                  |
+| ------------------- | --------------------- | ---------------------------- |
+| `tempFilePath`      | `string`              | Temporary file path.         |
+| `size`              | `number`              | File size in bytes.          |
+| `duration`          | `number \| undefined` | Video duration in seconds.   |
+| `height`            | `number \| undefined` | Height.                      |
+| `width`             | `number \| undefined` | Width.                       |
+| `thumbTempFilePath` | `string \| undefined` | Thumbnail path (for videos). |
+| `fileType`          | `'image' \| 'video'`  | File type.                   |
+
+**Compression Quality:** `compressed` = 0.8, `original` = 1.0.
+
+**Error Codes:**
+
+| Error code                | Description     |
+| ------------------------- | --------------- |
+| `chooseMedia:fail cancel` | User cancelled. |
+| `chooseMedia:fail {code}` | Picker error.   |
+
+---
+
+### getImageInfo
+
+Gets image dimension information.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `getImageInfo`
+
+**Payload:**
+
+| Parameter | Type     | Required | Description              |
+| --------- | -------- | -------- | ------------------------ |
+| `src`     | `string` | Yes      | Image URL or local path. |
+
+**Return Value:**
+
+| Field         | Type     | Description                    |
+| ------------- | -------- | ------------------------------ |
+| `width`       | `number` | Image width in pixels.         |
+| `height`      | `number` | Image height in pixels.        |
+| `path`        | `string` | Image path.                    |
+| `orientation` | `string` | Orientation (fixed to `'up'`). |
+| `type`        | `string` | Image type.                    |
+| `errMsg`      | `string` | `'getImageInfo:ok'`.           |
+
+---
+
+### compressImage
+
+Compresses an image, outputting in JPEG format.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `compressImage`
+
+**Payload:**
+
+| Parameter          | Type     | Required | Default | Description                  |
+| ------------------ | -------- | -------- | ------- | ---------------------------- |
+| `src`              | `string` | Yes      | —       | Source image path.           |
+| `quality`          | `number` | No       | `80`    | Compression quality (0-100). |
+| `compressedWidth`  | `number` | No       | —       | Target width in pixels.      |
+| `compressedHeight` | `number` | No       | —       | Target height in pixels.     |
+
+**Return Value:** `string` (compressed image URI).
+
+---
+
+### saveMedia
+
+Saves an image or video to the system photo album.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `saveMedia`
+
+**Payload:**
+
+| Parameter | Type                 | Required | Description             |
+| --------- | -------------------- | -------- | ----------------------- |
+| `url`     | `string`             | Yes      | Media file path or URL. |
+| `type`    | `'photo' \| 'video'` | Yes      | Media type.             |
+| `album`   | `string`             | No       | Target album name.      |
+
+**Return Value:** `string` (URI/path in system photo album).
+
+**Implementation:** Uses CameraRoll to save to system media library.
+
+---
+
+## Storage
+
+Based on MMKV (Memory Mapped KV Store), ID: `nebula.host.api.storage`.
+
+### storage.setItem
+
+Writes a key-value pair.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `storage.setItem`
+
+**Payload:**
+
+| Parameter | Type     | Required | Description                     |
+| --------- | -------- | -------- | ------------------------------- |
+| `key`     | `string` | Yes      | Key name.                       |
+| `data`    | `string` | Yes      | Serialized value (JSON string). |
+
+**Return Value:** `null`
+
+---
+
+### storage.getItem
+
+Reads a key-value pair.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `storage.getItem`
+
+**Payload:**
+
+| Parameter | Type     | Required | Description |
+| --------- | -------- | -------- | ----------- |
+| `key`     | `string` | Yes      | Key name.   |
+
+**Return Value:**
+
+| Field   | Type             | Description                        |
+| ------- | ---------------- | ---------------------------------- |
+| `value` | `string \| null` | Stored value, `null` if not found. |
+
+---
+
+### storage.removeItem
+
+Deletes a key-value pair.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `storage.removeItem`
+
+**Payload:**
+
+| Parameter | Type     | Required | Description |
+| --------- | -------- | -------- | ----------- |
+| `key`     | `string` | Yes      | Key name.   |
+
+**Return Value:** `null`
+
+---
+
+### storage.clearItems
+
+Clears all stored data and releases memory.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `storage.clearItems`
+
+**Payload:** `{}` (no parameters)
+
+**Return Value:** `null`
+
+---
+
+### storage.getKeys
+
+Gets all stored key names.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `storage.getKeys`
+
+**Payload:** `{}` (no parameters)
+
+**Return Value:**
+
+| Field  | Type       | Description             |
+| ------ | ---------- | ----------------------- |
+| `keys` | `string[]` | Array of all key names. |
+
+---
+
+### storage.getCurrentSize
+
+Gets the current storage size.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `storage.getCurrentSize`
+
+**Payload:** `{}` (no parameters)
+
+**Return Value:**
+
+| Field  | Type     | Description                                    |
+| ------ | -------- | ---------------------------------------------- |
+| `size` | `number` | Used size in KB (rounded to 2 decimal places). |
+
+---
+
+## File System
+
+### fileSystem.access
+
+Checks whether a file or directory exists.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `fileSystem.access`
+
+**Payload:**
+
+| Parameter | Type     | Required | Description             |
+| --------- | -------- | -------- | ----------------------- |
+| `path`    | `string` | Yes      | File or directory path. |
+
+**Return Value:** `null`
+
+**Error Codes:**
+
+| Error code       | Description          |
+| ---------------- | -------------------- |
+| `FILE_NOT_FOUND` | Path does not exist. |
+
+---
+
+### fileSystem.readFile
+
+Reads file content.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `fileSystem.readFile`
+
+**Payload:**
+
+| Parameter  | Type                            | Required | Default  | Description    |
+| ---------- | ------------------------------- | -------- | -------- | -------------- |
+| `filePath` | `string`                        | Yes      | —        | File path.     |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | No       | `'utf8'` | File encoding. |
+
+**Return Value:**
+
+| Field  | Type     | Description   |
+| ------ | -------- | ------------- |
+| `data` | `string` | File content. |
+
+---
+
+### fileSystem.writeFile
+
+Writes to a file.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `fileSystem.writeFile`
+
+**Payload:**
+
+| Parameter  | Type                            | Required | Default  | Description       |
+| ---------- | ------------------------------- | -------- | -------- | ----------------- |
+| `filePath` | `string`                        | Yes      | —        | Target file path. |
+| `data`     | `string`                        | Yes      | —        | Content to write. |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | No       | `'utf8'` | File encoding.    |
+
+**Return Value:** `null`
+
+---
+
+### fileSystem.appendFile
+
+Appends content to the end of a file.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `fileSystem.appendFile`
+
+**Payload:**
+
+| Parameter  | Type                            | Required | Default  | Description        |
+| ---------- | ------------------------------- | -------- | -------- | ------------------ |
+| `filePath` | `string`                        | Yes      | —        | Target file path.  |
+| `data`     | `string`                        | Yes      | —        | Content to append. |
+| `encoding` | `'ascii' \| 'base64' \| 'utf8'` | No       | `'utf8'` | File encoding.     |
+
+**Return Value:** `null`
+
+---
+
+### fileSystem.copyFile
+
+Copies a file.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `fileSystem.copyFile`
+
+**Payload:**
+
+| Parameter  | Type     | Required | Description       |
+| ---------- | -------- | -------- | ----------------- |
+| `srcPath`  | `string` | Yes      | Source file path. |
+| `destPath` | `string` | Yes      | Destination path. |
+
+**Return Value:** `null`
+
+---
+
+### fileSystem.rename
+
+Renames or moves a file/directory.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `fileSystem.rename`
+
+**Payload:**
+
+| Parameter | Type     | Required | Description    |
+| --------- | -------- | -------- | -------------- |
+| `oldPath` | `string` | Yes      | Original path. |
+| `newPath` | `string` | Yes      | New path.      |
+
+**Return Value:** `null`
+
+---
+
+### fileSystem.unlink
+
+Deletes a file.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `fileSystem.unlink`
+
+**Payload:**
+
+| Parameter  | Type     | Required | Description                 |
+| ---------- | -------- | -------- | --------------------------- |
+| `filePath` | `string` | Yes      | Path of the file to delete. |
+
+**Return Value:** `null`
+
+---
+
+### fileSystem.mkdir
+
+Creates a directory (recursively).
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `fileSystem.mkdir`
+
+**Payload:**
+
+| Parameter | Type     | Required | Description     |
+| --------- | -------- | -------- | --------------- |
+| `dirPath` | `string` | Yes      | Directory path. |
+
+**Return Value:** `null`
+
+---
+
+### fileSystem.rmdir
+
+Deletes a directory (recursively).
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `fileSystem.rmdir`
+
+**Payload:**
+
+| Parameter | Type     | Required | Description     |
+| --------- | -------- | -------- | --------------- |
+| `dirPath` | `string` | Yes      | Directory path. |
+
+**Return Value:** `null`
+
+---
+
+### fileSystem.readdir
+
+Lists directory contents.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `fileSystem.readdir`
+
+**Payload:**
+
+| Parameter | Type     | Required | Description     |
+| --------- | -------- | -------- | --------------- |
+| `dirPath` | `string` | Yes      | Directory path. |
+
+**Return Value:**
+
+| Field   | Type       | Description                        |
+| ------- | ---------- | ---------------------------------- |
+| `files` | `string[]` | Array of sub-file/directory names. |
+
+---
+
+### fileSystem.saveFile
+
+Saves a temporary file to the miniapp sandbox.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `fileSystem.saveFile`
+
+**Payload:**
+
+| Parameter      | Type     | Required | Description                                       |
+| -------------- | -------- | -------- | ------------------------------------------------- |
+| `tempFilePath` | `string` | Yes      | Temporary file path.                              |
+| `filePath`     | `string` | No       | Destination path. Auto-generated if not provided. |
+
+**Return Value:**
+
+| Field           | Type     | Description        |
+| --------------- | -------- | ------------------ |
+| `savedFilePath` | `string` | Path after saving. |
+
+---
+
+### fileSystem.getFileInfo
+
+Gets file information and digest.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `fileSystem.getFileInfo`
+
+**Payload:**
+
+| Parameter         | Type                          | Required | Default | Description       |
+| ----------------- | ----------------------------- | -------- | ------- | ----------------- |
+| `filePath`        | `string`                      | Yes      | —       | File path.        |
+| `digestAlgorithm` | `'md5' \| 'sha1' \| 'sha256'` | No       | `'md5'` | Digest algorithm. |
+
+**Return Value:**
+
+| Field    | Type     | Description         |
+| -------- | -------- | ------------------- |
+| `size`   | `number` | File size in bytes. |
+| `digest` | `string` | File digest.        |
+
+---
+
+### removeFile
+
+Deletes a sandbox file.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `removeFile`
+
+**Payload:**
+
+| Parameter  | Type     | Required | Description                 |
+| ---------- | -------- | -------- | --------------------------- |
+| `filePath` | `string` | Yes      | Path of the file to delete. |
+
+**Return Value:** `null`
+
+**Error Codes:**
+
+| Error code       | Description          |
+| ---------------- | -------------------- |
+| `FILE_NOT_FOUND` | File does not exist. |
+
+---
+
+## Path Resolution Rules
+
+- Paths starting with `file://` are normalized.
+- Miniapp paths are resolved relative to `/Documents/MiniApps/{appId}/`.
+- Paths starting with `/Documents/` are resolved to `${RNFS.DocumentDirectoryPath}`.
+
+---
+
+## Network
+
+### getNetworkType
+
+Gets the current network type.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `getNetworkType`
+
+**Payload:** `{}` (no parameters)
+
+**Return Value:**
+
+| Field         | Type     | Description                                           |
+| ------------- | -------- | ----------------------------------------------------- |
+| `networkType` | `string` | Network type, e.g., `'wifi'`, `'cellular'`, `'none'`. |
+
+---
+
+### networkStatusChange.subscribe
+
+Starts listening for network status changes.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `networkStatusChange.subscribe`
+
+**Payload:** `{}` (no parameters)
+
+**Return Value:**
+
+| Field            | Type     | Description      |
+| ---------------- | -------- | ---------------- |
+| `subscriptionId` | `string` | Subscription ID. |
+
+**Subscription Event Data:**
+
+| Field         | Type      | Description                        |
+| ------------- | --------- | ---------------------------------- |
+| `isConnected` | `boolean` | Whether connected to the internet. |
+| `networkType` | `string`  | Current network type.              |
+
+**Implementation:** Based on NetInfo real-time push.
+
+---
+
+### networkStatusChange.unsubscribe
+
+Stops listening for network status changes.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `networkStatusChange.unsubscribe`
+
+**Payload:**
+
+| Parameter        | Type     | Required | Description                |
+| ---------------- | -------- | -------- | -------------------------- |
+| `subscriptionId` | `string` | Yes      | Subscription ID to cancel. |
+
+**Return Value:** `null`
+
+---
+
+## Sensors
+
+All sensor subscription APIs support custom sampling intervals.
+
+### accelerometerChange.subscribe / unsubscribe
+
+Accelerometer data listening.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `accelerometerChange.subscribe` / `accelerometerChange.unsubscribe`
+
+**Subscribe Payload:**
+
+| Parameter  | Type     | Required | Default | Description             |
+| ---------- | -------- | -------- | ------- | ----------------------- |
+| `interval` | `number` | No       | `100`   | Sampling interval (ms). |
+
+**Subscription Event Data:**
+
+| Field       | Type                  | Description          |
+| ----------- | --------------------- | -------------------- |
+| `x`         | `number`              | X-axis acceleration. |
+| `y`         | `number`              | Y-axis acceleration. |
+| `z`         | `number`              | Z-axis acceleration. |
+| `timestamp` | `number \| undefined` | Timestamp.           |
+
+**Unsubscribe Payload:**
+
+| Parameter        | Type     | Required | Description      |
+| ---------------- | -------- | -------- | ---------------- |
+| `subscriptionId` | `string` | Yes      | Subscription ID. |
+
+---
+
+### gyroscopeChange.subscribe / unsubscribe
+
+Gyroscope data listening.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `gyroscopeChange.subscribe` / `gyroscopeChange.unsubscribe`
+
+**Subscribe Payload / Event Data:** Same as accelerometer.
+
+---
+
+### magnetometerChange.subscribe / unsubscribe
+
+Magnetometer data listening.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `magnetometerChange.subscribe` / `magnetometerChange.unsubscribe`
+
+**Subscribe Payload / Event Data:** Same as accelerometer.
+
+---
+
+### barometerChange.subscribe / unsubscribe
+
+Barometer data listening.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `barometerChange.subscribe` / `barometerChange.unsubscribe`
+
+**Subscribe Payload:** `{}` (interval configuration not supported)
+
+**Subscription Event Data:**
+
+| Field      | Type     | Description                 |
+| ---------- | -------- | --------------------------- |
+| `pressure` | `number` | Pressure value (Pa or hPa). |
+
+---
+
+## Screenshot Event
+
+### userCaptureScreen.subscribe / unsubscribe
+
+Listens for user screenshot operations.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `userCaptureScreen.subscribe` / `userCaptureScreen.unsubscribe`
+
+**Subscribe Payload:** `{}` (no parameters)
+
+**Return Value:**
+
+| Field            | Type     | Description      |
+| ---------------- | -------- | ---------------- |
+| `subscriptionId` | `string` | Subscription ID. |
+
+**Subscription Event Data:** `null` (only notifies that a screenshot occurred, no additional data).
+
+**Implementation:** Based on `ScreenshotAware` listener.
+
+---
+
+## Miniapp Update
+
+### getMiniAppUpdateInfo
+
+Gets installation/available version information for the miniapp.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `getMiniAppUpdateInfo`
+
+**Timeout:** 15000ms
+
+**Payload:** `{}` (no parameters)
+
+**Return Value:**
+
+| Field            | Type                 | Description                     |
+| ---------------- | -------------------- | ------------------------------- |
+| `appId`          | `string`             | Miniapp ID.                     |
+| `currentVersion` | `string \| null`     | Currently installed version.    |
+| `latestVersion`  | `string \| null`     | Latest remote version.          |
+| `hasUpdate`      | `boolean`            | Whether an update is available. |
+| `updateStrategy` | `'auto' \| 'manual'` | Update strategy.                |
+| `mode`           | `string \| null`     | Runtime mode.                   |
+| `sourceUrl`      | `string \| null`     | Bundle source URL.              |
+
+---
+
+### applyMiniAppUpdate
+
+Downloads and installs the latest available bundle.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `applyMiniAppUpdate`
+
+**Timeout:** 120000ms
+
+**Payload:** `{}` (no parameters)
+
+**Return Value:** Same as `getMiniAppUpdateInfo`.
+
+---
+
+## File Transfer (Task API)
+
+Task APIs support progress callbacks and abort operations. Calling `start` returns a `taskId`, and `abort` cancels the task.
+
+### downloadFile.start
+
+Starts a file download task.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `downloadFile.start`
+
+**Payload:**
+
+| Parameter  | Type                     | Required | Default        | Description                                              |
+| ---------- | ------------------------ | -------- | -------------- | -------------------------------------------------------- |
+| `url`      | `string`                 | Yes      | —              | Download URL.                                            |
+| `header`   | `Record<string, string>` | No       | —              | Custom HTTP request headers.                             |
+| `timeout`  | `number`                 | No       | `60000`        | Timeout (ms).                                            |
+| `filePath` | `string`                 | No       | Auto-generated | Save path. Saves to temporary directory if not provided. |
+
+**Return Value:**
+
+| Field    | Type     | Description |
+| -------- | -------- | ----------- |
+| `taskId` | `string` | Task ID.    |
+
+**Progress Event (channel: `task.progress`):**
+
+| Field                       | Type     | Description                  |
+| --------------------------- | -------- | ---------------------------- |
+| `progress`                  | `number` | Progress percentage (0-100). |
+| `totalBytesWritten`         | `number` | Bytes downloaded.            |
+| `totalBytesExpectedToWrite` | `number` | Total bytes.                 |
+
+**Header Event (channel: `task.headers`):**
+
+| Field    | Type                     | Description       |
+| -------- | ------------------------ | ----------------- |
+| `header` | `Record<string, string>` | Response headers. |
+
+**Completion Result:**
+
+```ts
+// Success
+{ ok: true, data: { tempFilePath: string, statusCode: number } }
+
+// Failure
+{ ok: false, error: { code: 'DOWNLOAD_FAILED', message: string } }
+```
+
+**Auto Path Generation:** `${TemporaryDirectoryPath}/${Date.now()}_download`
+
+**Implementation:** Based on RNFS.downloadFile.
+
+---
+
+### downloadFile.abort
+
+Aborts a download task.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `downloadFile.abort`
+
+**Payload:**
+
+| Parameter | Type     | Required | Description       |
+| --------- | -------- | -------- | ----------------- |
+| `taskId`  | `string` | Yes      | Task ID to abort. |
+
+**Return Value:** `{ ok: true, data: null }`
+
+---
+
+### uploadFile.start
+
+Starts a file upload task.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `uploadFile.start`
+
+**Payload:**
+
+| Parameter  | Type                     | Required | Default | Description                  |
+| ---------- | ------------------------ | -------- | ------- | ---------------------------- |
+| `url`      | `string`                 | Yes      | —       | Upload target URL.           |
+| `filePath` | `string`                 | Yes      | —       | Path of the file to upload.  |
+| `name`     | `string`                 | Yes      | —       | Form field name.             |
+| `header`   | `Record<string, string>` | No       | —       | Custom HTTP request headers. |
+| `formData` | `Record<string, string>` | No       | —       | Additional form fields.      |
+| `timeout`  | `number`                 | No       | `60000` | Timeout (ms).                |
+
+**Return Value:**
+
+| Field    | Type     | Description |
+| -------- | -------- | ----------- |
+| `taskId` | `string` | Task ID.    |
+
+**Progress Event (channel: `task.progress`):**
+
+| Field                      | Type     | Description                  |
+| -------------------------- | -------- | ---------------------------- |
+| `progress`                 | `number` | Progress percentage (0-100). |
+| `totalBytesSent`           | `number` | Bytes uploaded.              |
+| `totalBytesExpectedToSend` | `number` | Total bytes.                 |
+
+**Completion Result:**
+
+```ts
+// Success
+{ ok: true, data: { data: string, statusCode: number } }
+
+// Failure
+{ ok: false, error: { code: 'UPLOAD_FAILED', message: string } }
+```
+
+**HTTP Method:** POST
+
+**Implementation:** Based on RNFS.uploadFiles, filename extracted automatically from `filePath`.
+
+---
+
+### uploadFile.abort
+
+Aborts an upload task.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+**API Name:** `uploadFile.abort`
+
+**Payload:**
+
+| Parameter | Type     | Required | Description       |
+| --------- | -------- | -------- | ----------------- |
+| `taskId`  | `string` | Yes      | Task ID to abort. |
+
+**Return Value:** `{ ok: true, data: null }`
+
+---
+
+## Pure Function Exports
+
+The following functions can be called directly and do not follow the Task API flow (no progress callbacks).
+
+### downloadFileHost(options)
+
+Simple file download.
+
+```ts
+async function downloadFileHost(options: {
+  url: string;
+  header?: Record<string, string>;
+  timeout?: number;
+  filePath?: string;
+}): Promise<{ tempFilePath: string; statusCode: number }>;
+```
+
+---
+
+### uploadFileHost(options)
+
+Simple file upload.
+
+```ts
+async function uploadFileHost(options: {
+  url: string;
+  filePath: string;
+  name: string;
+  header?: Record<string, string>;
+  formData?: Record<string, string>;
+  timeout?: number;
+}): Promise<{ data: string; statusCode: number }>;
+```
+
+---
+
+### saveMediaHost(payload)
+
+Directly saves media to the system photo album.
+
+```ts
+async function saveMediaHost(payload: {
+  url: string;
+  type: 'photo' | 'video';
+  album?: string;
+}): Promise<string>;
+```
+
+---
+
+## Common Error Format
+
+All failed API calls return a unified format:
+
+```ts
+{
+  ok: false,
+  error: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  }
+}
+```
+
+---
+
+## Default Timeouts
+
+| Operation                           | Timeout  |
+| ----------------------------------- | -------- |
+| General APIs                        | 15000ms  |
+| Media operations (chooseMedia)      | 120000ms |
+| Miniapp update (applyMiniAppUpdate) | 120000ms |
+| File transfer (download/upload)     | 60000ms  |

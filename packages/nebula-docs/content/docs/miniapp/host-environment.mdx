@@ -1,0 +1,171 @@
+---
+title: Host Environment
+description: Understand the host environment in which Nebula miniapps run, including rendering, host interaction, and available APIs.
+---
+
+Nebula miniapps run inside a container environment provided by the Host app. The Host implements native capabilities, and the miniapp communicates through a standardized API layer.
+
+## Rendering model
+
+Nebula miniapps are rendered with **React Native**, not WebView. Each miniapp page corresponds to a React Native root view, managed by the Host via `NebulaContainerController` (iOS) or `NebulaContainerActivity` (Android).
+
+Rendering flow:
+
+1. When the Host opens a miniapp, it creates a container controller instance
+2. The container finds the installed bundle file based on the miniapp `appId`
+3. A React Native root view is created from the Metro-built JavaScript bundle
+4. The root view is mounted into the container's view hierarchy
+5. The container shows a loading indicator before React content mounts
+
+```
+Host App
+  └── NebulaContainerController
+        ├── Loading Indicator (before React content mounts)
+        └── React Native Root View
+              └── Miniapp Page Components
+```
+
+### Development vs production
+
+- **Development**: the bundle is loaded from a local Metro dev server, with hot reload
+- **Production**: the bundle is loaded from the device file system (installed `.jsbundle` files)
+
+## Host interaction
+
+Miniapps and the Host communicate via **Nebula Protocol**, currently at version `api.v1`.
+
+<Warning title="Native module boundary">
+  Nebula runs inside the Host's React Native environment and does not provide full native isolation. If a miniapp calls `NativeModules` that the Host has not integrated (such as navigation, push, or maps), the miniapp may crash at runtime.
+
+  Host developers should provide a clear list of supported APIs and native modules, and inform miniapp developers not to include incompatible native dependencies.
+
+  Nebula may introduce a JavaScript sandbox in the future to limit illegal native calls and reduce this risk.
+</Warning>
+
+### Communication mechanism
+
+```
+Miniapp (JavaScript)
+    │
+    │  Miniapp.invokeHostApi()
+    │  Miniapp.postMessageToHost()
+    ▼
+Nebula Bridge (protocol layer)
+    │
+    │  NebulaNativeModule
+    │  EventEmitter
+    ▼
+Host (Native)
+```
+
+When a miniapp calls Host capabilities, the SDK builds a protocol message and sends it to the Host via a Native Module:
+
+```ts
+// Protocol message structure
+{
+  __nebulaProtocol: 'api.v1',
+  kind: 'invoke',          // 'invoke' | 'getCapabilities' | 'getApiDescriptions'
+  requestId: 'unique-id',  // used to match request and response
+  api: 'scanCode',         // API name
+  payload: { ... },        // request payload
+}
+```
+
+After the Host processes the request, it returns the result to the miniapp via EventEmitter, using `requestId` to match the request.
+
+### Message directions
+
+| Direction | Method | Description |
+|----------|--------|-------------|
+| Miniapp -> Host | `Miniapp.postMessageToHost(message)` | Send a custom message to the Host |
+| Host -> Miniapp | `Miniapp.onHostMessage(listener)` | Listen for messages sent by the Host |
+| Miniapp -> Host API | `Miniapp.invokeHostApi(name, payload)` | Call an API registered by the Host |
+
+## APIs
+
+Miniapp developers access Host capabilities via `@nebula-rn/client` and `Miniapp` (from `@nebula-rn/sdk`).
+
+### Navigation APIs
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+// Navigate to a new page (keep current page)
+await Miniapp.navigateTo('/page1');
+
+// Redirect (replace current page)
+await Miniapp.redirectTo('/page2');
+
+// Re-launch (clear stack and open a new page)
+await Miniapp.reLaunch('/home');
+
+// Go back to the previous page
+await Miniapp.navigateBack();
+```
+
+### Page style APIs
+
+```ts
+// Set navigation bar title
+await Miniapp.setNavigationBarTitle('New Title');
+
+// Set navigation bar colors
+await Miniapp.setNavigationBarColor({
+  backgroundColor: '#ffffff',
+  frontColor: '#000000',
+});
+
+// Set page style
+await Miniapp.setPageStyle({
+  backgroundColor: '#f8fafc',
+  navigationBarBackgroundColor: '#ffffff',
+});
+```
+
+### Device and system APIs
+
+```ts
+// Get device info
+const deviceInfo = await Miniapp.getDeviceInfo();
+
+// Show toast
+await Miniapp.showToast('Operation successful');
+
+// Get app ID
+const appId = Miniapp.getAppId();
+
+// Get sandbox path
+const sandboxPath = await Miniapp.getSandboxPath();
+```
+
+### Host capability invocation
+
+```ts
+import { scanCode } from '@nebula-rn/client';
+
+// Call the scanCode API registered by the Host
+const result = await scanCode();
+if (result.result) {
+  console.log('Scan result:', result.result);
+}
+```
+
+### Capability detection
+
+Before using APIs, it is recommended to check whether the Host supports them:
+
+```ts
+// Get all capabilities supported by the Host
+const { capabilities } = await Miniapp.getCapabilities();
+
+// Check whether a specific API is supported
+const supported = await Miniapp.isSupported('scanCode', '1.0');
+```
+
+### Page lifecycle
+
+```ts
+Miniapp.onPageLifecycle((event) => {
+  // event: { type: 'show' | 'hide' | 'unload' | 'ready' }
+});
+```

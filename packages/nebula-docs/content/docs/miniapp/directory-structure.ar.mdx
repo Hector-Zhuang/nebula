@@ -1,0 +1,145 @@
+---
+title: بنية مجلدات miniapp
+description: بنية المجلدات القياسية لمشاريع Nebula miniapp ووظيفة كل ملف.
+---
+
+يبدو مشروع Nebula miniapp القياسي كالتالي:
+
+```
+my-miniapp/
+├── app.json                  # الإعدادات العامة (manifest)
+├── package.json              # الاعتمادات والسكربتات
+├── src/
+│   └── pages/                # مجلد الصفحات
+│       ├── home/
+│       │   ├── index.tsx     # مكوّن الصفحة
+│       │   └── page.config.ts # إعدادات الصفحة
+│       ├── detail/
+│       │   ├── index.tsx
+│       │   └── page.config.ts
+│       └── settings/
+│           ├── index.tsx
+│           └── page.config.ts
+└── build/                    # ناتج البناء (يتولد تلقائيًا)
+        ├── main.jsbundle          # JavaScript bundle النهائي
+        └── app.json               # ملف manifest الناتج
+```
+
+## شرح الملفات
+
+### `app.json` - الإعدادات العامة
+
+ملف الإعدادات العامة الذي يعرّف معرف التطبيق وقائمة الصفحات وأنماط النافذة:
+
+```json
+{
+  "appId": "my-miniapp",
+  "updateStrategy": "manual",
+  "pages": ["home", "detail", "settings"],
+  "entryPagePath": "/home",
+  "window": {
+    "backgroundColor": "#f8fafc",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextColor": "#0f172a",
+    "visualEffectInBackground": "none"
+  }
+}
+```
+
+راجع [إعدادات miniapp](/docs/miniapp/configuration) لمزيد من التفاصيل.
+
+### `package.json`
+
+```json
+{
+  "name": "@my-org/my-miniapp",
+  "private": true,
+  "version": "0.0.1",
+  "dependencies": {
+    "@nebula-rn/client": "*",
+    "@nebula-rn/components": "*",
+    "@nebula-rn/sdk": "*",
+    "react": "19.2.0",
+    "react-native": "0.83.1"
+  },
+  "scripts": {
+    "dev": "nebula miniapp dev",
+    "build": "nebula miniapp build",
+    "upload": "nebula miniapp upload"
+  }
+}
+```
+
+### `src/pages/` - مجلد الصفحات
+
+كل صفحة هي مجلد مستقل يحتوي مكوّن الصفحة وملف إعدادات اختياري.
+
+#### مكوّن الصفحة (`index.tsx`)
+
+المكوّن عبارة عن React component قياسي:
+
+```tsx
+import { View, Text } from 'react-native';
+
+export default function HomePage() {
+  return (
+    <View>
+      <Text>Hello Nebula</Text>
+    </View>
+  );
+}
+```
+
+#### إعدادات الصفحة (`page.config.ts`)
+
+استخدم `definePageConfig` لتعريف إعدادات الصفحة التي تتجاوز إعدادات `app.json`:
+
+```ts
+import { definePageConfig } from '@nebula-rn/sdk';
+
+export default definePageConfig({
+  route: '/home',
+  backgroundColor: '#f0f9ff',
+  navigationBarBackgroundColor: '#ffffff',
+  navigationBarTextColor: '#0f172a',
+  navigationBarTitleText: 'الرئيسية',
+  navigationStyle: 'default',
+  visualEffectInBackground: 'blur', // iOS فقط
+});
+```
+
+### `build/` - ناتج البناء
+
+يتولد تلقائيًا بعد تشغيل `nebula miniapp build`، ويتضمن:
+
+- `main.jsbundle`: JavaScript bundle الناتج من Metro ويحتوي الصفحات والاعتمادات
+- `app.json`: ملف manifest النهائي المتولد من الإعدادات المصدرية
+
+### الصفحات المتداخلة
+
+يمكن تنظيم الصفحات بمجلدات متداخلة:
+
+```
+src/pages/
+├── home/
+├── components/
+│   ├── media/
+│   │   ├── index.tsx
+│   │   └── page.config.ts
+│   ├── swiper/
+│   └── picker/
+└── api-tests/
+```
+
+واستخدام المسارات المتداخلة في `app.json`:
+
+```json
+{
+  "pages": [
+    "home",
+    "components/media",
+    "components/swiper",
+    "components/picker"
+  ]
+}
+```

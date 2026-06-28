@@ -1,0 +1,145 @@
+---
+title: Miniapp Directory Structure
+description: Standard directory structure for Nebula miniapps and what each file is for.
+---
+
+A standard Nebula miniapp project looks like this:
+
+```
+my-miniapp/
+├── app.json                  # global miniapp config (manifest)
+├── package.json              # project dependencies and scripts
+├── src/
+│   └── pages/                # page directory
+│       ├── home/
+│       │   ├── index.tsx     # page component
+│       │   └── page.config.ts # page-level config
+│       ├── detail/
+│       │   ├── index.tsx
+│       │   └── page.config.ts
+│       └── settings/
+│           ├── index.tsx
+│           └── page.config.ts
+└── build/                    # build output (generated)
+        ├── main.jsbundle          # bundled JavaScript output
+        └── app.json               # generated manifest file
+```
+
+## File overview
+
+### `app.json` - global config
+
+The global miniapp config file that defines the app ID, page list, and window style:
+
+```json
+{
+  "appId": "my-miniapp",
+  "updateStrategy": "manual",
+  "pages": ["home", "detail", "settings"],
+  "entryPagePath": "/home",
+  "window": {
+    "backgroundColor": "#f8fafc",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextColor": "#0f172a",
+    "visualEffectInBackground": "none"
+  }
+}
+```
+
+See [Miniapp Configuration](/docs/miniapp/configuration) for details.
+
+### `package.json`
+
+```json
+{
+  "name": "@my-org/my-miniapp",
+  "private": true,
+  "version": "0.0.1",
+  "dependencies": {
+    "@nebula-rn/client": "*",
+    "@nebula-rn/components": "*",
+    "@nebula-rn/sdk": "*",
+    "react": "19.2.0",
+    "react-native": "0.83.1"
+  },
+  "scripts": {
+    "dev": "nebula miniapp dev",
+    "build": "nebula miniapp build",
+    "upload": "nebula miniapp upload"
+  }
+}
+```
+
+### `src/pages/` - page directory
+
+Each page is a standalone directory containing a page component and optional page config file.
+
+#### Page component (`index.tsx`)
+
+Page components are standard React components:
+
+```tsx
+import { View, Text } from 'react-native';
+
+export default function HomePage() {
+  return (
+    <View>
+      <Text>Hello Nebula</Text>
+    </View>
+  );
+}
+```
+
+#### Page configuration (`page.config.ts`)
+
+Use `definePageConfig` to define page-level config. This overrides global window config in `app.json`:
+
+```ts
+import { definePageConfig } from '@nebula-rn/sdk';
+
+export default definePageConfig({
+  route: '/home',
+  backgroundColor: '#f0f9ff',
+  navigationBarBackgroundColor: '#ffffff',
+  navigationBarTextColor: '#0f172a',
+  navigationBarTitleText: 'Home',
+  navigationStyle: 'default',
+  visualEffectInBackground: 'blur', // iOS only
+});
+```
+
+### `build/` - build output
+
+Generated after running `nebula miniapp build`, including:
+
+- `main.jsbundle`: JavaScript bundle built by Metro, containing pages and dependencies
+- `app.json`: final manifest generated from source config
+
+### Nested pages
+
+Pages can be organized with nested directories:
+
+```
+src/pages/
+├── home/
+├── components/
+│   ├── media/
+│   │   ├── index.tsx
+│   │   └── page.config.ts
+│   ├── swiper/
+│   └── picker/
+└── api-tests/
+```
+
+Reference nested paths in `app.json`:
+
+```json
+{
+  "pages": [
+    "home",
+    "components/media",
+    "components/swiper",
+    "components/picker"
+  ]
+}
+```

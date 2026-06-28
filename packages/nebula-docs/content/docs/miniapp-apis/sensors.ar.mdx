@@ -1,0 +1,129 @@
+---
+title: المستشعرات
+description: استخدم واجهات الاشتراك في مستشعرات Nebula للحصول على بيانات مقياس التسارع والجيروسكوب والمغناطيسية والبارومتر.
+---
+
+توفّر Nebula أربع واجهات اشتراك لبيانات المستشعرات: مقياس التسارع، والجيروسكوب، والمغناطيسية، والبارومتر.
+
+## مقياس التسارع
+
+الاستماع إلى تغيّر تسارع الجهاز:
+
+```ts
+import { onAccelerometerChange } from '@nebula-rn/client';
+
+const unsubscribe = onAccelerometerChange((data) => {
+  console.log(`x: ${data.x}, y: ${data.y}, z: ${data.z}`);
+}, 200);
+
+unsubscribe();
+```
+
+## الجيروسكوب
+
+الاستماع إلى سرعة الدوران الزاوية:
+
+```ts
+import { onGyroscopeChange } from '@nebula-rn/client';
+
+const unsubscribe = onGyroscopeChange((data) => {
+  console.log(`x: ${data.x}, y: ${data.y}, z: ${data.z}`);
+}, 100);
+
+unsubscribe();
+```
+
+## المغناطيسية
+
+الاستماع إلى شدة المجال المغناطيسي:
+
+```ts
+import { onMagnetometerChange } from '@nebula-rn/client';
+
+const unsubscribe = onMagnetometerChange((data) => {
+  console.log(`x: ${data.x}, y: ${data.y}, z: ${data.z}`);
+}, 100);
+
+unsubscribe();
+```
+
+## البارومتر
+
+الاستماع إلى تغيّر الضغط الجوي:
+
+```ts
+import { onBarometerChange } from '@nebula-rn/client';
+
+const unsubscribe = onBarometerChange((data) => {
+  console.log(`Pressure: ${data.pressure} hPa`);
+});
+
+unsubscribe();
+```
+
+لا يدعم البارومتر تخصيص فترة أخذ العينات.
+
+## أنواع بيانات رد النداء
+
+```ts
+type SensorData = {
+  x: number;
+  y: number;
+  z: number;
+  timestamp?: number;
+};
+
+type BarometerData = {
+  pressure: number;
+};
+```
+
+## فترات أخذ العينات
+
+| المستشعر | الفترة الافتراضية | قابل للتخصيص |
+|--------|---------|---------|
+| مقياس التسارع | 100ms | نعم |
+| الجيروسكوب | 100ms | نعم |
+| المغناطيسية | 100ms | نعم |
+| البارومتر | افتراضي النظام | لا |
+
+## مثال كامل
+
+```tsx
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { onAccelerometerChange } from '@nebula-rn/client';
+
+export default function SensorDemoPage() {
+  const [accel, setAccel] = useState({ x: 0, y: 0, z: 0 });
+
+  useEffect(() => {
+    const unsubscribe = onAccelerometerChange((data) => {
+      setAccel({ x: data.x, y: data.y, z: data.z });
+    }, 200);
+
+    return () => { unsubscribe(); };
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Accelerometer data</Text>
+      <Text>X: {accel.x.toFixed(4)}</Text>
+      <Text>Y: {accel.y.toFixed(4)}</Text>
+      <Text>Z: {accel.z.toFixed(4)}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { padding: 20 },
+  title: { fontSize: 18, fontWeight: '600', marginBottom: 12 },
+});
+```
+
+## Notes
+
+- Sensor subscriptions continuously consume battery, so unsubscribe when not needed.
+- Call `unsubscribe()` in a `useEffect` cleanup function to avoid memory leaks.
+- High-frequency sampling increases CPU and battery usage.
+- Sensor availability depends on device hardware, and some devices may not support barometers.

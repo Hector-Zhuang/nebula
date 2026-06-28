@@ -1,0 +1,371 @@
+---
+title: 小程序管理
+description: 使用 NebulaAPI 在宿主端安装、打开、预加载、关闭、卸载和查询小程序，并理解开发态与生产态的管理差异。
+---
+
+宿主应用通过 `NebulaAPI`（来自 `@nebula-rn/sdk`）管理小程序的完整生命周期。
+
+## 两种管理模式
+
+在 Nebula 中，小程序管理通常分为两种模式：
+
+### 1. 开发态管理
+
+开发态通常直接连接本地 bundle URL 或 Metro 服务。
+
+适用场景：
+
+- 本地页面开发
+- Dev Runner 调试
+- 宿主联调
+
+常见 API：
+
+- `openMiniAppWithBundleURL(...)`
+- `preloadMiniAppWithBundleURL(...)`
+- `installMiniAppWithBundleURL(...)`
+
+### 2. 生产态管理
+
+生产态通常面向已安装 bundle、Nebula Cloud 元数据和正式更新流程。
+
+适用场景：
+
+- 正式宿主环境
+- 体验版与正式版分发
+- 自动更新或手动更新
+
+常见 API：
+
+- `openMiniApp(...)`
+- `preloadMiniApp(...)`
+- `installMiniApp(...)`
+- `getInstalledMiniAppInfo(...)`
+- `checkMiniAppUpdate(...)`
+- `applyMiniAppUpdate(...)`
+
+## 打开小程序
+
+### `openMiniApp(appId, initialProps?, versionType?)`
+
+打开一个已安装的小程序。
+
+```ts
+import { NebulaAPI } from '@nebula-rn/sdk';
+
+await NebulaAPI.openMiniApp('com.example.weather', {
+  city: 'Toronto',
+  source: 'home',
+});
+```
+
+如果目标小程序尚未安装，`openMiniApp(...)` 会尝试走宿主配置的 `serverBaseURL` 自动安装流程。
+
+```ts
+await NebulaAPI.openMiniApp(
+  'com.example.weather',
+  { city: 'Toronto' },
+  'experience',
+);
+```
+
+#### 自动安装行为
+
+当小程序未安装时，宿主会：
+
+1. 读取 `serverBaseURL`
+2. 请求对应版本的安装信息
+3. 下载 bundle 与 manifest
+4. 安装到本地沙箱
+5. 再执行打开
+
+## 通过 bundle URL 打开小程序
+
+### `openMiniAppWithBundleURL(appId, bundleURL, initialProps?, connectToURLMetroServer?)`
+
+一步完成安装并打开。
+
+```ts
+await NebulaAPI.openMiniAppWithBundleURL(
+  'com.example.weather',
+  'http://localhost:8082',
+  { city: 'Toronto' },
+  true,
+);
+```
+
+也可以用于指定一个 production bundle URL：
+
+```ts
+await NebulaAPI.openMiniAppWithBundleURL(
+  'com.example.weather',
+  'https://cdn.example.com/miniapps/weather/index.bundle',
+  {},
+  false,
+);
+```
+
+#### 说明
+
+- 当 `connectToURLMetroServer = true` 时，Nebula 会把输入规范化为开发态 bundle URL
+- 开发态不会使用 production loading 语义
+- 生产态会先安装，再继续走正式打开流程
+
+## 预加载小程序
+
+预加载用于提前准备小程序运行时资源，以减少真正打开时的冷启动成本。
+
+### `preloadMiniApp(appId)`
+
+预加载一个已安装的小程序：
+
+```ts
+await NebulaAPI.preloadMiniApp('com.example.weather');
+```
+
+### `preloadMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer?)`
+
+预加载一个指定 bundle URL 的小程序：
+
+```ts
+await NebulaAPI.preloadMiniAppWithBundleURL(
+  'com.example.weather',
+  'http://localhost:8082',
+  true,
+);
+```
+
+#### 适用场景
+
+- 用户即将进入某个小程序
+- 首页卡片、banner、推荐位可以预测用户点击
+- 宿主希望降低首次打开延迟
+
+## 安装小程序
+
+安装 API 适用于宿主需要显式控制安装阶段，而不是把安装隐含在“打开”中。
+
+### `installMiniApp(appId, bundleURL)`
+
+从 bundle URL 安装一个 production 小程序：
+
+```ts
+await NebulaAPI.installMiniApp(
+  'com.example.weather',
+  'https://cdn.example.com/miniapps/weather/index.bundle',
+);
+```
+
+### `installMiniAppWithBundleURL(appId, bundleURL, connectToURLMetroServer?)`
+
+安装指定 bundle URL，并显式声明它是开发态还是生产态：
+
+```ts
+await NebulaAPI.installMiniAppWithBundleURL(
+  'com.example.weather',
+  'http://localhost:8082',
+  true,
+);
+```
+
+### 安装行为摘要
+
+在安装阶段，Nebula 会根据模式：
+
+- 下载或记录 bundle 来源
+- 解析或下载 manifest
+- 创建本地沙箱
+- 写入安装元数据
+- 注册已安装运行时信息
+
+## 查询已安装小程序
+
+### `getInstalledMiniApps()`
+
+返回所有已安装的小程序 `appId`：
+
+```ts
+const result = await NebulaAPI.getInstalledMiniApps();
+// { apps: ['com.example.weather', 'com.example.shop'] }
+```
+
+### `getInstalledMiniAppInfo(appId)`
+
+查询某个小程序的安装信息：
+
+```ts
+const result = await NebulaAPI.getInstalledMiniAppInfo('com.example.weather');
+```
+
+返回值示例：
+
+```ts
+{
+  installed: true,
+  app: {
+    appId: 'com.example.weather',
+    mode: 'production',
+    bundlePath: '/path/to/index.bundle',
+    sourceUrl: 'https://cdn.example.com/miniapps/weather/index.bundle',
+    version: '1.2.0',
+    updateStrategy: 'auto',
+  },
+}
+```
+
+这里最值得关注的是：
+
+- 是否已安装
+- 当前是 `development` 还是 `production`
+- 当前安装版本
+- 更新策略
+- bundle 的本地路径与来源 URL
+
+## 关闭与卸载
+
+### `closeMiniApp(appId)`
+
+关闭一个正在运行的小程序：
+
+```ts
+await NebulaAPI.closeMiniApp('com.example.weather');
+```
+
+这只影响当前运行状态，不会删除本地安装文件。
+
+### `uninstallMiniApp(appId)`
+
+卸载本地已安装的小程序：
+
+```ts
+await NebulaAPI.uninstallMiniApp('com.example.weather');
+```
+
+卸载会删除本地安装数据和已记录的运行时信息。
+
+## 更新管理
+
+除了安装与打开，宿主通常还需要判断当前已安装版本是否需要更新。
+
+### `NebulaAPI.checkMiniAppUpdate(appId)`
+
+检查某个已安装小程序是否存在更新：
+
+```ts
+const updateInfo = await NebulaAPI.checkMiniAppUpdate('com.example.weather');
+```
+
+返回值示例：
+
+```ts
+{
+  appId: 'com.example.weather',
+  currentVersion: '1.0.0',
+  latestVersion: '1.1.0',
+  hasUpdate: true,
+  updateStrategy: 'manual',
+  mode: 'production',
+  sourceUrl: 'https://cdn.example.com/miniapps/weather/index.bundle',
+}
+```
+
+### `NebulaAPI.applyMiniAppUpdate(appId)`
+
+下载并应用该小程序的最新版本：
+
+```ts
+await NebulaAPI.applyMiniAppUpdate('com.example.weather');
+```
+
+#### 自动更新
+
+当已安装小程序的 `updateStrategy = 'auto'` 时，`openMiniApp(...)` 在正式打开前会尝试自动应用更新。
+
+#### 手动更新
+
+当 `updateStrategy = 'manual'` 时，宿主可以：
+
+- 先调用 `checkMiniAppUpdate(...)`
+- 再决定何时调用 `applyMiniAppUpdate(...)`
+
+## 与 `@nebula-rn/client` 中更新 API 的关系
+
+你可能还会看到：
+
+- `getMiniAppUpdateInfo()`
+- `applyMiniAppUpdate()`
+
+这两个能力来自 `@nebula-rn/client`，它们更适合由**小程序自身**发起更新检查和更新动作。  
+而本页讨论的 `NebulaAPI` 更适合由**宿主**管理小程序生命周期与版本状态。
+
+可以这样理解：
+
+- `NebulaAPI`
+  宿主管理小程序
+- `@nebula-rn/client`
+  小程序调用宿主提供的标准更新能力
+
+## 典型管理流程
+
+### 生产态：打开前先检查安装状态
+
+```ts
+const appId = 'com.example.weather';
+const installed = await NebulaAPI.getInstalledMiniAppInfo(appId);
+
+if (installed.installed) {
+  await NebulaAPI.openMiniApp(appId, { source: 'home' });
+} else {
+  await NebulaAPI.openMiniApp(appId, { source: 'home' }, 'release');
+}
+```
+
+### 开发态：直接连接本地服务
+
+```ts
+await NebulaAPI.openMiniAppWithBundleURL(
+  'com.example.weather',
+  'http://localhost:8082',
+  {},
+  true,
+);
+```
+
+### 即将进入时先预加载
+
+```ts
+await NebulaAPI.preloadMiniApp('com.example.weather');
+```
+
+### 手动更新
+
+```ts
+const updateInfo = await NebulaAPI.checkMiniAppUpdate('com.example.weather');
+
+if (updateInfo.hasUpdate) {
+  await NebulaAPI.applyMiniAppUpdate('com.example.weather');
+}
+```
+
+## 本地安装位置
+
+不同平台的本地安装路径不同：
+
+| 平台    | 路径                                                     |
+| ------- | -------------------------------------------------------- |
+| iOS     | `Documents/MiniApps/{appId}/index.bundle`                |
+| Android | `{Context.filesDir}/nebula/{appId}/index.android.bundle` |
+
+## 管理边界
+
+小程序管理的核心原则是：
+
+- 宿主控制安装、打开、关闭和更新
+- 小程序感知自己的版本状态，但不拥有宿主级生命周期控制权
+- 开发态与生产态应使用不同的管理语义
+
+如果你希望进一步理解更新策略与版本分发，请继续阅读：
+
+- [Host Configuration](./configuration.mdx)
+- [小程序版本与发布](../miniapp/versioning.mdx)
+- [Nebula SDK Reference](../reference/nebula-sdk.mdx)

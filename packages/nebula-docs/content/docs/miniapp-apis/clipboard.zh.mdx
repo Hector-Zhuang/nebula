@@ -1,0 +1,42 @@
+---
+title: 剪贴板
+description: 使用 Nebula API 读取和写入系统剪贴板。
+---
+
+## 读取剪贴板
+
+```ts
+import { getClipboardData } from '@nebula-rn/client';
+
+const text = await getClipboardData();
+console.log('剪贴板内容:', text);
+```
+
+## 写入剪贴板
+
+```ts
+import { setClipboardData } from '@nebula-rn/client';
+
+await setClipboardData('复制的文本内容');
+```
+
+## 示例：复制分享链接
+
+```tsx
+import React from 'react';
+import { Text, TouchableOpacity, Alert } from 'react-native';
+import { setClipboardData } from '@nebula-rn/client';
+
+export default function ShareButton({ link }: { link: string }) {
+  const handleCopy = async () => {
+    await setClipboardData(link);
+    Alert.alert('已复制', '链接已复制到剪贴板');
+  };
+
+  return (
+    <TouchableOpacity onPress={handleCopy}>
+      <Text>复制链接</Text>
+    </TouchableOpacity>
+  );
+}
+```

@@ -1,0 +1,101 @@
+---
+title: Sandbox Isolation
+description: Understand Nebula miniapp sandbox isolation mechanisms, including file system isolation, storage isolation, and runtime isolation.
+---
+
+Nebula provides a completely isolated sandbox environment for each miniapp. Different miniapps cannot access each other's files, storage, or runtime state.
+
+## Isolation Levels
+
+### File System Isolation
+
+Each miniapp's file operations are restricted to its own sandbox directory:
+
+```
+Documents/MiniApps/
+├── app-a/                 # Miniapp A's sandbox
+│   ├── index.bundle
+│   ├── app.json
+│   └── storage/
+├── app-b/                 # Miniapp B's sandbox
+│   ├── index.bundle
+│   ├── app.json
+│   └── storage/
+```
+
+- Miniapp A cannot read or write to Miniapp B's directory
+- All operations of the file system API (`getFileSystemManager()`) are confined to the current miniapp's sandbox path
+- Cannot access the host application's private directories
+
+### Storage Isolation
+
+Key-value storage is isolated by `appId`:
+
+- Each miniapp has an independent 10 MB storage quota
+- APIs like `setStorage` / `getStorage` are automatically scoped
+- Different miniapps using the same key do not interfere with each other's data
+
+```ts
+// In miniapp A
+await Miniapp.setStorage({ key: 'token', data: 'abc' });
+
+// In miniapp B
+const result = await Miniapp.getStorage({ key: 'token' });
+// result.data is empty or B's own stored value; cannot read A's data
+```
+
+### Runtime Isolation
+
+Each miniapp has its own independent runtime environment:
+
+| Component           | Isolation Method                           |
+| ------------------- | ------------------------------------------ |
+| JS Engine           | Independent JavaScript context per miniapp |
+| React Native Bridge | Independent Bridge instance per miniapp    |
+| Memory Heap         | Independent memory space per miniapp       |
+| Event Loop          | Independent event queue per miniapp        |
+
+### Bundle Isolation
+
+- Each miniapp loads its own JS bundle file
+- JavaScript modules are not shared
+- Miniapps cannot call functions or access variables from each other
+
+## Information Available Inside Sandbox
+
+Miniapps can query their own sandbox information but cannot access other miniapps' data:
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+// Get current miniapp's appId
+const appId = Miniapp.getAppId();
+
+// Get sandbox path
+const sandboxPath = Miniapp.getSandboxPath();
+
+// Get device info (shared across all miniapps, read-only)
+const deviceInfo = Miniapp.getDeviceInfo();
+```
+
+## Cross-Miniapp Communication
+
+Miniapps cannot communicate directly with each other. To exchange data, it must go through the host:
+
+```
+Miniapp A  →  postMessageToHost()  →  Host  →  postMessageToMiniApp()  →  Miniapp B
+```
+
+See [Host-Miniapp Messaging](/docs/host/host-miniapp-messaging) for details.
+
+## Security Boundaries
+
+| Operation                           | Allowed                            |
+| ----------------------------------- | ---------------------------------- |
+| Read/write own sandbox files        | Yes                                |
+| Read/write other miniapp files      | No                                 |
+| Read/write host private directories | No                                 |
+| Access own storage                  | Yes                                |
+| Access other miniapp storage        | No                                 |
+| Call Host APIs                      | Yes (subject to host registration) |
+| Directly call other miniapps        | No                                 |

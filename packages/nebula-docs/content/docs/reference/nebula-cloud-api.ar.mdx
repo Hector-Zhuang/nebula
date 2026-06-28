@@ -1,0 +1,400 @@
+---
+title: Nebula Cloud API
+description: مرجع Nebula Cloud REST API، بما في ذلك عقود وقت التشغيل وCLI.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+توفر Nebula Cloud واجهات REST API لإدارة miniapps والإصدارات والنشر والمصادقة. تستمع الخدمة افتراضيًا على المنفذ 3001، ومسار API الأساسي هو `/api`.
+
+<Callout type="info">
+إذا اخترت بناء الخلفية بنفسك بدلًا من استخدام Nebula Cloud، فيجب أن تطبق خدمتك الواجهات الموسومة أدناه بـ «مطلوب لوقت التشغيل» و«مطلوب لـ CLI» حتى يعمل وقت التشغيل وCLI بشكل صحيح. أما بقية واجهات الإدارة فهي اختيارية.
+</Callout>
+
+## المصادقة
+
+باستثناء واجهات الوصول العامة، يجب أن تحمل جميع واجهات API في ترويسة الطلب Bearer Token:
+
+```
+Authorization: Bearer <accessToken>
+```
+
+### التسجيل
+
+```
+POST /api/auth/register
+```
+
+| المعامل | النوع | الوصف |
+|------|------|------|
+| `email` | `string` | عنوان البريد الإلكتروني |
+| `password` | `string` | كلمة المرور (6 أحرف على الأقل) |
+
+**الإرجاع:** `{ id, email, accessToken, displayName }`
+
+### تسجيل الدخول `مطلوب لـ CLI`
+
+```
+POST /api/auth/login
+```
+
+| المعامل | النوع | الوصف |
+|------|------|------|
+| `email` | `string` | عنوان البريد الإلكتروني |
+| `password` | `string` | كلمة المرور |
+
+**الإرجاع:**
+
+```json
+{
+	"accessToken": "eyJhbGciOiJIUzI1NiIs...",
+	"user": {
+		"id": "user-uuid",
+		"email": "user@example.com",
+		"displayName": "User Name"
+	}
+}
+```
+
+### الحصول على المستخدم الحالي
+
+```
+GET /api/auth/me
+```
+
+**الإرجاع:** `{ id, email, displayName, role, status }`
+
+### تدفق تفويض جهاز CLI `مطلوب لـ CLI`
+
+يستخدم CLI تدفق التفويض على نمط الأجهزة لتسجيل الدخول (موصى به):
+
+**1. إنشاء جلسة CLI**
+
+```
+POST /api/auth/cli/sessions
+```
+
+لا يتطلب مصادقة ولا يحتوي على جسم طلب.
+
+**الإرجاع:**
+
+```json
+{
+	"code": "ABCD-1234",
+	"verificationUrl": "https://your-server.com/cli/verify?code=ABCD-1234",
+	"expiresAt": "2025-01-15T10:45:00Z",
+	"intervalSeconds": 5
+}
+```
+
+يطبع CLI عنوان `verificationUrl` ويفتح المتصفح تلقائيًا، ثم يسجّل المستخدم الدخول ويؤكد التفويض.
+
+**2. استطلاع حالة الجلسة**
+
+```
+GET /api/auth/cli/sessions/{code}
+```
+
+يستطلع CLI هذه الواجهة وفق الفاصل `intervalSeconds` حتى تصبح الحالة `approved`.
+
+**الإرجاع:**
+
+```json
+{
+	"status": "pending | approved | expired",
+	"accessToken": "eyJhbGci... (يُعاد عند approved)",
+	"user": { "id": "...", "email": "...", "displayName": "..." }
+}
+```
+
+**3. اعتماد الجلسة (يقوم به المستخدم عبر المتصفح)**
+
+```
+POST /api/auth/cli/sessions/{code}/approve
+Authorization: Bearer <accessToken>
+```
+
+---
+
+## عقود API لوقت التشغيل (وصول عام)
+
+الواجهات الثلاث التالية هي **الاعتماد الأساسي لوقت تشغيل Nebula لتنزيل miniapps وتحديثها**. لا تتطلب مصادقة المستخدم وتستخدم query token للتفويض.
+
+<Callout type="warn">
+**تنبيه لمطوري الخلفية الذاتية:** بغض النظر عن التقنية التي تستخدمها، هذه الواجهات الثلاث هي الحد الأدنى الذي يضمن عمل وقت التشغيل. إذا نقصت أي واجهة منها فلن يتمكن تطبيق المضيف من تثبيت miniapps أو تحديثها.
+</Callout>
+
+### الحصول على معلومات التثبيت `مطلوب لوقت التشغيل`
+
+```
+GET /api/mini-apps/access/versions/{versionId}/install?token={accessToken}
+```
+
+يعيد بيانات تثبيت miniapp. يستخدم وقت التشغيل هذه الواجهة للحصول على روابط تنزيل bundle وmanifest.
+
+**الإرجاع:**
+
+```json
+{
+	"appId": "com.example.weather",
+	"appName": "Weather",
+	"versionId": "version-uuid",
+	"version": "1.2.0",
+	"releaseType": "RELEASE",
+	"routeUrl": "nebula://com.example.weather",
+	"bundleUrl": "https://your-server.com/api/mini-apps/access/versions/{versionId}/bundle?token=...",
+	"manifestUrl": "https://your-server.com/api/mini-apps/access/versions/{versionId}/manifest?token=..."
+}
+```
+
+| الحقل | الوصف |
+|------|------|
+| `appId` | معرّف miniapp الفريد |
+| `routeUrl` | عنوان بروتوكول `nebula://` للانتقال داخل المضيف |
+| `bundleUrl` | رابط تنزيل JS bundle (يمكن أن يكون CDN) |
+| `manifestUrl` | رابط تنزيل manifest |
+
+### تنزيل Bundle `مطلوب لوقت التشغيل`
+
+```
+GET /api/mini-apps/access/versions/{versionId}/bundle?token={accessToken}
+```
+
+يعيد ملف JavaScript bundle. قيمة Content-Type هي `application/javascript`.
+
+وهو ناتج Metro باسم `main.jsbundle`. يقوم وقت التشغيل بحفظه داخل المسار `/Documents/MiniApps/{appId}/`.
+
+### تنزيل Manifest `مطلوب لوقت التشغيل`
+
+```
+GET /api/mini-apps/access/versions/{versionId}/manifest?token={accessToken}
+```
+
+يعيد ملف manifest الخاص بـ miniapp (`app.json`). قيمة Content-Type هي `application/json`.
+
+يتحقق وقت التشغيل من تحديثات الإصدار بمقارنة الإصدار المحلي مع حقل `version` في manifest البعيد.
+
+**الإرجاع:**
+
+```json
+{
+	"appId": "com.example.weather",
+	"version": "1.2.0",
+	"pages": {
+		"/": "HomePage",
+		"/details": "DetailsPage"
+	},
+	"entryPagePath": "/",
+	"updateStrategy": "auto",
+	"window": {}
+}
+```
+
+### قواعد اشتقاق URL
+
+<Callout type="warn">
+يشتق وقت تشغيل Nebula عنوان manifest تلقائيًا من `bundleUrl` عبر أخذ المسار الأب وإضافة `/app.json`. مثال:
+- Bundle: `https://cdn.example.com/miniapps/v123/bundle`
+- Manifest المشتق: `https://cdn.example.com/miniapps/v123/app.json`
+
+إذا كنت تستخدم CDN لاستضافة bundle فتأكد من أن ملف manifest متاح في المسار نفسه، أو وفّر `manifestUrl` الكامل في استجابة واجهة install.
+</Callout>
+
+### قواعد تحليل URL
+
+يحل وقت التشغيل المسارات النسبية عبر `serverBaseURL` (المهيأ داخل `NebulaAPI.wrap()`):
+
+```ts
+export default NebulaAPI.wrap({
+	serverBaseURL: 'https://your-api.example.com/api',
+	// ...
+})(App);
+```
+
+| صيغة URL | مثال | النتيجة |
+|---|---|---|
+| مسار مطلق | `/mini-apps/v1/bundle` | `https://your-api.example.com/mini-apps/v1/bundle` |
+| مسار نسبي | `mini-apps/v1/bundle` | `https://your-api.example.com/api/mini-apps/v1/bundle` |
+| URL كامل | `https://cdn.example.com/bundle` | لا يتم إجراء أي تحويل |
+
+---
+
+## إدارة miniapp
+
+### الحصول على قائمة miniapps
+
+```
+GET /api/mini-apps
+```
+
+**الإرجاع:** `MiniApp[]`
+
+### إنشاء miniapp
+
+```
+POST /api/mini-apps
+```
+
+| المعامل | النوع | الوصف |
+|------|------|------|
+| `appId` | `string` | المعرّف الفريد لـ miniapp |
+| `name` | `string` | الاسم المعروض |
+| `description` | `string?` | الوصف |
+| `iconUrl` | `string?` | رابط الأيقونة |
+
+**الإرجاع:** `MiniApp`
+
+### الحصول على تفاصيل miniapp
+
+```
+GET /api/mini-apps/{miniAppId}
+```
+
+### تحديث miniapp
+
+```
+PATCH /api/mini-apps/{miniAppId}
+```
+
+| المعامل | النوع | الوصف |
+|------|------|------|
+| `name` | `string?` | الاسم المعروض |
+| `description` | `string?` | الوصف |
+| `iconUrl` | `string?` | رابط الأيقونة |
+
+### الحصول على مساحة العمل
+
+```
+GET /api/mini-apps/{miniAppId}/workspace
+```
+
+يعيد تفاصيل miniapp وجميع قائمة الإصدارات الخاصة بها.
+
+---
+
+## إدارة الإصدارات
+
+### رفع إصدار `مطلوب لـ CLI`
+
+```
+POST /api/mini-apps/by-app-id/{appId}/versions/upload
+Content-Type: multipart/form-data
+```
+
+يستدعي أمر `nebula miniapp upload` في CLI هذه الواجهة.
+
+| المعامل | النوع | الوصف |
+|------|------|------|
+| `version` | `string` | رقم الإصدار (مثل `1.0.0`) |
+| `changelog` | `string?` | سجل التغييرات |
+| `bundleIos` | `File` | ملف iOS JS bundle (`main.ios.jsbundle`) |
+| `bundleAndroid` | `File` | ملف Android JS bundle (`main.android.bundle`) |
+| `manifest` | `File` | ملف manifest (`app.json`) |
+
+**الإرجاع:**
+
+```json
+{
+	"id": "version-id",
+	"version": "1.0.0",
+	"buildNumber": 1,
+	"releaseType": "RELEASE",
+	"status": "DRAFT"
+}
+```
+
+بعد الرفع بنجاح، يصبح هذا الإصدار تلقائيًا إصدار التجربة الحالي.
+
+### إرسال للمراجعة
+
+```
+POST /api/mini-apps/{miniAppId}/versions/{versionId}/review
+```
+
+يرسل إصدار التجربة الحالي أو إصدارًا سابقًا إلى مسار المراجعة ويحدّث `currentReviewVersionId`.
+
+### نشر إصدار
+
+```
+POST /api/mini-apps/{miniAppId}/versions/{versionId}/publish
+```
+
+| المعامل | النوع | الوصف |
+|------|------|------|
+| `notes` | `string?` | ملاحظات النشر |
+
+بعد النشر: يتم تحديث حالة الإصدار إلى `PUBLISHED` ويتم تحديث إصدار release الحالي إلى هذا الإصدار.
+
+### الرجوع عن إصدار
+
+```
+POST /api/mini-apps/{miniAppId}/rollback
+```
+
+| المعامل | النوع | الوصف |
+|------|------|------|
+| `targetVersionId` | `string` | معرّف الإصدار الهدف للرجوع |
+| `notes` | `string?` | سبب الرجوع |
+
+### حذف إصدار
+
+```
+DELETE /api/mini-apps/{miniAppId}/versions/{versionId}
+```
+
+---
+
+## واجهات المدير
+
+### الحصول على قائمة المستخدمين
+
+```
+GET /api/admin/users
+Authorization: Bearer <admin-token>
+```
+
+**الإرجاع:** `{ users: User[], auditLogs: AuditLog[] }`
+
+### إنشاء مستخدم
+
+```
+POST /api/admin/users
+Authorization: Bearer <admin-token>
+```
+
+| المعامل | النوع | الوصف |
+|------|------|------|
+| `email` | `string` | عنوان البريد الإلكتروني |
+| `displayName` | `string` | الاسم المعروض |
+| `password` | `string` | كلمة المرور |
+| `role` | `'ADMIN' \| 'USER'?` | الدور |
+
+### تحديث مستخدم
+
+```
+PATCH /api/admin/users/{userId}
+Authorization: Bearer <admin-token>
+```
+
+---
+
+## قائمة الحد الأدنى للتنفيذ عند بناء الخلفية ذاتيًا
+
+إذا اخترت بناء الخلفية بنفسك، فهذه هي أولويات الحد الأدنى للتنفيذ:
+
+### تشغيل وقت التشغيل بشكل صحيح (مطلوب)
+
+1. `GET .../install` — يعيد `bundleUrl` و`manifestUrl`
+2. `GET .../bundle` — يعيد ملف JS bundle
+3. `GET .../manifest` — يعيد manifest JSON
+
+### تشغيل CLI بشكل صحيح (موصى به)
+
+4. `POST /api/auth/login` أو `POST /api/auth/cli/sessions` — المصادقة
+5. `POST .../versions/upload` — استقبال رفع ملفات multipart
+
+### وظائف الإدارة الكاملة (اختياري)
+
+6. CRUD للـ miniapp، ونشر/رجوع الإصدارات، ولوحة المدير، وغيرها
+
+راجع [نشر وإدارة Nebula Cloud](/docs/nebula-cloud/deployment) للاطلاع على دليل بناء الخلفية والتوصيات المعمارية للإنتاج.

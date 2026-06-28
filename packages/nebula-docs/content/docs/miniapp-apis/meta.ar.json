@@ -1,0 +1,12 @@
+{
+  "title": "قدرات التطبيق المصغّر",
+  "pages": [
+    "storage",
+    "media",
+    "file-system",
+    "file-transfer",
+    "network",
+    "clipboard",
+    "sensors"
+  ]
+}

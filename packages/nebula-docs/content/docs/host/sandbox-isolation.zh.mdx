@@ -1,0 +1,101 @@
+---
+title: 沙箱隔离
+description: 了解 Nebula 小程序的沙箱隔离机制，包括文件系统隔离、存储隔离和运行时隔离。
+---
+
+Nebula 为每个小程序提供完全隔离的沙箱环境。不同小程序之间无法访问彼此的文件、存储和运行时状态。
+
+## 隔离层次
+
+### 文件系统隔离
+
+每个小程序的文件操作被限制在自己的沙箱目录内：
+
+```
+Documents/MiniApps/
+├── app-a/                 # 小程序 A 的沙箱
+│   ├── index.bundle
+│   ├── app.json
+│   └── storage/
+├── app-b/                 # 小程序 B 的沙箱
+│   ├── index.bundle
+│   ├── app.json
+│   └── storage/
+```
+
+- 小程序 A 无法读写小程序 B 的目录
+- 文件系统 API（`getFileSystemManager()`）的所有操作限定在当前小程序的沙箱路径下
+- 无法访问宿主应用的私有目录
+
+### 存储隔离
+
+键值存储按 `appId` 隔离：
+
+- 每个小程序独立的 10 MB 存储空间
+- `setStorage` / `getStorage` 等 API 自动限定作用域
+- 不同小程序使用相同 key 存储的数据互不干扰
+
+```ts
+// 小程序 A 中
+await Miniapp.setStorage({ key: 'token', data: 'abc' });
+
+// 小程序 B 中
+const result = await Miniapp.getStorage({ key: 'token' });
+// result.data 为空或 B 自己存的值，无法读取 A 的数据
+```
+
+### 运行时隔离
+
+每个小程序拥有独立的运行时环境：
+
+| 组件                | 隔离方式                           |
+| ------------------- | ---------------------------------- |
+| JS 引擎             | 每个小程序独立的 JavaScript 上下文 |
+| React Native Bridge | 每个小程序独立的 Bridge 实例       |
+| 内存堆              | 每个小程序独立的内存空间           |
+| 事件循环            | 每个小程序独立的事件队列           |
+
+### Bundle 隔离
+
+- 每个小程序加载自己的 JS bundle 文件
+- 不共享 JavaScript 模块
+- 小程序之间不能互相调用函数或访问变量
+
+## 沙箱内可用信息
+
+小程序可以查询自身的沙箱信息，但不能访问其他小程序的数据：
+
+```ts
+import { Miniapp } from '@nebula-rn/sdk';
+
+// 获取当前小程序的 appId
+const appId = Miniapp.getAppId();
+
+// 获取沙箱路径
+const sandboxPath = Miniapp.getSandboxPath();
+
+// 获取设备信息（所有小程序共享，只读）
+const deviceInfo = Miniapp.getDeviceInfo();
+```
+
+## 跨小程序通信
+
+小程序之间不能直接通信。如需交换数据，必须通过宿主中转：
+
+```
+小程序 A  →  postMessageToHost()  →  宿主  →  postMessageToMiniApp()  →  小程序 B
+```
+
+详见 [宿主与小程序通信](/docs/host/host-miniapp-messaging)。
+
+## 安全边界
+
+| 操作               | 是否允许               |
+| ------------------ | ---------------------- |
+| 读写自身沙箱文件   | 允许                   |
+| 读写其他小程序文件 | 禁止                   |
+| 读写宿主私有目录   | 禁止                   |
+| 访问自身存储       | 允许                   |
+| 访问其他小程序存储 | 禁止                   |
+| 调用 Host API      | 允许（由宿主注册决定） |
+| 直接调用其他小程序 | 禁止                   |
