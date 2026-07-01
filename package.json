@@ -10,8 +10,7 @@
   },
   "workspaces": [
     "packages/*",
-    "examples/*/host",
-    "examples/*/miniapps/*"
+    "examples/*"
   ],
   "scripts": {
     "android": "npm run --workspace=@nebula-rn/sample-host android",
