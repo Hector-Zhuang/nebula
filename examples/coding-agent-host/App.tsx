@@ -18,8 +18,11 @@ function HostAppContent() {
   const [screen, setScreen] = useState<Screen>('chat');
   const { settings, loaded, updateSettings, loginToCloud, registerToCloud } =
     useSettings();
-  const { state: chatState, sendMessage, resetSession } =
-    useChatSession(settings);
+  const {
+    state: chatState,
+    sendMessage,
+    resetSession,
+  } = useChatSession(settings);
 
   const handleSaveSettings = useCallback(
     (newSettings: AppSettings) => {
@@ -85,6 +88,7 @@ function HostAppContent() {
     <ChatScreen
       messages={chatState.messages}
       phase={chatState.phase}
+      statusText={chatState.statusText}
       onSendMessage={sendMessage}
       onReset={resetSession}
       onOpenSettings={() => setScreen('settings')}

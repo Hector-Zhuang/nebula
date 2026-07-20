@@ -4,6 +4,7 @@ export interface ChatState {
   messages: ChatMessage[];
   phase: ConversationPhase;
   error: string | null;
+  statusText: string;
 }
 
 export type ChatAction =
@@ -17,6 +18,7 @@ export type ChatAction =
       content?: string;
     }
   | { type: 'SET_PHASE'; phase: ConversationPhase }
+  | { type: 'SET_STATUS'; statusText: string }
   | { type: 'SET_ERROR'; error: string | null }
   | { type: 'RESET' };
 
@@ -24,6 +26,7 @@ export const initialState: ChatState = {
   messages: [],
   phase: 'idle',
   error: null,
+  statusText: '',
 };
 
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
@@ -71,6 +74,9 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
     case 'SET_PHASE':
       return { ...state, phase: action.phase };
+
+    case 'SET_STATUS':
+      return { ...state, statusText: action.statusText };
 
     case 'SET_ERROR':
       return { ...state, error: action.error, phase: 'idle' };

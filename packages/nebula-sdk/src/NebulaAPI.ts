@@ -309,7 +309,6 @@ export class NebulaAPI {
     versionType: MiniAppVersionType = 'release',
   ): Promise<MiniAppResult> {
     const nativeModule = getNebulaNativeModule();
-    console.log('nativeModule', nativeModule);
 
     try {
       let installedInfo = await this.getInstalledMiniAppInfo(appId);

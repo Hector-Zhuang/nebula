@@ -1,19 +1,15 @@
-import { useCallback, useMemo, useReducer, useRef } from 'react';
+import { useCallback, useReducer, useRef } from 'react';
 import type {
   AppSettings,
   ChatMessage,
   LLMMessage,
-  ToolCall,
   StreamResult,
+  ToolDefinition,
 } from '../types';
 import { streamChatCompletion } from '../services/llm';
 import { SYSTEM_PROMPT } from '../services/prompts';
-import {
-  TOOL_DEFINITIONS,
-  createToolExecutor,
-  getToolLabel,
-} from '../services/tools';
-import { createAgentServerClient } from '../services/agent-server';
+import { executeMcpTool, getToolLabel, fetchToolDefinitions } from '../services/tools';
+import { McpClient } from '../services/mcp-client';
 import { chatReducer, initialState } from '../state/chat-reducer';
 
 let messageIdCounter = 0;
@@ -69,23 +65,38 @@ export function useChatSession(settings: AppSettings) {
   // Track whether tool calling is supported (fallback if provider doesn't support it)
   const toolSupportRef = useRef<boolean>(true);
 
-  const serverClient = useMemo(
-    () => createAgentServerClient(settings.server),
-    [settings.server.baseURL],
-  );
+  // MCP client and cached tool definitions
+  const mcpClientRef = useRef<McpClient | null>(null);
+  const toolDefsRef = useRef<ToolDefinition[] | null>(null);
 
-  const toolExecutor = useMemo(
-    () =>
-      createToolExecutor(
-        serverClient as any,
-        settings.cloud.accessToken || '',
-      ),
-    [serverClient, settings.cloud.accessToken],
-  );
+  /**
+   * Ensure MCP client is initialized and tool definitions are loaded.
+   */
+  const ensureMcpReady = useCallback(async (): Promise<ToolDefinition[] | null> => {
+    if (toolDefsRef.current) return toolDefsRef.current;
+
+    if (!mcpClientRef.current) {
+      mcpClientRef.current = new McpClient({
+        baseURL: settings.server.baseURL,
+      });
+    }
+
+    const defs = await fetchToolDefinitions(mcpClientRef.current);
+    toolDefsRef.current = defs;
+    return defs;
+  }, [settings.server.baseURL]);
 
   // --- Agent loop ---
   const sendMessage = useCallback(
     async (text: string) => {
+      // Ensure MCP is connected
+      let toolDefs: ToolDefinition[] | null = null;
+      try {
+        toolDefs = await ensureMcpReady();
+      } catch (err) {
+        console.error('[chat] MCP init failed:', err);
+      }
+
       // Add user message to UI + history
       dispatch({
         type: 'ADD_MESSAGE',
@@ -93,12 +104,14 @@ export function useChatSession(settings: AppSettings) {
       });
       historyRef.current.push({ role: 'user', content: text });
       dispatch({ type: 'SET_PHASE', phase: 'streaming' });
+      dispatch({ type: 'SET_STATUS', statusText: 'Thinking...' });
 
       const MAX_ITERATIONS = 10;
 
       try {
         for (let i = 0; i < MAX_ITERATIONS; i++) {
           // Create a new streaming assistant message
+          dispatch({ type: 'SET_STATUS', statusText: 'Thinking...' });
           const assistantMsg = createMessage('assistant', 'text', '', {
             isStreaming: true,
           });
@@ -106,61 +119,57 @@ export function useChatSession(settings: AppSettings) {
 
           // Stream from LLM
           const result: StreamResult = await new Promise((resolve, reject) => {
-            const tools = toolSupportRef.current
-              ? TOOL_DEFINITIONS
-              : null;
+            const tools = toolSupportRef.current ? toolDefs : null;
 
-            streamChatCompletion(
-              settings.llm,
-              historyRef.current,
-              tools,
-              {
-                onTextDelta: (token: string) => {
-                  dispatch({
-                    type: 'UPDATE_STREAMING_MESSAGE',
-                    id: assistantMsg.id,
-                    delta: token,
-                  });
-                },
-                onToolCallDetected: (_name: string) => {
-                  // Will show tool status after stream completes
-                },
-                onComplete: resolve,
-                onError: (error: string) => {
-                  // Check if this is a tool-calling-not-supported error
-                  if (
-                    toolSupportRef.current &&
-                    (error.includes('tool') ||
-                      error.includes('function') ||
-                      error.includes('400') ||
-                      error.includes('422'))
-                  ) {
-                    toolSupportRef.current = false;
-                    // Retry without tools
-                    const fallbackTools = null;
-                    streamChatCompletion(
-                      settings.llm,
-                      historyRef.current,
-                      fallbackTools,
-                      {
-                        onTextDelta: (token: string) => {
-                          dispatch({
-                            type: 'UPDATE_STREAMING_MESSAGE',
-                            id: assistantMsg.id,
-                            delta: token,
-                          });
-                        },
-                        onToolCallDetected: () => {},
-                        onComplete: resolve,
-                        onError: reject,
-                      },
-                    );
-                    return;
-                  }
-                  reject(new Error(error));
-                },
+            streamChatCompletion(settings.llm, historyRef.current, tools, {
+              onTextDelta: (token: string) => {
+                dispatch({
+                  type: 'UPDATE_STREAMING_MESSAGE',
+                  id: assistantMsg.id,
+                  delta: token,
+                });
+                // Clear status text once content is streaming
+                dispatch({ type: 'SET_STATUS', statusText: '' });
               },
-            );
+              onToolCallDetected: (_name: string) => {
+                // Will show tool status after stream completes
+              },
+              onComplete: resolve,
+              onError: (error: string) => {
+                // Check if this is a tool-calling-not-supported error
+                if (
+                  toolSupportRef.current &&
+                  (error.includes('tool') ||
+                    error.includes('function') ||
+                    error.includes('400') ||
+                    error.includes('422'))
+                ) {
+                  toolSupportRef.current = false;
+                  // Retry without tools
+                  const fallbackTools = null;
+                  streamChatCompletion(
+                    settings.llm,
+                    historyRef.current,
+                    fallbackTools,
+                    {
+                      onTextDelta: (token: string) => {
+                        dispatch({
+                          type: 'UPDATE_STREAMING_MESSAGE',
+                          id: assistantMsg.id,
+                          delta: token,
+                        });
+                        dispatch({ type: 'SET_STATUS', statusText: '' });
+                      },
+                      onToolCallDetected: () => {},
+                      onComplete: resolve,
+                      onError: reject,
+                    },
+                  );
+                  return;
+                }
+                reject(new Error(error));
+              },
+            });
           });
 
           // Finalize this assistant message
@@ -170,7 +179,6 @@ export function useChatSession(settings: AppSettings) {
           });
 
           if (result.type === 'text') {
-            // Pure text response — done
             historyRef.current.push({
               role: 'assistant',
               content: result.content,
@@ -186,7 +194,7 @@ export function useChatSession(settings: AppSettings) {
               tool_calls: result.toolCalls,
             });
 
-            // Execute each tool call
+            // Execute each tool call via MCP
             for (const toolCall of result.toolCalls) {
               const label = getToolLabel(toolCall.function.name);
               const toolMsg = createMessage('assistant', 'tool', label, {
@@ -195,8 +203,20 @@ export function useChatSession(settings: AppSettings) {
               });
               dispatch({ type: 'ADD_MESSAGE', message: toolMsg });
 
-              // Execute the tool
-              const toolResult = await toolExecutor.execute(toolCall);
+              // Execute the tool via MCP
+              dispatch({ type: 'SET_STATUS', statusText: `${label}...` });
+              const toolResult = mcpClientRef.current
+                ? await executeMcpTool(
+                    mcpClientRef.current,
+                    settings.cloud.accessToken || '',
+                    toolCall,
+                  )
+                : {
+                    tool_call_id: toolCall.id,
+                    role: 'tool' as const,
+                    name: toolCall.function.name,
+                    content: JSON.stringify({ error: 'MCP client not connected' }),
+                  };
 
               // Push tool result to history
               historyRef.current.push({
@@ -214,8 +234,9 @@ export function useChatSession(settings: AppSettings) {
               } catch {
                 // ignore
               }
-              const status: 'success' | 'error' =
-                statusData?.error ? 'error' : 'success';
+              const status: 'success' | 'error' = statusData?.error
+                ? 'error'
+                : 'success';
 
               dispatch({
                 type: 'UPDATE_TOOL_STATUS',
@@ -261,8 +282,9 @@ export function useChatSession(settings: AppSettings) {
       }
 
       dispatch({ type: 'SET_PHASE', phase: 'idle' });
+      dispatch({ type: 'SET_STATUS', statusText: '' });
     },
-    [settings.llm, toolExecutor],
+    [settings.llm, settings.cloud.accessToken, ensureMcpReady],
   );
 
   const resetSession = useCallback(() => {

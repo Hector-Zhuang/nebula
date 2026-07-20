@@ -112,6 +112,7 @@ export function streamChatCompletion(
       // Accumulate text content
       if (delta.content) {
         textBuffer += delta.content;
+        console.log('[LLM]', delta.content);
         callbacks.onTextDelta(delta.content);
       }
 
@@ -121,6 +122,16 @@ export function streamChatCompletion(
           toolCallsBuffer,
           delta.tool_calls,
         );
+
+        // Log tool call arguments (code generation process)
+        for (const d of delta.tool_calls) {
+          if (d.function?.name) {
+            console.log('[LLM] tool:', d.function.name);
+          }
+          if (d.function?.arguments) {
+            console.log('[LLM] tool args:', d.function.arguments);
+          }
+        }
 
         // Notify when a new tool name is detected
         for (const tc of toolCallsBuffer) {
@@ -169,7 +180,27 @@ export function streamChatCompletion(
   es.open();
 
   function finalize() {
+    console.log(
+      '[LLM Stream] finish_reason:',
+      finishReason,
+      'tool_calls:',
+      toolCallsBuffer.length,
+      'text:',
+      textBuffer.length,
+    );
+
     if (finishReason === 'tool_calls' && toolCallsBuffer.length > 0) {
+      callbacks.onComplete({
+        type: 'tool_calls',
+        content: textBuffer,
+        toolCalls: toolCallsBuffer,
+      });
+    } else if (toolCallsBuffer.length > 0) {
+      // finish_reason not 'tool_calls' but tool_calls exist (some providers do this)
+      console.warn(
+        '[LLM Stream] tool_calls present but finish_reason was:',
+        finishReason,
+      );
       callbacks.onComplete({
         type: 'tool_calls',
         content: textBuffer,

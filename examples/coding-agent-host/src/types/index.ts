@@ -25,19 +25,7 @@ export interface ToolDefinition {
   function: {
     name: string;
     description: string;
-    parameters: {
-      type: 'object';
-      properties: Record<
-        string,
-        {
-          type: string;
-          description: string;
-          enum?: string[];
-          items?: Record<string, unknown>;
-        }
-      >;
-      required: string[];
-    };
+    parameters: Record<string, unknown>;
   };
 }
 
@@ -76,7 +64,7 @@ export interface LLMMessage {
   name?: string;
 }
 
-// --- Miniapp Spec (used internally by tools & agent-server) ---
+// --- Miniapp Spec (used by LLM tool calls) ---
 export interface MiniappSpec {
   appId: string;
   name: string;
@@ -92,7 +80,7 @@ export interface PageSpec {
   components: string[];
 }
 
-// --- Code file (used internally by tools & agent-server) ---
+// --- Code file (used by LLM tool calls) ---
 export interface CodeFile {
   path: string;
   language: string;

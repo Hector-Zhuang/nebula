@@ -8,6 +8,7 @@ PODS:
   - hermes-engine (0.14.0):
     - hermes-engine/Pre-built (= 0.14.0)
   - hermes-engine/Pre-built (0.14.0)
+  - iosMath (0.9.4)
   - MMKVCore (2.4.0)
   - NebulaHost (0.0.1):
     - React-Core
@@ -2974,6 +2975,35 @@ PODS:
     - React-perflogger (= 0.83.1)
     - React-utils (= 0.83.1)
     - SocketRocket
+  - ReactNativeEnrichedMarkdown (0.4.0):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - iosMath (~> 0.9)
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
   - ReactNativeFs (2.39.1):
     - boost
     - DoubleConversion
@@ -3485,6 +3515,7 @@ DEPENDENCIES:
   - ReactAppDependencyProvider (from `build/generated/ios/ReactAppDependencyProvider`)
   - ReactCodegen (from `build/generated/ios/ReactCodegen`)
   - ReactCommon/turbomodule/core (from `../../../node_modules/react-native/ReactCommon`)
+  - ReactNativeEnrichedMarkdown (from `../../../node_modules/react-native-enriched-markdown`)
   - "ReactNativeFs (from `../../../node_modules/@dr.pogodin/react-native-fs`)"
   - "RNCAsyncStorage (from `../../../node_modules/@react-native-async-storage/async-storage`)"
   - "RNCClipboard (from `../../../node_modules/@react-native-clipboard/clipboard`)"
@@ -3494,7 +3525,7 @@ DEPENDENCIES:
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNSensors (from `../../../node_modules/react-native-sensors`)
   - RNSVG (from `../../../node_modules/react-native-svg`)
-  - RNWorklets (from `../node_modules/react-native-worklets`)
+  - RNWorklets (from `../../../node_modules/react-native-worklets`)
   - ScreenshotAware (from `../../../node_modules/react-native-screenshot-aware`)
   - SocketRocket (~> 0.7.1)
   - VisionCamera (from `../../../node_modules/react-native-vision-camera`)
@@ -3502,6 +3533,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - iosMath
     - MMKVCore
     - React-Codegen
     - SocketRocket
@@ -3687,6 +3719,8 @@ EXTERNAL SOURCES:
     :path: build/generated/ios/ReactCodegen
   ReactCommon:
     :path: "../../../node_modules/react-native/ReactCommon"
+  ReactNativeEnrichedMarkdown:
+    :path: "../../../node_modules/react-native-enriched-markdown"
   ReactNativeFs:
     :path: "../../../node_modules/@dr.pogodin/react-native-fs"
   RNCAsyncStorage:
@@ -3706,7 +3740,7 @@ EXTERNAL SOURCES:
   RNSVG:
     :path: "../../../node_modules/react-native-svg"
   RNWorklets:
-    :path: "../node_modules/react-native-worklets"
+    :path: "../../../node_modules/react-native-worklets"
   ScreenshotAware:
     :path: "../../../node_modules/react-native-screenshot-aware"
   VisionCamera:
@@ -3722,6 +3756,7 @@ SPEC CHECKSUMS:
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
   glog: 5683914934d5b6e4240e497e0f4a3b42d1854183
   hermes-engine: b3931029addd0c0f1b7b22ca927508c8cc100e06
+  iosMath: f7a6cbadf9d836d2149c2a84c435b1effc244cba
   MMKVCore: 3d16ce9f7d411e135020915fde98a056859a1efa
   NebulaHost: 34f49f3fb4f705e4bb335036aafc2273a9559178
   NitroMmkv: 975be1948fd74280e6febcda06671d7bf604a4cd
@@ -3806,13 +3841,14 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: 0eb286cc274abb059ee601b862ebddac2e681d01
   ReactCodegen: b8e56b780fffe6edd6405be0af4a1e3049a937f7
   ReactCommon: ac934cb340aee91282ecd6f273a26d24d4c55cae
+  ReactNativeEnrichedMarkdown: 05c15b1ff42c2f2120fee759a36373a6229b0dc2
   ReactNativeFs: 95cdb7c0c401725fa03f93db920c1cbdedf283e1
   RNCAsyncStorage: 29f0230e1a25f36c20b05f65e2eb8958d6526e82
   RNCClipboard: 4b58c780f63676367640f23c8e114e9bd0cf86ac
   RNCPicker: bf95ec4b2483e2ab256047130bc536b437cd916c
   RNDeviceInfo: 4c852998208b60dc192ae3529e5867817719ad1e
   RNGestureHandler: 396c56dae97876e8579445870281f223b42b34a8
-  RNReanimated: 37570db7064e414bdb3e8d02b8415024ece4bc45
+  RNReanimated: d79291ae90066374881347cc0c5ebcfc2c735eb9
   RNSensors: 111159597ac51505df10413c61b28bcd28e88983
   RNSVG: 6470d6f2636d71bd4bbc44a4f27fb7444e437b2f
   RNWorklets: b89b501d37972e6419d6f87effe41d6d76157648

@@ -1,6 +1,7 @@
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
 const path = require('path');
 const fs = require('fs');
+const { bundleModeMetroConfig } = require('react-native-worklets/bundleMode');
 
 const projectRoot = __dirname;
 
@@ -17,9 +18,7 @@ function findWorkspaceRoot(startDir) {
         if (packageJson.workspaces) {
           return currentDir;
         }
-      } catch {
-        // Ignore invalid package.json files while walking up the tree.
-      }
+      } catch {}
     }
 
     const parentDir = path.dirname(currentDir);
@@ -31,21 +30,43 @@ function findWorkspaceRoot(startDir) {
 }
 
 const workspaceRoot = findWorkspaceRoot(projectRoot);
+const defaultConfig = getDefaultConfig(projectRoot);
+const defaultResolver = defaultConfig.resolver?.resolveRequest;
 
-/** @type {import('@react-native/metro-config').MetroConfig} */
-const config = {
+const customConfig = {
   projectRoot,
   watchFolders: [
-    ...(workspaceRoot === projectRoot ? [] : [workspaceRoot]),
+    ...defaultConfig.watchFolders,
+    workspaceRoot,
+    projectRoot,
+    path.resolve(workspaceRoot, 'node_modules/react-native-worklets/.worklets'),
   ],
   resolver: {
     nodeModulesPaths: [
-      path.join(projectRoot, 'node_modules'),
-      ...(workspaceRoot === projectRoot
-        ? []
-        : [path.join(workspaceRoot, 'node_modules')]),
+      path.resolve(projectRoot, 'node_modules'),
+      path.resolve(workspaceRoot, 'node_modules'),
     ],
+    extraNodeModules: {
+      'react-native': path.resolve(workspaceRoot, 'node_modules/react-native'),
+    },
+    resolveRequest: (context, moduleName, platform) => {
+      if (moduleName.startsWith('react-native-worklets/.worklets/')) {
+        return bundleModeMetroConfig.resolver.resolveRequest(
+          context,
+          moduleName,
+          platform,
+        );
+      }
+      if (defaultResolver) {
+        return defaultResolver(context, moduleName, platform);
+      }
+      return context.resolveRequest(context, moduleName, platform);
+    },
   },
 };
 
-module.exports = mergeConfig(getDefaultConfig(projectRoot), config);
+module.exports = mergeConfig(
+  defaultConfig,
+  bundleModeMetroConfig,
+  customConfig,
+);

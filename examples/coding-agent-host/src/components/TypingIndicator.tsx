@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, View, StyleSheet, Easing } from 'react-native';
+import { Animated, View, StyleSheet, Easing, Text } from 'react-native';
 import { colors } from '../theme/colors';
 
-export function TypingIndicator() {
+export function TypingIndicator({ statusText }: { statusText?: string }) {
   const dot1 = useRef(new Animated.Value(0.3)).current;
   const dot2 = useRef(new Animated.Value(0.3)).current;
   const dot3 = useRef(new Animated.Value(0.3)).current;
@@ -51,6 +51,7 @@ export function TypingIndicator() {
         <Animated.View style={[styles.dot, { opacity: dot1 }]} />
         <Animated.View style={[styles.dot, { opacity: dot2 }]} />
         <Animated.View style={[styles.dot, { opacity: dot3 }]} />
+        {statusText ? <Text style={styles.statusText}>{statusText}</Text> : null}
       </View>
     </View>
   );
@@ -94,5 +95,10 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: colors.textSecondary,
+  },
+  statusText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    marginLeft: 4,
   },
 });

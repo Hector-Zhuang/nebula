@@ -79,7 +79,7 @@ export class Deployer {
     await this.publishVersion(token, miniApp.id, uploadResult.id);
 
     return {
-      miniAppId: miniApp.id,
+      miniAppId: spec.appId,
       versionId: uploadResult.id,
       version: uploadResult.version,
     };
@@ -92,7 +92,6 @@ export class Deployer {
     token: string,
     spec: MiniappSpec,
   ): Promise<CloudMiniApp> {
-    // First, check if it already exists
     try {
       const miniApps = await this.listMiniApps(token);
       const existing = miniApps.find(app => app.appId === spec.appId);
