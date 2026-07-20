@@ -7,8 +7,6 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Button,
-  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ChatMessage, ConversationPhase } from '../types';
@@ -22,6 +20,7 @@ import { IconSettings, IconSparkle, IconRefresh } from './Icons';
 interface ChatScreenProps {
   messages: ChatMessage[];
   phase: ConversationPhase;
+  statusText: string;
   onSendMessage: (text: string) => void;
   onReset: () => void;
   onOpenSettings: () => void;
@@ -31,6 +30,7 @@ interface ChatScreenProps {
 export function ChatScreen({
   messages,
   phase,
+  statusText,
   onSendMessage,
   onReset,
   onOpenSettings,
@@ -48,9 +48,10 @@ export function ChatScreen({
   }, [messages.length, phase]);
 
   const isStreaming = phase === 'streaming';
-  // Show typing indicator only when streaming and no streaming message yet
+  // Show typing indicator when streaming and no streaming message yet, or when statusText is set
   const hasStreamingMessage = messages.some(m => m.isStreaming);
-  const showTypingIndicator = isStreaming && !hasStreamingMessage;
+  const showTypingIndicator =
+    isStreaming && (!hasStreamingMessage || statusText);
 
   return (
     <KeyboardAvoidingView
@@ -76,7 +77,6 @@ export function ChatScreen({
         </View>
       </View>
 
-      {/* Messages */}
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -86,7 +86,11 @@ export function ChatScreen({
         keyExtractor={item => item.id}
         style={styles.messageList}
         contentContainerStyle={styles.messageContent}
-        ListFooterComponent={showTypingIndicator ? <TypingIndicator /> : null}
+        ListFooterComponent={
+          showTypingIndicator ? (
+            <TypingIndicator statusText={statusText} />
+          ) : null
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <IconSparkle size={40} color={colors.accent} />
@@ -96,20 +100,12 @@ export function ChatScreen({
               spec, generate code, and deploy it to Nebula Cloud — all
               autonomously.
             </Text>
-
-            <Button
-              title="open miniapp"
-              onPress={() => {
-                Linking.openURL('nebula://miniapp/install/calculator-miniapp');
-              }}
-            />
           </View>
         }
         keyboardDismissMode="interactive"
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Input */}
       <ChatInput
         onSend={onSendMessage}
         disabled={isStreaming}

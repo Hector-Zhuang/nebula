@@ -1,8 +1,16 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform, ActivityIndicator, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Platform,
+  ActivityIndicator,
+  Pressable,
+} from 'react-native';
 import type { ChatMessage } from '../types';
 import { colors } from '../theme/colors';
 import { IconBot, IconUser } from './Icons';
+import { StreamdownText } from 'react-native-streamdown';
 
 interface ChatBubbleProps {
   message: ChatMessage;
@@ -30,18 +38,30 @@ export function ChatBubble({ message, onOpenMiniApp }: ChatBubbleProps) {
         style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}
       >
         {message.type === 'text' && message.content.length > 0 && (
-          <Text
-            style={[
-              styles.messageText,
-              message.isStreaming && styles.streamingText,
-            ]}
+          <StreamdownText
             selectable
-          >
-            {message.content}
-            {message.isStreaming && (
-              <Text style={styles.cursor}>▍</Text>
-            )}
-          </Text>
+            markdownStyle={{
+              paragraph: styles.messageText,
+              h1: styles.messageText,
+              h2: styles.messageText,
+              h3: styles.messageText,
+              h4: styles.messageText,
+              h5: styles.messageText,
+              h6: styles.messageText,
+              blockquote: styles.messageText,
+              list: styles.messageText,
+              link: styles.messageText,
+              strong: styles.messageText,
+              em: styles.messageText,
+              strikethrough: styles.messageText,
+              underline: styles.messageText,
+              thematicBreak: styles.messageText,
+              table: styles.messageText,
+              math: styles.messageText,
+              inlineMath: styles.messageText,
+            }}
+            markdown={message.content}
+          />
         )}
 
         {message.type === 'tool' && (
@@ -65,7 +85,9 @@ export function ChatBubble({ message, onOpenMiniApp }: ChatBubbleProps) {
                 style={[
                   styles.toolStatus,
                   message.toolCallStatus === 'error' && { color: colors.error },
-                  message.toolCallStatus === 'success' && { color: colors.success },
+                  message.toolCallStatus === 'success' && {
+                    color: colors.success,
+                  },
                 ]}
               >
                 {message.toolCallStatus === 'running'
@@ -182,11 +204,8 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
-  // Message text
   messageText: {
     color: colors.textPrimary,
-    fontSize: 15,
-    lineHeight: 22,
   },
   streamingText: {
     opacity: 0.95,
