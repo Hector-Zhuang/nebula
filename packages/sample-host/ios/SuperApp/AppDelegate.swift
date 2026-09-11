@@ -6,9 +6,8 @@ import NebulaHost
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate, NebulaAppDelegate {
-  var window: UIWindow?
   static var sharedRootViewFactory: RCTRootViewFactory?
-  static weak var sharedNavigationController: UINavigationController?
+  static var sharedNavigationController: UINavigationController?
 
   private var reactNativeDelegate: ReactNativeDelegate?
   private var reactNativeFactory: RCTReactNativeFactory?
@@ -35,10 +34,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, NebulaAppDelegate {
     )
     let navigationController = UINavigationController(rootViewController: hostViewController)
     AppDelegate.sharedNavigationController = navigationController
-
-    window = UIWindow(frame: UIScreen.main.bounds)
-    window?.rootViewController = navigationController
-    window?.makeKeyAndVisible()
 
     return true
   }

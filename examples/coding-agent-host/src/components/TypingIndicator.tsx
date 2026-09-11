@@ -44,9 +44,6 @@ export function TypingIndicator({ statusText }: { statusText?: string }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.avatar}>
-        <View style={styles.botDot} />
-      </View>
       <View style={styles.bubble}>
         <Animated.View style={[styles.dot, { opacity: dot1 }]} />
         <Animated.View style={[styles.dot, { opacity: dot2 }]} />
@@ -63,22 +60,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginHorizontal: 12,
     marginVertical: 6,
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceElevated,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 6,
-    marginTop: 4,
-  },
-  botDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.accent,
   },
   bubble: {
     flexDirection: 'row',

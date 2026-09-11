@@ -16,6 +16,7 @@ import { ChatBubble } from './ChatBubble';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
 import { IconSettings, IconSparkle, IconRefresh } from './Icons';
+import { ToolingStatusPanel } from './ToolingStatusPanel';
 
 interface ChatScreenProps {
   messages: ChatMessage[];
@@ -52,6 +53,17 @@ export function ChatScreen({
   const hasStreamingMessage = messages.some(m => m.isStreaming);
   const showTypingIndicator =
     isStreaming && (!hasStreamingMessage || statusText);
+  const visibleMessages = messages
+    .filter(
+      message =>
+        message.type !== 'tool' &&
+        (message.type !== 'text' || message.content.trim().length > 0),
+    )
+    .sort((left, right) => {
+      if (left.type === 'action') return 1;
+      if (right.type === 'action') return -1;
+      return left.timestamp - right.timestamp;
+    });
 
   return (
     <KeyboardAvoidingView
@@ -62,8 +74,10 @@ export function ChatScreen({
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
         <View style={styles.headerLeft}>
-          <IconSparkle size={18} color={colors.accent} />
-          <Text style={styles.headerTitle}>{APP_NAME}</Text>
+          <View>
+            <Text style={styles.headerTitle}>{APP_NAME}</Text>
+            <Text style={styles.headerStatus}>Ready to build</Text>
+          </View>
         </View>
         <View style={styles.headerRight}>
           {messages.length > 0 && (
@@ -79,7 +93,7 @@ export function ChatScreen({
 
       <FlatList
         ref={flatListRef}
-        data={messages}
+        data={visibleMessages}
         renderItem={({ item }) => (
           <ChatBubble message={item} onOpenMiniApp={onOpenMiniApp} />
         )}
@@ -87,18 +101,24 @@ export function ChatScreen({
         style={styles.messageList}
         contentContainerStyle={styles.messageContent}
         ListFooterComponent={
-          showTypingIndicator ? (
-            <TypingIndicator statusText={statusText} />
-          ) : null
+          <View>
+            {showTypingIndicator ? (
+              <TypingIndicator statusText={statusText} />
+            ) : null}
+            {messages.some(message => message.type === 'tool') ? (
+              <ToolingStatusPanel messages={messages} />
+            ) : null}
+          </View>
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <IconSparkle size={40} color={colors.accent} />
-            <Text style={styles.emptyTitle}>Nebula Coding Agent</Text>
+            <View style={styles.emptyMark}>
+              <IconSparkle size={34} color={colors.accentBlue} />
+            </View>
+            <Text style={styles.emptyTitle}>What can I help you build?</Text>
             <Text style={styles.emptySubtitle}>
-              Describe a miniapp you want to build. I'll help you create the
-              spec, generate code, and deploy it to Nebula Cloud — all
-              autonomously.
+              Describe a miniapp, feature, or deployment task. The agent will
+              plan, build, and run it.
             </Text>
           </View>
         }
@@ -126,20 +146,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   headerTitle: {
     color: colors.textPrimary,
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  headerStatus: {
+    color: colors.textMuted,
+    fontSize: 11,
+    marginTop: 1,
   },
   headerRight: {
     flexDirection: 'row',
@@ -147,10 +169,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surfaceElevated,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.surfaceSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -158,27 +180,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messageContent: {
-    paddingTop: 16,
-    paddingBottom: 100,
+    paddingTop: 12,
+    paddingBottom: 124,
+    paddingHorizontal: 4,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
-    paddingTop: 100,
-    gap: 12,
+    paddingHorizontal: 36,
+    paddingTop: 120,
+    gap: 14,
   },
   emptyTitle: {
     color: colors.textPrimary,
-    fontSize: 22,
-    fontWeight: '700',
-    marginTop: 8,
+    fontSize: 34,
+    fontWeight: '400',
+    marginTop: 10,
+    textAlign: 'center',
   },
   emptySubtitle: {
     color: colors.textSecondary,
-    fontSize: 15,
+    fontSize: 16,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 23,
+  },
+  emptyMark: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

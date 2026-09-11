@@ -35,6 +35,17 @@ var miniappLoadingEnabled: Bool = false
         let assetsUrl: ReviewInstallAssetsUrls
         let manifestUrl: String
     }
+
+    private struct CloudInstallPayload: Decodable {
+        struct PlatformURLs: Decodable {
+            let ios: String
+        }
+
+        let appId: String
+        let bundles: PlatformURLs
+        let assetsUrl: PlatformURLs
+        let manifestUrl: String
+    }
     
     // MARK: - Singleton
     
@@ -73,6 +84,10 @@ var miniappLoadingEnabled: Bool = false
     public func initialize(config: NebulaConfig = .shared, appDelegate: NebulaAppDelegate?) {
         self.appDelegate = appDelegate
         initialize(config: config)
+    }
+
+    @objc public func setServerBaseURL(_ serverBaseURL: String?) {
+        NebulaConfig.shared.serverBaseURL = serverBaseURL
     }
     
     /// Open a mini-app
@@ -157,6 +172,97 @@ var miniappLoadingEnabled: Bool = false
         } else {
             presentContainer()
         }
+    }
+
+    public func openApp(
+        _ appId: String,
+        from viewController: UIViewController,
+        initialProps: [String: Any]? = nil,
+        animated: Bool = true,
+        completion: @escaping (Error?) -> Void
+    ) {
+        if NebulaConfig.shared.installedAppInfo(for: appId) != nil {
+            DispatchQueue.main.async {
+                self.openApp(appId, from: viewController, initialProps: initialProps, animated: animated)
+                completion(nil)
+            }
+            return
+        }
+
+        guard let serverBaseURL = NebulaConfig.shared.serverBaseURL,
+              let baseURL = URL(string: serverBaseURL) else {
+            completion(NSError(
+                domain: "com.nebula.host",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "No valid Nebula Cloud URL is configured"]
+            ))
+            return
+        }
+
+        let installURL = baseURL
+            .appendingPathComponent("mini-apps")
+            .appendingPathComponent("access")
+            .appendingPathComponent("apps")
+            .appendingPathComponent(appId)
+            .appendingPathComponent("release")
+            .appendingPathComponent("install")
+
+        URLSession.shared.dataTask(with: installURL) { [weak self] data, response, error in
+            guard let self else { return }
+
+            if let error {
+                completion(error)
+                return
+            }
+
+            guard let response = response as? HTTPURLResponse,
+                  (200...299).contains(response.statusCode),
+                  let data else {
+                completion(NSError(
+                    domain: "com.nebula.host",
+                    code: -2,
+                    userInfo: [NSLocalizedDescriptionKey: "Failed to fetch the release install payload for \(appId)"]
+                ))
+                return
+            }
+
+            do {
+                let payload = try JSONDecoder().decode(CloudInstallPayload.self, from: data)
+                guard payload.appId == appId else {
+                    throw NSError(
+                        domain: "com.nebula.host",
+                        code: -3,
+                        userInfo: [NSLocalizedDescriptionKey: "Cloud returned an install payload for a different miniapp"]
+                    )
+                }
+
+                NebulaConfig.shared.downloadBundle(
+                    for: appId,
+                    from: NebulaConfig.shared.resolveRemoteURL(payload.bundles.ios),
+                    manifestURL: NebulaConfig.shared.resolveRemoteURL(payload.manifestUrl),
+                    assetsURL: NebulaConfig.shared.resolveRemoteURL(payload.assetsUrl.ios),
+                    connectToURLMetroServer: false
+                ) { success, error in
+                    guard success else {
+                        completion(error ?? NSError(
+                            domain: "com.nebula.host",
+                            code: -4,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to install \(appId)"]
+                        ))
+                        return
+                    }
+
+                    self.discardPooledContainer(appId)
+                    NebulaAppManager.shared.invalidate(appId: appId)
+                    DispatchQueue.main.async {
+                        self.openApp(appId, from: viewController, initialProps: initialProps, animated: animated)
+                        completion(nil)
+                    }
+                }
+            } catch {
+                completion(error)
+            }
+        }.resume()
     }
     
     /// Preload a mini-app for faster startup

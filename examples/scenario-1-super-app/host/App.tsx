@@ -27,7 +27,7 @@ import Svg, { Path, Circle, Line, Polyline } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
 
-const HOST_SERVER_BASE_URL = 'http://localhost:3001/api';
+const HOST_SERVER_BASE_URL = 'http://192.168.2.195:3001/api';
 
 const MINI_APPS = {
   ride: { appId: 'superapp-ride-hailing', label: 'Ride', icon: '🚗' },

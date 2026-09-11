@@ -54,6 +54,25 @@ function summarizeToolResult(content: string): string {
   }
 }
 
+function getMiniAppId(content: string): string | undefined {
+  try {
+    const data = JSON.parse(content) as Record<string, unknown>;
+    const miniAppId = data.miniAppId ?? data.appId;
+    return typeof miniAppId === 'string' ? miniAppId : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function getProjectId(content: string): string | undefined {
+  try {
+    const data = JSON.parse(content) as Record<string, unknown>;
+    return typeof data.projectId === 'string' ? data.projectId : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function useChatSession(settings: AppSettings) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
 
@@ -89,6 +108,15 @@ export function useChatSession(settings: AppSettings) {
   // --- Agent loop ---
   const sendMessage = useCallback(
     async (text: string) => {
+      const cloudAuthContext = settings.cloud.accessToken
+        ? 'Nebula Cloud authentication is active. The host securely injects the current access token into every MCP tool call. Never ask the user to provide a Nebula Cloud token; call the available tools directly.'
+        : 'Nebula Cloud authentication is not active. Explain that the user must sign in from Settings before a tool requires Cloud access.';
+
+      historyRef.current[0] = {
+        role: 'system',
+        content: `${SYSTEM_PROMPT}\n\n## Current Host Authentication\n${cloudAuthContext}`,
+      };
+
       // Ensure MCP is connected
       let toolDefs: ToolDefinition[] | null = null;
       try {
@@ -104,18 +132,30 @@ export function useChatSession(settings: AppSettings) {
       });
       historyRef.current.push({ role: 'user', content: text });
       dispatch({ type: 'SET_PHASE', phase: 'streaming' });
-      dispatch({ type: 'SET_STATUS', statusText: 'Thinking...' });
+      dispatch({ type: 'SET_STATUS', statusText: 'Planning your miniapp...' });
 
       const MAX_ITERATIONS = 10;
+      let deployedMiniAppId: string | undefined;
+      let workflowCompleted = false;
 
       try {
         for (let i = 0; i < MAX_ITERATIONS; i++) {
-          // Create a new streaming assistant message
-          dispatch({ type: 'SET_STATUS', statusText: 'Thinking...' });
-          const assistantMsg = createMessage('assistant', 'text', '', {
-            isStreaming: true,
+          dispatch({
+            type: 'SET_STATUS',
+            statusText: i === 0 ? 'Planning your miniapp...' : 'Continuing development...',
           });
-          dispatch({ type: 'ADD_MESSAGE', message: assistantMsg });
+          let assistantMessageId: string | undefined;
+
+          const ensureAssistantMessage = () => {
+            if (!assistantMessageId) {
+              const assistantMessage = createMessage('assistant', 'text', '', {
+                isStreaming: true,
+              });
+              assistantMessageId = assistantMessage.id;
+              dispatch({ type: 'ADD_MESSAGE', message: assistantMessage });
+            }
+            return assistantMessageId;
+          };
 
           // Stream from LLM
           const result: StreamResult = await new Promise((resolve, reject) => {
@@ -123,16 +163,20 @@ export function useChatSession(settings: AppSettings) {
 
             streamChatCompletion(settings.llm, historyRef.current, tools, {
               onTextDelta: (token: string) => {
+                const messageId = ensureAssistantMessage();
                 dispatch({
                   type: 'UPDATE_STREAMING_MESSAGE',
-                  id: assistantMsg.id,
+                  id: messageId,
                   delta: token,
                 });
                 // Clear status text once content is streaming
                 dispatch({ type: 'SET_STATUS', statusText: '' });
               },
-              onToolCallDetected: (_name: string) => {
-                // Will show tool status after stream completes
+              onToolCallDetected: () => {
+                dispatch({
+                  type: 'SET_STATUS',
+                  statusText: 'Developing your miniapp...',
+                });
               },
               onComplete: resolve,
               onError: (error: string) => {
@@ -153,14 +197,20 @@ export function useChatSession(settings: AppSettings) {
                     fallbackTools,
                     {
                       onTextDelta: (token: string) => {
+                        const messageId = ensureAssistantMessage();
                         dispatch({
                           type: 'UPDATE_STREAMING_MESSAGE',
-                          id: assistantMsg.id,
+                          id: messageId,
                           delta: token,
                         });
                         dispatch({ type: 'SET_STATUS', statusText: '' });
                       },
-                      onToolCallDetected: () => {},
+                      onToolCallDetected: () => {
+                        dispatch({
+                          type: 'SET_STATUS',
+                          statusText: 'Developing your miniapp...',
+                        });
+                      },
                       onComplete: resolve,
                       onError: reject,
                     },
@@ -173,10 +223,12 @@ export function useChatSession(settings: AppSettings) {
           });
 
           // Finalize this assistant message
-          dispatch({
-            type: 'FINALIZE_STREAMING_MESSAGE',
-            id: assistantMsg.id,
-          });
+          if (assistantMessageId) {
+            dispatch({
+              type: 'FINALIZE_STREAMING_MESSAGE',
+              id: assistantMessageId,
+            });
+          }
 
           if (result.type === 'text') {
             historyRef.current.push({
@@ -245,32 +297,125 @@ export function useChatSession(settings: AppSettings) {
                 content: `${label}: ${summary}`,
               });
 
-              // After successful deployment, inject an action message with "Open MiniApp" button
+              if (
+                toolCall.function.name === 'create_project' &&
+                status === 'success'
+              ) {
+                const projectId = getProjectId(toolResult.content);
+                if (projectId && mcpClientRef.current) {
+                  const buildLabel = getToolLabel('build_project');
+                  const buildToolMsg = createMessage(
+                    'assistant',
+                    'tool',
+                    buildLabel,
+                    {
+                      toolCallName: 'build_project',
+                      toolCallStatus: 'running',
+                    },
+                  );
+                  dispatch({ type: 'ADD_MESSAGE', message: buildToolMsg });
+                  dispatch({
+                    type: 'SET_STATUS',
+                    statusText: 'Developing your miniapp...',
+                  });
+
+                  const buildResult = await executeMcpTool(
+                    mcpClientRef.current,
+                    settings.cloud.accessToken || '',
+                    {
+                      id: `auto-build-${toolCall.id}`,
+                      type: 'function',
+                      function: {
+                        name: 'build_project',
+                        arguments: JSON.stringify({ projectId }),
+                      },
+                    },
+                  );
+                  const buildSummary = summarizeToolResult(buildResult.content);
+                  const buildStatus = buildResult.content.includes('"error"')
+                    ? 'error'
+                    : 'success';
+                  dispatch({
+                    type: 'UPDATE_TOOL_STATUS',
+                    id: buildToolMsg.id,
+                    status: buildStatus,
+                    content: `${buildLabel}: ${buildSummary}`,
+                  });
+
+                  if (buildStatus === 'success') {
+                    const deployLabel = getToolLabel('deploy_project');
+                    const deployToolMsg = createMessage(
+                      'assistant',
+                      'tool',
+                      deployLabel,
+                      {
+                        toolCallName: 'deploy_project',
+                        toolCallStatus: 'running',
+                      },
+                    );
+                    dispatch({ type: 'ADD_MESSAGE', message: deployToolMsg });
+                    dispatch({
+                      type: 'SET_STATUS',
+                      statusText: 'Deploying your miniapp...',
+                    });
+
+                    const deployResult = await executeMcpTool(
+                      mcpClientRef.current,
+                      settings.cloud.accessToken || '',
+                      {
+                        id: `auto-deploy-${toolCall.id}`,
+                        type: 'function',
+                        function: {
+                          name: 'deploy_project',
+                          arguments: JSON.stringify({ projectId }),
+                        },
+                      },
+                    );
+                    const deploySummary = summarizeToolResult(deployResult.content);
+                    const deployStatus = deployResult.content.includes('"error"')
+                      ? 'error'
+                      : 'success';
+                    dispatch({
+                      type: 'UPDATE_TOOL_STATUS',
+                      id: deployToolMsg.id,
+                      status: deployStatus,
+                      content: `${deployLabel}: ${deploySummary}`,
+                    });
+
+                    if (deployStatus === 'success') {
+                      deployedMiniAppId = getMiniAppId(deployResult.content);
+                      workflowCompleted = true;
+                    }
+                  }
+                }
+              }
+
+              // A miniapp is only runnable after deployment, not after project creation.
               if (
                 toolCall.function.name === 'deploy_project' &&
                 status === 'success'
               ) {
-                try {
-                  const deployData = JSON.parse(toolResult.content);
-                  if (deployData.miniAppId) {
-                    dispatch({
-                      type: 'ADD_MESSAGE',
-                      message: createMessage(
-                        'assistant',
-                        'action',
-                        `Miniapp "${deployData.miniAppId}" has been deployed successfully!`,
-                        { appId: deployData.miniAppId },
-                      ),
-                    });
-                  }
-                } catch {
-                  // ignore parse error
+                const miniAppId = getMiniAppId(toolResult.content);
+                if (miniAppId) {
+                  deployedMiniAppId = miniAppId;
                 }
               }
             }
 
-            // Continue the loop — LLM will see tool results
+            if (workflowCompleted) break;
           }
+        }
+
+        if (deployedMiniAppId) {
+          dispatch({
+            type: 'ADD_MESSAGE',
+            message: createMessage(
+              'assistant',
+              'action',
+              `Miniapp "${deployedMiniAppId}" is ready to open.`,
+              { appId: deployedMiniAppId },
+            ),
+          });
         }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);

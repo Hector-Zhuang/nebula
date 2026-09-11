@@ -6,7 +6,7 @@ import NebulaHost
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
-  var window: UIWindow?
+  static var sharedRootViewController: UIViewController?
 
   private let reactNativeDelegate = ReactNativeDelegate()
   private let reactNativeFactory: RCTReactNativeFactory
@@ -28,10 +28,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     let viewController = UIViewController()
     viewController.view = rootView
-
-    window = UIWindow(frame: UIScreen.main.bounds)
-    window?.rootViewController = viewController
-    window?.makeKeyAndVisible()
+    AppDelegate.sharedRootViewController = viewController
 
     return true
   }

@@ -1,0 +1,6 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "npm run types:check": true,
+        "npx tsc": true
+    }
+}

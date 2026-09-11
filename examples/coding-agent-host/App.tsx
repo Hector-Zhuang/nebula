@@ -10,7 +10,7 @@ import { useSettings } from './src/hooks/useSettings';
 import { colors } from './src/theme/colors';
 import type { AppSettings } from './src/types';
 
-const HOST_SERVER_BASE_URL = 'http://localhost:3001/api';
+const HOST_SERVER_BASE_URL = 'http://192.168.2.195:3001/api';
 
 type Screen = 'chat' | 'settings';
 

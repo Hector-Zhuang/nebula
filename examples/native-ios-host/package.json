@@ -1,0 +1,10 @@
+{
+  "name": "native-ios-host",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Native UIKit host example for Nebula miniapps",
+  "dependencies": {
+    "react": "19.2.0",
+    "react-native": "0.83.1"
+  }
+}

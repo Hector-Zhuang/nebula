@@ -1,12 +1,14 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import {
   ArrowRight,
+  ArrowUpRight,
   Blocks,
   ChevronRight,
   Cloud,
   Gauge,
   Lock,
-  Palette,
+  Monitor,
   Radar,
   Server,
   Shield,
@@ -15,7 +17,8 @@ import {
 } from 'lucide-react';
 import { Animate } from '@/components/animate';
 import { NebulaLogo } from '@/components/nebula-logo';
-import { redirect } from 'next/navigation';
+import { ScenarioShowcase } from '@/components/scenario-showcase';
+import { SharedDeviceFrame } from '@/components/shared-device-frame';
 
 const platformFeatures = [
   {
@@ -68,144 +71,48 @@ const platformFeatures = [
   },
 ];
 
+const capabilityPositions = [
+  'justify-start md:pl-0 lg:pl-0',
+  'justify-end md:pr-10 lg:pr-24',
+  'justify-start md:pl-16 lg:pl-36',
+  'justify-end md:pr-0 lg:pr-8',
+  'justify-start md:pl-8 lg:pl-20',
+  'justify-end md:pr-16 lg:pr-40',
+];
+
 const roadmapItems = [
+  {
+    icon: Monitor,
+    title: 'Web support',
+    description: 'Run both the Nebula host and miniapps on the web.',
+    span: 'lg:col-span-2',
+  },
   {
     icon: Lock,
     title: 'JavaScript sandbox',
-    status: 'In progress',
     description:
       'Restrict direct access to arbitrary native modules and make the host boundary more auditable.',
-    detail:
-      'Future runtime guardrail for third-party npm packages and unapproved native access.',
     span: 'lg:col-span-2',
   },
   {
     icon: Server,
     title: 'MCP server',
-    status: 'Exploration',
     description:
       'Expose host, miniapp, API, and capability context to AI tooling and automation workflows.',
-    detail:
-      'A unified entry point for tooling, diagnostics, structured capability discovery, and AI-assisted workflows.',
     span: 'lg:col-span-1',
   },
   {
     icon: WandSparkles,
     title: 'Documentation automation',
-    status: 'Planned',
     description:
       'Generate and validate reference docs from structured API metadata so docs and code drift less often.',
-    detail:
-      'Especially relevant for Host APIs, components, and compatibility data.',
     span: 'lg:col-span-1',
-  },
-  {
-    icon: Palette,
-    title: 'Branding system',
-    status: 'Planned',
-    description:
-      'Support branded runners, loading states, error surfaces, and container experiences.',
-    detail:
-      'Keep a shared runtime while letting hosts preserve their own product identity.',
-    span: 'lg:col-span-2',
   },
   {
     icon: Radar,
     title: 'Host API guard',
-    status: 'Planned',
     description:
       'Add fine-grained policy controls for API exposure, runtime validation, and access restrictions.',
-    detail:
-      'This is the governance layer that will complement sandboxes, capability registration, and compliance controls.',
-    span: 'lg:col-span-2',
-  },
-];
-
-const heroScenarios = [
-  {
-    title: 'Super App',
-    label: 'Consumer host',
-    examples: ['Payments', 'Ride hailing', 'Food delivery', 'Shopping'],
-    note: 'One host, many consumer modules, shared account and shared payments.',
-    active: true,
-  },
-  {
-    title: 'Enterprise Platform',
-    label: 'Internal operations',
-    examples: ['Warehouse', 'Audit', 'Sales CRM', 'HR'],
-    note: 'Independent internal teams ship modules without blocking each other.',
-  },
-  {
-    title: 'AI-generated apps',
-    label: 'Generation to deployment',
-    examples: ['Generate', 'Build', 'Upload', 'OTA install'],
-    note: 'Generated code becomes a governed runtime artifact instead of a fragile web shell.',
-  },
-];
-
-const scenarios = [
-  {
-    title: 'Super App',
-    eyebrow: 'Consumer host',
-    description:
-      'One host app, many independently shipped modules, shared login, shared payments, and shared device capabilities.',
-    examples: [
-      'Payments',
-      'Ride hailing',
-      'Food delivery',
-      'Shopping',
-      'Travel',
-    ],
-    why: [
-      'Independent releases',
-      'Unified user account',
-      'Governed permissions',
-      'Native performance',
-    ],
-    span: 'lg:col-span-2',
-  },
-  {
-    title: 'Enterprise Platform',
-    eyebrow: 'Internal operations',
-    description:
-      'A governed internal host where multiple business teams ship modules without blocking each other.',
-    examples: [
-      'Warehouse',
-      'Audit',
-      'Sales CRM',
-      'Finance',
-      'HR',
-      'Field inspection',
-    ],
-    why: [
-      'One app for employees',
-      'Team-level ownership',
-      'Hardware access via Host APIs',
-    ],
-    span: 'lg:col-span-1',
-  },
-  {
-    title: 'AI-generated apps',
-    eyebrow: 'Generation to deployment',
-    description:
-      'Generated UI becomes a real miniapp runtime artifact instead of staying trapped in a throwaway web shell.',
-    examples: [
-      'Generate code',
-      'Build bundle',
-      'Upload version',
-      'OTA install',
-      'Iterate',
-    ],
-    why: ['Runtime model', 'Update flow', 'Native capability bridge'],
-    span: 'lg:col-span-1',
-  },
-  {
-    title: 'Operational rollout model',
-    eyebrow: 'Release discipline',
-    description:
-      'Nebula is for teams that need a host-governed module runtime, not an uncontrolled hot-update framework.',
-    examples: ['Review', 'Publish', 'Channel', 'Rollback', 'Observe'],
-    why: ['Release governance', 'Safer iteration', 'Controlled rollout'],
     span: 'lg:col-span-2',
   },
 ];
@@ -216,36 +123,42 @@ function SectionHeading({
   description,
   href,
   cta,
+  centered = false,
+  spacing = 'my-36',
 }: {
-  eyebrow: string;
-  title: string;
-  description: string;
+  eyebrow?: string;
+  title: ReactNode;
+  description?: string;
   href?: string;
   cta?: string;
+  centered?: boolean;
+  spacing?: string;
 }) {
   return (
-    <div className="mb-12 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-      <div className="max-w-3xl">
-        <p className="mb-3 font-mono text-xs uppercase tracking-[0.22em] text-white/42">
-          {eyebrow}
-        </p>
-        <h2
-          className="text-balance text-4xl tracking-[-0.05em] text-white md:text-6xl"
-          style={{
-            fontFamily:
-              'Iowan Old Style, Palatino Linotype, URW Palladio L, Book Antiqua, Georgia, serif',
-          }}
-        >
+    <div
+      className={`${spacing} flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between ${
+        centered ? 'text-center' : ''
+      }`}
+    >
+      <div className={centered ? 'mx-auto max-w-[900px]' : 'max-w-6xl'}>
+        {eyebrow ? (
+          <p className="mb-3 text-xs uppercase tracking-[0.22em] text-[#777]">
+            {eyebrow}
+          </p>
+        ) : null}
+        <h2 className="text-balance text-4xl leading-[1.2] tracking-tighter text-[#202020] md:text-6xl">
           {title}
         </h2>
-        <p className="mt-5 max-w-2xl text-base leading-8 text-white/60 md:text-lg">
-          {description}
-        </p>
+        {description ? (
+          <p className="mt-5 max-w-4xl text-base leading-8 text-[#666] md:text-lg">
+            {description}
+          </p>
+        ) : null}
       </div>
       {href && cta ? (
         <Link
           href={href}
-          className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.18em] text-white/68 transition hover:text-white"
+          className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[#555] transition hover:text-black"
         >
           {cta}
           <ChevronRight className="h-4 w-4" />
@@ -258,29 +171,32 @@ function SectionHeading({
 function CustomHeader() {
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-40">
-      <div className="mx-auto max-w-7xl px-6 pt-5">
-        <div className="pointer-events-auto flex items-center justify-between gap-6 rounded-full border border-white/10 bg-black/35 px-4 py-3 text-white backdrop-blur-xl">
-          <Link href="/" className="shrink-0 text-white">
+      <div className="mx-auto max-w-[1440px] px-5 pt-5 md:px-10">
+        <div className="pointer-events-auto flex items-center justify-between gap-6 rounded-full border border-black/10 bg-white/60 px-5 py-3 text-[#202020] shadow-[0_12px_40px_rgba(0,0,0,0.06)] backdrop-blur-xl md:px-6">
+          <Link href="/" className="shrink-0">
             <NebulaLogo />
           </Link>
-          <nav className="hidden items-center gap-8 font-mono text-xs uppercase tracking-[0.16em] text-white/64 md:flex">
+          <nav className="hidden items-center gap-8 text-[11px] uppercase tracking-[0.16em] text-[#555] md:flex">
             <Link
-              className="transition hover:text-white"
+              className="border-l border-black/15 pl-8 transition hover:text-black first:border-0 first:pl-0"
               href="/docs/getting-started/overview"
             >
               Getting started
             </Link>
             <Link
-              className="transition hover:text-white"
+              className="border-l border-black/15 pl-8 transition hover:text-black first:border-0 first:pl-0"
               href="/docs/scenarios"
             >
               Scenarios
             </Link>
-            <Link className="transition hover:text-white" href="/docs/roadmap">
+            <Link
+              className="border-l border-black/15 pl-8 transition hover:text-black first:border-0 first:pl-0"
+              href="/docs/roadmap"
+            >
               Roadmap
             </Link>
             <Link
-              className="transition hover:text-white"
+              className="border-l border-black/15 pl-8 transition hover:text-black first:border-0 first:pl-0"
               href="/docs/reference/nebula-sdk"
             >
               Reference
@@ -289,13 +205,13 @@ function CustomHeader() {
           <div className="flex items-center gap-3">
             <Link
               href="/docs"
-              className="hidden rounded-full border border-white/14 px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-white/78 transition hover:bg-white/6 sm:inline-flex"
+              className="hidden rounded-full border border-black px-4 py-2 text-xs uppercase tracking-[0.16em] text-black transition hover:bg-black/5 sm:inline-flex"
             >
               View docs
             </Link>
             <Link
               href="/docs/getting-started/quickstart-demo"
-              className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 font-mono text-xs uppercase tracking-[0.16em] text-black transition hover:bg-white/90"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-[#202020] bg-[#202020] px-4 py-2 text-xs uppercase tracking-[0.16em] text-white transition hover:bg-black"
             >
               Quickstart
               <ArrowRight className="h-4 w-4" />
@@ -309,203 +225,56 @@ function CustomHeader() {
 
 function HeroSection() {
   return (
-    <section className="relative overflow-hidden border-b border-white/10 bg-[#09090b] text-white">
-      <div className="absolute inset-y-0 left-0 w-[18vw] opacity-70">
-        <div
-          className="h-full w-full"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(0deg, rgba(62,55,255,0.95) 0 2px, transparent 2px 14px)',
-            maskImage:
-              'linear-gradient(to right, rgba(0,0,0,0.95), rgba(0,0,0,0.4), transparent)',
-            WebkitMaskImage:
-              'linear-gradient(to right, rgba(0,0,0,0.95), rgba(0,0,0,0.4), transparent)',
-          }}
-        />
-      </div>
-      <div className="absolute inset-y-0 right-0 w-[18vw] opacity-70">
-        <div
-          className="h-full w-full"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(0deg, rgba(62,55,255,0.95) 0 2px, transparent 2px 14px)',
-            maskImage:
-              'linear-gradient(to left, rgba(0,0,0,0.95), rgba(0,0,0,0.4), transparent)',
-            WebkitMaskImage:
-              'linear-gradient(to left, rgba(0,0,0,0.95), rgba(0,0,0,0.4), transparent)',
-          }}
-        />
-      </div>
-
-      <div className="relative mx-auto max-w-7xl px-6 pb-24 pt-12 md:pb-32 md:pt-16">
-        <div className="h-14 md:h-16" />
-        <div className="rounded-[2rem] border border-white/10 bg-[#0b0b0d] px-6 py-8 shadow-[0_16px_120px_rgba(9,9,11,0.28)] md:px-10 md:py-12">
-          <div className="mx-auto max-w-5xl text-center">
-            <Animate>
-              <Link
-                href="https://github.com/Hector-Zhuang/nebula"
-                target="_blank"
-                className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/12 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.22em] text-white/68 transition-colors hover:border-white/20 hover:bg-white/5 hover:text-white"
+    <section
+      data-device-showcase="hero"
+      className="hero-viewport-height hero-surface relative overflow-hidden border-b border-black/10 text-[#202020]"
+    >
+      <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:linear-gradient(rgba(0,0,0,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.035)_1px,transparent_1px)] [background-size:72px_72px]" />
+      <div className="hero-shape hero-shape-glow" aria-hidden="true" />
+      <div className="relative mx-auto flex min-h-[100svh] max-w-[1440px] items-center px-5 py-24 md:px-10">
+        <div className="max-w-xl">
+          <h1 className="max-w-2xl text-balance text-[3.5rem] leading-[1.02] tracking-[-0.06em] text-[#202020] sm:text-[4.25rem] md:text-[5.25rem] lg:text-[6.25rem]">
+            <span className="whitespace-nowrap">
+              Run <strong className="font-semibold">Miniapps</strong>
+            </span>
+            <br />
+            <span className="whitespace-nowrap">
+              with{' '}
+              <strong className="hero-title-selection font-semibold">
+                React Native
+              </strong>
+            </span>
+          </h1>
+          <p className="mt-8 max-w-lg text-lg leading-6 text-[#555] md:text-xl md:leading-7">
+            A React Native-powered solution for running mini-apps, with host
+            runtime, isolated containers, preloading, and extensible
+            base-library APIs.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center gap-3">
+            <Link
+              href="/docs/getting-started/quickstart-demo"
+              className="inline-flex items-center gap-3 rounded-full bg-[#202020] px-6 py-4 text-xs uppercase tracking-[0.18em] text-white transition hover:bg-black"
+            >
+              Start building
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="https://github.com/Hector-Zhuang/nebula"
+              target="_blank"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-black px-5 py-4 text-xs uppercase tracking-[0.18em] text-black transition hover:bg-black/5"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-4 w-4"
+                fill="currentColor"
+                aria-hidden="true"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-3 w-3"
-                  fill="currentColor"
-                >
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                </svg>
-                Star on GitHub
-              </Link>
-            </Animate>
-
-            <Animate delay={80}>
-              <h1
-                className="text-balance text-[3.35rem] leading-[0.92] tracking-[-0.07em] text-white md:text-[5.4rem] lg:text-[7rem]"
-                style={{
-                  fontFamily:
-                    'Iowan Old Style, Palatino Linotype, URW Palladio L, Book Antiqua, Georgia, serif',
-                }}
-              >
-                Build modular apps
-                <br />
-                inside your host.
-              </h1>
-            </Animate>
-
-            <Animate delay={160}>
-              <p className="mx-auto mt-8 max-w-2xl text-balance text-lg leading-8 text-white/68 md:text-xl">
-                Nebula gives teams a governed miniapp runtime with native
-                rendering, typed Host APIs, OTA delivery, and host-owned
-                lifecycle control.
-              </p>
-            </Animate>
-
-            <Animate delay={240}>
-              <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-                <Link
-                  href="/docs/getting-started/quickstart-demo"
-                  className="inline-flex items-center gap-2 bg-white px-8 py-4 font-mono text-xs uppercase tracking-[0.18em] text-black transition hover:bg-white/90"
-                >
-                  Start with quickstart
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  href="/docs"
-                  className="inline-flex items-center gap-2 border border-white/15 px-8 py-4 font-mono text-xs uppercase tracking-[0.18em] text-white transition hover:bg-white/6"
-                >
-                  View docs
-                </Link>
-              </div>
-            </Animate>
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.23c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.49 1 .11-.78.42-1.31.76-1.61-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23.96-.27 1.98-.4 3-.4s2.05.13 3.01.4c2.29-1.55 3.3-1.23 3.3-1.23.65 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.19.69.8.58A12.01 12.01 0 0 0 24 12C24 5.37 18.63 0 12 0Z" />
+              </svg>
+              GitHub
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
-
-          <Animate delay={420}>
-            <div className="mt-16 overflow-hidden rounded-[2rem] border border-white/12 bg-[#111114] shadow-[0_18px_80px_rgba(0,0,0,0.28)]">
-              <div className="grid border-b border-white/10 md:grid-cols-3">
-                {heroScenarios.map(scenario => (
-                  <div
-                    key={scenario.title}
-                    className={`border-white/10 px-6 py-5 text-center font-mono text-sm uppercase tracking-[0.16em] ${
-                      scenario.active
-                        ? 'bg-white/[0.04] text-white'
-                        : 'text-white/46'
-                    } ${scenario.title === heroScenarios[2].title ? '' : 'md:border-r'}`}
-                  >
-                    {scenario.title}
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid min-h-[420px] md:grid-cols-[280px_minmax(0,1fr)]">
-                <div className="border-b border-white/10 bg-white/[0.03] p-5 md:border-b-0 md:border-r md:border-white/10">
-                  <div className="mb-4 flex items-center justify-between border border-white/10 bg-black/10 px-4 py-3">
-                    <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/72">
-                      Scenario examples
-                    </div>
-                    <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/34">
-                      Host
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    {heroScenarios.map(scenario => (
-                      <div
-                        key={scenario.title}
-                        className={`rounded-[1.1rem] border px-4 py-3 ${
-                          scenario.active
-                            ? 'border-white/10 bg-white/[0.08] text-white'
-                            : 'border-transparent text-white/58'
-                        }`}
-                      >
-                        <div className="font-mono text-[11px] uppercase tracking-[0.16em]">
-                          {scenario.title}
-                        </div>
-                        <div className="mt-2 text-sm text-white/54">
-                          {scenario.label}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-6 md:p-8">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/42">
-                        Example
-                      </div>
-                      <h3 className="mt-3 text-3xl tracking-[-0.04em] text-white md:text-4xl">
-                        Open one host, ship many products.
-                      </h3>
-                    </div>
-                    <div className="rounded-full border border-white/10 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-white/58">
-                      Super App
-                    </div>
-                  </div>
-
-                  <p className="mt-6 max-w-2xl text-base leading-8 text-white/62">
-                    Use Nebula when your host needs multiple independently
-                    shipped business surfaces without turning the app into one
-                    giant release train.
-                  </p>
-
-                  <div className="mt-8 grid gap-4 md:grid-cols-2">
-                    <div className="rounded-[1.5rem] border border-white/10 bg-black/18 p-5">
-                      <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.16em] text-white/42">
-                        Modules
-                      </div>
-                      <div className="space-y-3">
-                        {heroScenarios[0].examples.map(entry => (
-                          <div
-                            key={entry}
-                            className="rounded-xl border border-white/8 bg-white/[0.04] px-4 py-3 text-sm text-white/78"
-                          >
-                            {entry}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="rounded-[1.5rem] border border-white/10 bg-black/18 p-5">
-                      <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.16em] text-white/42">
-                        Why Nebula
-                      </div>
-                      <div className="space-y-3">
-                        <div className="rounded-xl border border-white/8 bg-white/[0.04] px-4 py-3 text-sm text-white/78">
-                          Shared login, payments, and device capabilities
-                        </div>
-                        <div className="rounded-xl border border-white/8 bg-white/[0.04] px-4 py-3 text-sm text-white/78">
-                          Independent releases without waiting for host rollout
-                        </div>
-                        <div className="rounded-xl border border-white/8 bg-white/[0.04] px-4 py-3 text-sm text-white/78">
-                          Governed capability surface instead of arbitrary
-                          native access
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Animate>
         </div>
       </div>
     </section>
@@ -514,35 +283,63 @@ function HeroSection() {
 
 function FeatureBentoSection() {
   return (
-    <section className="border-b border-white/10 bg-[#09090b] px-6 py-24 text-white">
-      <div className="mx-auto max-w-7xl">
-        <SectionHeading
-          eyebrow="Capabilities"
-          title="Core platform features"
-          description="Nebula is not just a bundle loader. It combines a runtime boundary, a capability model, a release layer, and a host-controlled lifecycle."
-          href="/docs/getting-started/overview"
-          cta="Read overview"
-        />
+    <section className="relative overflow-x-clip border-b border-black/10 bg-[#e4e4e2] px-6 py-24 text-[#202020]">
+      <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:linear-gradient(rgba(0,0,0,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.045)_1px,transparent_1px)] [background-size:96px_96px]" />
+      <div className="relative z-10 mx-auto max-w-7xl">
+        <div className="pointer-events-none sticky top-1/2 z-20 -translate-y-1/2">
+          <SectionHeading
+            eyebrow="Capabilities"
+            title={
+              <>
+                Everything you need to run, update, and manage{' '}
+                <span className="hero-title-selection inline-block whitespace-nowrap font-semibold">
+                  Miniapps
+                </span>{' '}
+                in a{' '}
+                <span className="hero-title-selection inline-block whitespace-nowrap font-semibold">
+                  React Native
+                </span>{' '}
+                application.
+              </>
+            }
+            centered
+          />
+        </div>
 
-        <div className="grid gap-5 lg:grid-cols-3">
+        <div className="mx-auto flex max-w-6xl flex-col">
           {platformFeatures.map((feature, index) => (
-            <Animate key={feature.title} delay={index * 80}>
+            <Animate
+              key={feature.title}
+              direction="up"
+              blur
+              scrollProgress
+              className="relative z-30"
+            >
               <article
-                className={`flex h-full min-h-[280px] flex-col justify-between border border-white/12 bg-white/[0.03] p-7 ${feature.span}`}
+                className={`relative flex min-h-[78svh] items-center py-16 md:min-h-[88svh] md:py-24 ${capabilityPositions[index]}`}
               >
-                <div>
-                  <div className="mb-8 flex h-11 w-11 items-center justify-center border border-white/12 text-white/84">
-                    <feature.icon className="h-5 w-5" />
+                <div className="w-full max-w-[460px] drop-shadow-[0_18px_28px_rgba(0,0,0,0.28)]">
+                  <div className="flex h-10 w-[80%] items-center rounded-tl-xl bg-black px-5 [clip-path:polygon(0_0,88%_0,100%_100%,0_100%)]">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-white/60">
+                      {feature.eyebrow}
+                    </p>
                   </div>
-                  <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-white/42">
-                    {feature.eyebrow}
-                  </p>
-                  <h3 className="mb-3 font-mono text-sm uppercase tracking-[0.18em] text-white">
-                    {feature.title}
-                  </h3>
-                  <p className="text-sm leading-7 text-white/62">
-                    {feature.description}
-                  </p>
+                  <div className="flex min-h-[350px] flex-col rounded-b-xl rounded-r-xl bg-black pt-0">
+                    <div className="border-t border-white/35" />
+                    <div className="flex flex-1 items-center justify-center">
+                      <div className="flex items-center justify-center text-white">
+                        <feature.icon className="h-28 w-28" strokeWidth={1.5} />
+                      </div>
+                    </div>
+                    <div className="border-t border-white/35 p-4">
+                      <h3 className="mb-3 text-xl font-medium tracking-tight text-white">
+                        {feature.title}
+                      </h3>
+                      <p className="text-base leading-7 text-white/60">
+                        {feature.description}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </article>
             </Animate>
@@ -555,37 +352,31 @@ function FeatureBentoSection() {
 
 function RoadmapBentoSection() {
   return (
-    <section className="border-b border-white/10 bg-[#09090b] px-6 py-24 text-white">
+    <section className="border-b border-black/10 bg-[#ededeb] px-6 py-24 text-[#202020]">
       <div className="mx-auto max-w-7xl">
-        <SectionHeading
-          eyebrow="In progress"
-          title="What Nebula is building next"
-          description="These directions come from 技术路线 and show where Nebula is getting stricter, safer, and more automation-friendly."
-          href="/docs/roadmap"
-          cta="Open 技术路线"
-        />
+        <SectionHeading title="What's next" centered spacing="mt-36 mb-10" />
+      </div>
 
-        <div className="grid gap-5 lg:grid-cols-3">
+      <div className="-mx-6 overflow-x-auto py-10 pl-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex w-max gap-5">
           {roadmapItems.map((item, index) => (
-            <Animate key={item.title} delay={index * 90}>
-              <article
-                className={`flex h-full min-h-[280px] flex-col border border-white/12 bg-white/[0.03] p-7 ${item.span}`}
-              >
-                <div className="mb-8 flex h-11 w-11 items-center justify-center border border-white/12 text-white/84">
-                  <item.icon className="h-5 w-5" />
+            <Animate
+              key={item.title}
+              delay={index * 90}
+              className="w-[300px] shrink-0 md:w-[360px]"
+            >
+              <article className="flex min-h-[300px] flex-col rounded-lg border border-black/15 bg-[#f7f7f4] p-6 shadow-[0_10px_24px_rgba(0,0,0,0.05)] transition duration-300 ease-out hover:-translate-y-2 hover:shadow-[0_20px_36px_rgba(0,0,0,0.14)] md:p-7">
+                <div>
+                  <div className="flex h-12 w-12 items-center justify-center text-[#333]">
+                    <item.icon className="h-5 w-5" />
+                  </div>
                 </div>
-                <div className="mb-4 inline-flex w-fit items-center gap-2 border border-white/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-white/58">
-                  {item.status}
+                <div className="mt-8">
+                  <h3 className="mb-3 text-xl text-[#2d2d2d]">{item.title}</h3>
+                  <p className="text-sm leading-6 text-[#666]">
+                    {item.description}
+                  </p>
                 </div>
-                <h3 className="mb-3 font-mono text-sm uppercase tracking-[0.18em] text-white">
-                  {item.title}
-                </h3>
-                <p className="text-sm leading-7 text-white/62">
-                  {item.description}
-                </p>
-                <p className="mt-6 border-t border-white/10 pt-5 text-sm leading-7 text-white/48">
-                  {item.detail}
-                </p>
               </article>
             </Animate>
           ))}
@@ -596,93 +387,35 @@ function RoadmapBentoSection() {
 }
 
 function ScenarioBentoSection() {
-  return (
-    <section className="border-b border-white/10 bg-[#09090b] px-6 py-24 text-white">
-      <div className="mx-auto max-w-7xl">
-        <SectionHeading
-          eyebrow="Scenario examples"
-          title="Different products, one runtime model"
-          description="Nebula is most useful when many product surfaces need to ship independently while still staying inside one governed host."
-          href="/docs/scenarios"
-          cta="Explore scenarios"
-        />
-
-        <div className="grid gap-5 lg:grid-cols-3">
-          {scenarios.map((scenario, index) => (
-            <Animate key={scenario.title} delay={index * 100}>
-              <article
-                className={`flex h-full min-h-[320px] flex-col border border-white/12 bg-white/[0.03] p-7 ${scenario.span}`}
-              >
-                <div>
-                  <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-white/42">
-                    {scenario.eyebrow}
-                  </p>
-                  <h3 className="mb-3 font-mono text-sm uppercase tracking-[0.18em] text-white">
-                    {scenario.title}
-                  </h3>
-                  <p className="text-sm leading-7 text-white/62">
-                    {scenario.description}
-                  </p>
-                </div>
-                <div className="mt-8 grid gap-4 md:grid-cols-2">
-                  <div className="border border-white/12 bg-black/20 p-5 font-mono text-[11px] uppercase tracking-[0.16em] text-white/76">
-                    <div className="mb-3 text-white/42">Examples</div>
-                    {scenario.examples.map(entry => (
-                      <div key={entry} className="mb-2 last:mb-0">
-                        ├── {entry}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="border border-white/12 bg-black/20 p-5 font-mono text-[11px] uppercase tracking-[0.16em] text-white/76">
-                    <div className="mb-3 text-white/42">Why Nebula</div>
-                    {scenario.why.map(entry => (
-                      <div key={entry} className="mb-2 last:mb-0">
-                        ├── {entry}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </article>
-            </Animate>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+  return <ScenarioShowcase />;
 }
 
 function CTASection() {
   return (
-    <section className="bg-[#09090b] px-6 py-24 text-white">
-      <div className="mx-auto max-w-5xl border border-white/12 px-8 py-14 text-center md:px-14">
+    <section className="bg-black px-6 py-24 text-white">
+      <div className="mx-auto max-w-5xl border border-white/20 px-8 py-14 text-center md:px-14">
         <Animate>
-          <p className="mb-4 font-mono text-xs uppercase tracking-[0.22em] text-white/42">
+          <p className="mb-4 text-xs uppercase tracking-[0.22em] text-white/55">
             Start shipping
           </p>
-          <h2
-            className="mx-auto max-w-3xl text-balance text-4xl tracking-[-0.05em] md:text-6xl"
-            style={{
-              fontFamily:
-                'Iowan Old Style, Palatino Linotype, URW Palladio L, Book Antiqua, Georgia, serif',
-            }}
-          >
-            Build a governed miniapp runtime, not another hot-update shortcut.
+          <h2 className="mx-auto max-w-3xl text-balance text-4xl tracking-tighter md:text-6xl">
+            Build miniapps that feel like part of your app.
           </h2>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/64">
-            Create a host, create a miniapp, and experience the full Nebula loop
-            from development to runtime governance.
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/60">
+            Create a miniapp, add it to your app, and update it when you are
+            ready.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/docs/getting-started/quickstart-demo"
-              className="inline-flex items-center gap-2 bg-white px-8 py-4 font-mono text-xs uppercase tracking-[0.18em] text-black transition hover:bg-white/90"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-xs uppercase tracking-[0.18em] text-black transition hover:bg-white/85"
             >
               Open quickstart
               <ChevronRight className="h-4 w-4" />
             </Link>
             <Link
               href="/docs/reference/cli"
-              className="inline-flex items-center gap-2 border border-white/15 px-8 py-4 font-mono text-xs uppercase tracking-[0.18em] text-white transition hover:bg-white/6"
+              className="inline-flex items-center gap-2 rounded-full border border-white/25 px-8 py-4 text-xs uppercase tracking-[0.18em] text-white/80 transition hover:bg-white/10"
             >
               CLI reference
             </Link>
@@ -694,15 +427,15 @@ function CTASection() {
 }
 
 export default function HomePage() {
-  return redirect('/docs');
-  // return (
-  //   <main className="min-h-screen bg-[#09090b] text-white">
-  //     <CustomHeader />
-  //     <HeroSection />
-  //     <FeatureBentoSection />
-  //     <ScenarioBentoSection />
-  //     <RoadmapBentoSection />
-  //     <CTASection />
-  //   </main>
-  // );
+  return (
+    <main className="min-h-screen bg-[#ededeb] text-[#202020]">
+      <CustomHeader />
+      <SharedDeviceFrame />
+      <HeroSection />
+      <ScenarioBentoSection />
+      <FeatureBentoSection />
+      <RoadmapBentoSection />
+      <CTASection />
+    </main>
+  );
 }

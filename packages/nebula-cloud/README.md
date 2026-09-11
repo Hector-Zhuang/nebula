@@ -21,7 +21,7 @@ NestJS service for:
 
 Default seed admin:
 
-- email: `admin@nebula.local`
+- email: `p`
 - password: `password123`
 
 ## CLI upload

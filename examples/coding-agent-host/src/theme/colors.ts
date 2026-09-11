@@ -1,22 +1,22 @@
 export const colors = {
   // Background layers
-  background: '#0d1117',
-  surfacePrimary: '#161b22',
-  surfaceSecondary: '#1c2333',
-  surfaceElevated: '#21262d',
+  background: '#050506',
+  surfacePrimary: '#111216',
+  surfaceSecondary: '#17181d',
+  surfaceElevated: '#202127',
 
   // Code blocks
-  codeBackground: '#0d1117',
-  codeBorder: '#30363d',
+  codeBackground: '#111216',
+  codeBorder: '#34353d',
 
   // Text
-  textPrimary: '#e6edf3',
-  textSecondary: '#8b949e',
-  textMuted: '#484f58',
+  textPrimary: '#f5f4f7',
+  textSecondary: '#aaa9b0',
+  textMuted: '#676770',
 
   // Accent colors
-  accent: '#7c3aed',
-  accentBlue: '#58a6ff',
+  accent: '#6e8cff',
+  accentBlue: '#9aabff',
 
   // Status colors
   success: '#3fb950',
@@ -24,11 +24,11 @@ export const colors = {
   warning: '#d29922',
 
   // Borders / dividers
-  border: '#30363d',
-  divider: '#21262d',
+  border: '#303139',
+  divider: '#1d1e24',
 
   // Input fields
-  inputBackground: '#0d1117',
-  inputBorder: '#30363d',
-  inputPlaceholder: '#484f58',
+  inputBackground: '#1b1c22',
+  inputBorder: '#393a43',
+  inputPlaceholder: '#777780',
 } as const;
