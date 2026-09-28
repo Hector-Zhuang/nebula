@@ -30,6 +30,9 @@ jobs:
       - name: Lint
         run: npx nx run-many --target=lint --parallel=3
 
+      - name: Test
+        run: npm test -- --ci
+
       - name: Build
         run: npx nx run-many --target=build --projects=@nebula-rn/sdk,@nebula-rn/host-apis,@nebula-rn/components,@nebula-rn/client,@nebula-rn/cli --parallel=3
 
