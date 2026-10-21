@@ -25,6 +25,8 @@ export interface ProgressProps {
   backgroundColor?: string;
   active?: boolean;
   activeMode?: 'backwards' | 'forwards';
+  /** Loop a sweep animation for unknown progress. Overrides percent-driven animation. */
+  indeterminate?: boolean;
   onActiveEnd?: (event: ProgressActiveEvent) => void;
 }
 
@@ -38,12 +40,27 @@ export const Progress: FC<ProgressProps> = ({
   backgroundColor = '#EBEBEB',
   active,
   activeMode = 'backwards',
+  indeterminate,
   onActiveEnd,
 }) => {
   const valve = useRef(new Animated.Value(0)).current;
   const prevPercentRef = useRef(0);
 
   useEffect(() => {
+    if (indeterminate) {
+      valve.setValue(0);
+      const loop = Animated.loop(
+        Animated.timing(valve, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.linear,
+          useNativeDriver: false,
+        }),
+      );
+      loop.start();
+      return () => loop.stop();
+    }
+
     const toValue = percent / 100;
 
     if (!active || (activeMode !== 'backwards' && activeMode !== 'forwards')) {
@@ -91,7 +108,7 @@ export const Progress: FC<ProgressProps> = ({
 
     Animated.sequence(sequence).start(onCompleteAnimation);
     prevPercentRef.current = percent;
-  }, [active, activeMode, percent, valve, onActiveEnd]);
+  }, [active, activeMode, indeterminate, percent, valve, onActiveEnd]);
 
   const width = valve.interpolate({
     inputRange: [0, 1],
