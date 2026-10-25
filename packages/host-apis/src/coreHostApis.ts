@@ -6,6 +6,7 @@ import {
   PixelRatio,
   Platform,
   StatusBar,
+  Vibration,
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Geolocation from '@react-native-community/geolocation';
@@ -87,6 +88,14 @@ const HOST_API_DESCRIPTIONS: NebulaHostApiDescriptionMap = {
   makePhoneCall: {
     summary: 'Open the system dialer for a phone number.',
     tags: ['device', 'communication'],
+  },
+  vibrateShort: {
+    summary: 'Trigger a short vibration pulse on the device.',
+    tags: ['device', 'haptic'],
+  },
+  vibrateLong: {
+    summary: 'Trigger a long vibration pulse on the device.',
+    tags: ['device', 'haptic'],
   },
   getImageInfo: {
     summary: 'Read width and height information for an image source.',
@@ -639,6 +648,22 @@ export const coreHostApis = [
       } catch {
         return createHostApiSuccess(false);
       }
+    },
+  }),
+  createHostApiFeature({
+    apiName: 'vibrateShort',
+    description: HOST_API_DESCRIPTIONS.vibrateShort,
+    handle: async () => {
+      Vibration.vibrate(30);
+      return createHostApiSuccess(true);
+    },
+  }),
+  createHostApiFeature({
+    apiName: 'vibrateLong',
+    description: HOST_API_DESCRIPTIONS.vibrateLong,
+    handle: async () => {
+      Vibration.vibrate(400);
+      return createHostApiSuccess(true);
     },
   }),
   createHostApiFeature({

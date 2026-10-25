@@ -24,3 +24,4 @@ export * from './sensors';
 export * from './setClipboardData';
 export * from './setStorage';
 export * from './storage';
+export * from './vibrate';

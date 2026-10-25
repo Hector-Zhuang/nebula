@@ -154,6 +154,16 @@ export const nebulaApiDescriptions: NebulaPublicApiDescriptionMap = {
     kind: 'api',
     tags: ['device', 'communication'],
   },
+  vibrateShort: {
+    summary: 'Trigger a short vibration pulse on the device.',
+    kind: 'api',
+    tags: ['device', 'haptic'],
+  },
+  vibrateLong: {
+    summary: 'Trigger a long vibration pulse on the device.',
+    kind: 'api',
+    tags: ['device', 'haptic'],
+  },
   getMiniAppUpdateInfo: {
     summary:
       'Read the installed miniapp version, update strategy, and whether a newer remote version exists.',
