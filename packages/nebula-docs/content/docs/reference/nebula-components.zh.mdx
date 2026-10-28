@@ -9,6 +9,49 @@ description: 'Nebula 跨平台 UI 组件库 API 参考，包含各组件的完�
 
 ---
 
+## Badge
+
+徽标组件，用于在图标或导航项旁展示数字或文字标记。支持点状模式，数字超过 `maxCount` 时折叠为 `maxCount+`。
+
+| 平台    | 支持 |
+| ------- | ---- |
+| iOS     | ✅   |
+| Android | ✅   |
+
+```tsx
+import { Badge } from '@nebula-rn/components';
+```
+
+**示例：**
+
+```tsx
+import { View } from 'react-native';
+import { Badge } from '@nebula-rn/components';
+
+export default function CartBadge() {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+      <Badge text="new" />
+      <Badge text={5} />
+      <Badge text={120} />
+      <Badge dot />
+    </View>
+  );
+}
+```
+
+**Props：**
+
+| 参数        | 类型                   | 必填 | 默认值  | 描述                                                 |
+| ----------- | ---------------------- | ---- | ------- | ---------------------------------------------------- |
+| `text`      | `string \| number`     | 否   | —       | 徽标内容，数字超过 `maxCount` 时显示为 `maxCount+`。 |
+| `dot`       | `boolean`              | 否   | `false` | 以小圆点形式展示，不显示内容。                       |
+| `maxCount`  | `number`               | 否   | `99`    | 数字内容折叠为 `maxCount+` 的上限。                  |
+| `style`     | `StyleProp<ViewStyle>` | 否   | —       | 徽标容器自定义样式。                                 |
+| `textStyle` | `StyleProp<TextStyle>` | 否   | —       | 徽标文字自定义样式。                                 |
+
+---
+
 ## Camera
 
 相机组件，支持拍照和扫码模式。基于 `react-native-vision-camera`。

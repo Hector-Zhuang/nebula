@@ -1,5 +1,6 @@
 // Thanks to the Taro project for the inspiration that helped shape this component library.
 // https://github.com/NervJS/taro.git
+export * from './Badge';
 export * from './Camera';
 export * from './Map';
 export * from './Progress';

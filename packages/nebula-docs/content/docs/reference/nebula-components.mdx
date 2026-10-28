@@ -9,6 +9,49 @@ description: 'Nebula cross-platform UI component library API reference, includin
 
 ---
 
+## Badge
+
+Badge component that shows a numeric or text marker, typically next to icons or navigation items. Supports dot mode and collapses numeric content above `maxCount` into `maxCount+`.
+
+| Platform | Support |
+| -------- | ------- |
+| iOS      | ✅      |
+| Android  | ✅      |
+
+```tsx
+import { Badge } from '@nebula-rn/components';
+```
+
+**Example:**
+
+```tsx
+import { View } from 'react-native';
+import { Badge } from '@nebula-rn/components';
+
+export default function CartBadge() {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+      <Badge text="new" />
+      <Badge text={5} />
+      <Badge text={120} />
+      <Badge dot />
+    </View>
+  );
+}
+```
+
+**Props:**
+
+| Parameter   | Type                   | Required | Default | Description                                                            |
+| ----------- | ---------------------- | -------- | ------- | ---------------------------------------------------------------------- |
+| `text`      | `string \| number`     | No       | —       | Badge content. Numeric values above `maxCount` render as `maxCount+`.  |
+| `dot`       | `boolean`              | No       | `false` | Render as a small dot without content.                                 |
+| `maxCount`  | `number`               | No       | `99`    | Upper bound before numeric text collapses to `maxCount+`.              |
+| `style`     | `StyleProp<ViewStyle>` | No       | —       | Custom styles for the badge container.                                 |
+| `textStyle` | `StyleProp<TextStyle>` | No       | —       | Custom styles for the badge text.                                      |
+
+---
+
 ## Camera
 
 Camera component supporting photo capture and QR code scanning modes. Based on `react-native-vision-camera`.

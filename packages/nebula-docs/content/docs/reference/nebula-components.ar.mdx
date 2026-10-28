@@ -9,6 +9,49 @@ description: "مرجع API لمكتبة واجهة Nebula متعددة المن�
 
 ---
 
+## Badge
+
+مكوّن شارة لعرض علامة رقمية أو نصية، يُستخدم عادةً بجانب الأيقونات أو عناصر التنقّل. يدعم نمط النقطة وطي المحتوى الرقمي عند تجاوز `maxCount` إلى `maxCount+`.
+
+| المنصة | الدعم |
+|------|------|
+| iOS | ✅ |
+| Android | ✅ |
+
+```tsx
+import { Badge } from '@nebula-rn/components';
+```
+
+**مثال:**
+
+```tsx
+import { View } from 'react-native';
+import { Badge } from '@nebula-rn/components';
+
+export default function CartBadge() {
+	return (
+		<View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+			<Badge text="new" />
+			<Badge text={5} />
+			<Badge text={120} />
+			<Badge dot />
+		</View>
+	);
+}
+```
+
+**Props:**
+
+| المعامل | النوع | مطلوب | الافتراضي | الوصف |
+|------|------|------|--------|------|
+| `text` | `string \| number` | لا | — | محتوى الشارة، وتُعرض القيم الرقمية فوق `maxCount` كـ `maxCount+`. |
+| `dot` | `boolean` | لا | `false` | عرض نقطة صغيرة بدون محتوى. |
+| `maxCount` | `number` | لا | `99` | الحد الأعلى قبل طي النص الرقمي إلى `maxCount+`. |
+| `style` | `StyleProp<ViewStyle>` | لا | — | نمط مخصّص لحاوية الشارة. |
+| `textStyle` | `StyleProp<TextStyle>` | لا | — | نمط مخصّص لنص الشارة. |
+
+---
+
 ## Camera
 
 مكوّن كاميرا يدعم التصوير ووضع المسح. مبني على `react-native-vision-camera`.
