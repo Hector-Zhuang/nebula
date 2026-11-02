@@ -7,7 +7,8 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@nebula-rn/host": "^__NEBULA_HOST_VERSION__",
@@ -30,6 +31,7 @@
     "@react-native/typescript-config": "0.83.1",
     "@types/react": "^19.2.0",
     "eslint": "^8.19.0",
+    "prettier": "^3.8.1",
     "typescript": "^5.8.3"
   },
   "engines": {

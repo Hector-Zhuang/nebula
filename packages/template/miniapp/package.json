@@ -8,7 +8,8 @@
     "build": "nebula miniapp build",
     "upload": "nebula miniapp upload",
     "lint": "eslint src --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@nebula-rn/client": "^__NEBULA_CLIENT_VERSION__",
@@ -26,6 +27,7 @@
     "@react-native/typescript-config": "0.83.1",
     "@types/react": "^19.2.0",
     "eslint": "^8.19.0",
+    "prettier": "^3.8.1",
     "typescript": "^5.8.3"
   },
   "engines": {
