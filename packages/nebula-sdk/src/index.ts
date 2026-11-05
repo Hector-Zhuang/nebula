@@ -26,7 +26,7 @@ export type {
   RegisterHostApiOptions,
   RegisterHostModalApiOptions,
 } from './hostApi';
-export { definePageConfig } from './pageConfig';
+export { definePageConfig, resolvePageConfig } from './pageConfig';
 export type {
   NebulaApiExampleDescriptor,
   NebulaApiFieldDescriptor,
@@ -46,4 +46,7 @@ export type {
   NebulaNativeCapabilityMap,
   NebulaPageStyle,
 } from './NebulaAPI';
-export type { MiniAppPageConfig } from './pageConfig';
+export type {
+  MiniAppPageConfig,
+  ResolvedMiniAppPageConfig,
+} from './pageConfig';

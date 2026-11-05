@@ -1,8 +1,10 @@
 import type { TurboModule } from 'react-native';
 import type { NebulaPageStyle } from './specs/NativeNebulaModule';
+import type { ResolvedMiniAppPageConfig } from './pageConfig';
 
 export type { MiniAppUpdateStrategy } from './specs/NativeNebulaModule';
 export type { NebulaPageStyle } from './specs/NativeNebulaModule';
+export type { ResolvedMiniAppPageConfig } from './pageConfig';
 export type {
   NebulaCapabilitiesResult as NebulaNativeCapabilitiesResult,
   NebulaCapabilityMap as NebulaNativeCapabilityMap,
@@ -225,7 +227,7 @@ export type MiniAppPageContextValue = {
   params: Record<string, unknown>;
   routePath: string;
   routeUrl: string;
-  pageStyle: Record<string, unknown>;
+  pageStyle: ResolvedMiniAppPageConfig;
 };
 
 export type NebulaNativeModuleType = TurboModule & {

@@ -1,5 +1,7 @@
 import React, { useContext, useEffect, useRef } from 'react';
 import { PAGE_RESERVED_PROP_KEYS } from './nebulaNative';
+import { resolvePageConfig } from './pageConfig';
+import type { MiniAppPageConfig } from './pageConfig';
 import { Miniapp } from './miniappRuntime';
 import type {
   MiniAppPageContextValue,
@@ -73,12 +75,7 @@ export function createMiniAppPage<P extends Record<string, unknown>>(
       routePath:
         typeof props.__routePath === 'string' ? props.__routePath : '/',
       routeUrl: typeof props.__routeUrl === 'string' ? props.__routeUrl : '',
-      pageStyle:
-        props.__pageConfig &&
-        typeof props.__pageConfig === 'object' &&
-        !Array.isArray(props.__pageConfig)
-          ? (props.__pageConfig as Record<string, unknown>)
-          : {},
+      pageStyle: resolvePageConfig(props.__pageConfig as MiniAppPageConfig),
     };
 
     return React.createElement(
