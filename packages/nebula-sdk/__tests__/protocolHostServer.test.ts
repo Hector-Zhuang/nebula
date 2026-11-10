@@ -104,6 +104,10 @@ afterEach(() => {
   NebulaAPI.unregisterApiHandler('boom');
   NebulaAPI.unregisterApiHandler('locked');
   NebulaAPI.unregisterApiHandler('legacy');
+  NebulaAPI.unregisterApiHandler('throwsRaw');
+  NebulaAPI.unregisterApiHandler('supportedThrows');
+  NebulaAPI.unregisterApiHandler('payloadEcho');
+  NebulaAPI.unregisterApiHandler('capsBoom');
   // Re-register the bootstrap handler so the server stays usable across tests.
   NebulaAPI.registerApiHandler('__bootstrap__', {
     version: '1.0.0',
@@ -274,5 +278,113 @@ describe('capabilities protocol', () => {
     expect(data).not.toHaveProperty('legacy');
     cleanup();
     cleanupNoDesc();
+  });
+});
+
+describe('protocol error handling', () => {
+  it('ignores messages that are not protocol requests', async () => {
+    __emit('NebulaHostMessage', {
+      appId: 'miniapp-1',
+      message: { hello: 'world' },
+    });
+    await flush();
+
+    expect(__nativeModule.postMessageToMiniApp).not.toHaveBeenCalled();
+  });
+
+  it('ignores protocol requests with an unknown kind', async () => {
+    sendRequest({ kind: 'teleport', payload: {} });
+    await flush();
+
+    expect(__nativeModule.postMessageToMiniApp).not.toHaveBeenCalled();
+  });
+
+  it('maps a non-Error throw to INTERNAL_ERROR with a generic message', async () => {
+    const cleanup = register(
+      createHostApiFeature({
+        apiName: 'throwsRaw',
+        handle: () => Promise.reject('raw failure'),
+      }),
+    );
+
+    sendRequest({ kind: 'invoke', api: 'throwsRaw', payload: {} });
+    await flush();
+
+    expect(lastReply().response).toMatchObject({
+      kind: 'invokeResult',
+      result: {
+        ok: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Unexpected host error' },
+      },
+    });
+    cleanup();
+  });
+
+  it('maps a throwing supported() probe to INTERNAL_ERROR', async () => {
+    const cleanup = register(
+      createHostApiFeature({
+        apiName: 'supportedThrows',
+        supported: async () => {
+          throw new Error('capability probe failed');
+        },
+        handle: async () => ({ ok: true, data: null }),
+      }),
+    );
+
+    sendRequest({ kind: 'invoke', api: 'supportedThrows', payload: {} });
+    await flush();
+
+    expect(lastReply().response).toMatchObject({
+      kind: 'invokeResult',
+      result: {
+        ok: false,
+        error: { code: 'INTERNAL_ERROR', message: 'capability probe failed' },
+      },
+    });
+    cleanup();
+  });
+
+  it('hands an empty payload object to the handler when none is provided', async () => {
+    const cleanup = register(
+      createMockHostApiFeature({
+        apiName: 'payloadEcho',
+        result: (payload: Record<string, unknown>) => ({ got: payload }),
+      }),
+    );
+
+    sendRequest({ kind: 'invoke', api: 'payloadEcho' });
+    await flush();
+
+    expect(lastReply().response).toMatchObject({
+      kind: 'invokeResult',
+      result: { ok: true, data: { got: {} } },
+    });
+    cleanup();
+  });
+
+  it('logs and drops the capabilities reply when resolving fails', async () => {
+    const consoleError = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const cleanup = register(
+      createHostApiFeature({
+        apiName: 'capsBoom',
+        supported: async () => {
+          throw new Error('capability probe failed');
+        },
+        handle: async () => ({ ok: true, data: null }),
+      }),
+    );
+
+    sendRequest({ kind: 'getCapabilities' });
+    await flush();
+
+    expect(consoleError).toHaveBeenCalledWith(
+      '[Nebula] Failed to resolve host capabilities',
+      expect.any(Error),
+    );
+    expect(__nativeModule.postMessageToMiniApp).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+    cleanup();
   });
 });
