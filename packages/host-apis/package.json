@@ -34,6 +34,7 @@
   "scripts": {
     "build": "tsc",
     "prepack": "npm run build",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {

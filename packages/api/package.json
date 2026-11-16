@@ -22,6 +22,7 @@
     "clean": "rimraf ./dist apiList.js libList.js",
     "build": "tsc && npm run assets",
     "dev": "npm run assets && tsc --watch",
+    "typecheck": "tsc --noEmit",
     "prepack": "npm run build",
     "docs": "node ./script",
     "lint": "eslint src --ext .js,.jsx.ts,.tsx",

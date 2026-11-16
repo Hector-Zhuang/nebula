@@ -21,6 +21,7 @@
     "runner:start": "npm run --workspace=@nebula-rn/dev-runner start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "typecheck": "nx run-many --target=typecheck --parallel=3 --projects=@nebula-rn/components,@nebula-rn/host-apis,@nebula-rn/sdk,@nebula-rn/host,@nebula-rn/client",
     "test": "jest",
     "nx:graph": "nx graph",
     "nx:host:start": "nx run sample-host:start",
