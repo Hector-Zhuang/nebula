@@ -28,6 +28,7 @@ installed automatically as dependencies of this package.
 | `Progress` | Linear/circular progress with determinate and indeterminate modes |
 | `RichText` | Render a subset of HTML nodes as native views |
 | `Slider` | Slide-to-select value picker with min/max/step support |
+| `Switch` | Taro-style toggle switch with controlled/uncontrolled modes |
 | `Swiper` | Swipeable carousel with pagination, built on reanimated-carousel |
 | `Video` | Video player with common playback controls |
 | `WebView` | Embedded web content view |

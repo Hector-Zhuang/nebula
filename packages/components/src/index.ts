@@ -6,6 +6,7 @@ export * from './Map';
 export * from './Progress';
 export * from './RichText';
 export * from './Slider';
+export * from './Switch';
 export * from './Swiper';
 export * from './Video';
 export * from './WebView';
