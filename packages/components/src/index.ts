@@ -2,6 +2,7 @@
 // https://github.com/NervJS/taro.git
 export * from './Badge';
 export * from './Camera';
+export * from './Checkbox';
 export * from './Map';
 export * from './Progress';
 export * from './RichText';

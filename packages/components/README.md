@@ -24,6 +24,7 @@ installed automatically as dependencies of this package.
 |---|---|
 | `Badge` | Red-dot / count badge with `dot` mode and `maxCount` overflow |
 | `Camera` | Camera view built on vision-camera for scanning and capture |
+| `Checkbox` | Taro-style checkbox with controlled/uncontrolled modes and accent color |
 | `Map` | Map view for embedding native maps in mini-app pages |
 | `Progress` | Linear/circular progress with determinate and indeterminate modes |
 | `RichText` | Render a subset of HTML nodes as native views |
