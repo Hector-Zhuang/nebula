@@ -5,6 +5,7 @@ export * from './Camera';
 export * from './Checkbox';
 export * from './Map';
 export * from './Progress';
+export * from './Radio';
 export * from './RichText';
 export * from './Slider';
 export * from './Switch';

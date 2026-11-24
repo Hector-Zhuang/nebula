@@ -27,6 +27,7 @@ installed automatically as dependencies of this package.
 | `Checkbox` | Taro-style checkbox with controlled/uncontrolled modes and accent color |
 | `Map` | Map view for embedding native maps in mini-app pages |
 | `Progress` | Linear/circular progress with determinate and indeterminate modes |
+| `Radio` | Taro-style radio button with controlled/uncontrolled modes and accent color |
 | `RichText` | Render a subset of HTML nodes as native views |
 | `Slider` | Slide-to-select value picker with min/max/step support |
 | `Switch` | Taro-style toggle switch with controlled/uncontrolled modes |
